@@ -1,0 +1,817 @@
+/**
+ * YBT Enhanced Admin Dashboard Styles
+ * Modern, professional design with smooth animations
+ * Version: 2.0 - Enhanced UI/UX
+ */
+
+/* ============================================
+   SCOPED BRAND COLORS - Only for YBT Plugin
+   ============================================ */
+/* Only apply brand colors within YBT plugin containers */
+.ybt-admin-wrapper *,
+.ybt-admin-container *,
+.ybt-admin-wrapper *::before,
+.ybt-admin-wrapper *::after {
+    --blue: #10b981;
+    --info: #10b981;
+    --primary: #10b981;
+}
+
+/* Apply brand colors ONLY to YBT plugin elements */
+.ybt-admin-wrapper .bg-primary,
+.ybt-admin-wrapper .btn-primary,
+.ybt-admin-wrapper .badge-primary,
+.ybt-admin-container .bg-primary,
+.ybt-admin-container .btn-primary,
+.ybt-admin-container .badge-primary {
+    background-color: #10b981 !important;
+    border-color: #10b981 !important;
+    color: white !important;
+}
+
+/* Links - only within YBT containers */
+.ybt-admin-wrapper a,
+.ybt-admin-container a {
+    color: #10b981;
+}
+.ybt-admin-wrapper a:hover,
+.ybt-admin-container a:hover {
+    color: #d4af37;
+}
+
+/* ============================================
+   CSS Variables - Modern Color Scheme
+   ============================================ */
+:root {
+    /* STRICT BRAND COLORS - GREEN & GOLD ONLY (Shared with User Dashboard) */
+    --brand-green-h: 160;
+    --brand-green-s: 65%;
+    --brand-green-l: 45%;
+    --brand-green: hsl(var(--brand-green-h), var(--brand-green-s), var(--brand-green-l));
+    --brand-green-dark: hsl(var(--brand-green-h), var(--brand-green-s), 35%);
+    --brand-green-light: hsl(var(--brand-green-h), var(--brand-green-s), 92%);
+
+    --brand-gold: #D4AF37;
+    --brand-gold-light: #f5e6c3;
+    --brand-gold-dark: #b59021;
+
+    /* Primary Colors */
+    --primary-color: var(--brand-green);
+    --primary-hover: var(--brand-green-dark);
+    --primary-dark: var(--brand-green-dark);
+    --primary-light: var(--brand-green-light);
+
+    /* Secondary Colors */
+    --secondary-color: #64748b;
+    --secondary-hover: #475569;
+
+    /* Status Colors */
+    --success-color: var(--brand-green);
+    --success-light: var(--brand-green-light);
+    --warning-color: var(--brand-gold);
+    --warning-light: var(--brand-gold-light);
+    --danger-color: #ef4444;
+    --danger-light: #fee2e2;
+    --info-color: #3b82f6;
+    --info-light: #eff6ff;
+
+    /* Semantic Compatibility */
+    --text-main: #1e293b;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+
+    /* Neutral Colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+
+    /* Compatibility for Neo-styles used in some templates */
+    --neo-green: var(--brand-green);
+    --neo-gold: var(--brand-gold);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+.ybt-admin-wrapper {
+    font-family: var(--font-family);
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    min-height: 100vh;
+    padding: 0;
+    margin-top: 0 !important;
+}
+
+.ybt-admin-wrapper.wrap {
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Remove WordPress admin page spacing */
+#wpbody-content .ybt-admin-wrapper {
+    padding-top: 0 !important;
+    margin-top: -10px !important;
+}
+
+#wpbody-content > .ybt-admin-wrapper:first-child {
+    margin-top: -10px !important;
+}
+
+/* Remove space above navigation header */
+#wpbody-content {
+    padding-top: 0 !important;
+}
+
+#wpcontent {
+    padding-top: 0 !important;
+}
+
+/* Target the navigation bar directly */
+.ybt-admin-wrapper::before,
+body.wp-admin #wpbody-content > *:first-child {
+    margin-top: 0 !important;
+}
+
+.ybt-admin-wrapper * {
+    box-sizing: border-box;
+}
+
+/* Fix Bootstrap .row negative margins without a container */
+.ybt-admin-wrapper .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.ybt-admin-wrapper h1,
+.ybt-admin-wrapper h2,
+.ybt-admin-wrapper h3,
+.ybt-admin-wrapper h4,
+.ybt-admin-wrapper h5,
+.ybt-admin-wrapper h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+}
+
+/* ============================================
+   Glass Card Effect
+   ============================================ */
+.glass-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all var(--transition-normal);
+}
+
+.glass-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   Stat Cards
+   ============================================ */
+.admin-stat-card {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+.admin-stat-card:hover::before {
+    opacity: 1;
+}
+
+.admin-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.admin-stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    transition: transform var(--transition-normal);
+}
+
+.admin-stat-card:hover .admin-stat-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.admin-stat-info h3 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.admin-stat-info p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 4px 0 0 0;
+    font-weight: 500;
+}
+
+/* ============================================
+   Info Card Components
+   ============================================ */
+.info-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+}
+
+.info-card-header span {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+}
+
+.info-card-body {
+    padding: 20px;
+}
+
+/* ============================================
+   Buttons - Modern Design
+   ============================================ */
+.ybt-admin-wrapper .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    line-height: 1.5;
+}
+
+.ybt-admin-wrapper .button:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.ybt-admin-wrapper .button-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.ybt-admin-wrapper .button-primary:hover {
+    background: linear-gradient(135deg, var(--primary-hover) 0%, var(--brand-green-dark) 100%);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.ybt-admin-wrapper .button-primary:active {
+    transform: translateY(0);
+}
+
+.ybt-admin-wrapper .button-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.ybt-admin-wrapper .button-secondary:hover {
+    background: var(--bg-secondary);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.ybt-admin-wrapper .button-small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.ybt-admin-wrapper .button-large {
+    padding: 14px 28px;
+    font-size: 16px;
+}
+
+/* ============================================
+   Tables - Modern Design
+   ============================================ */
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.admin-table thead th {
+    background: var(--bg-tertiary);
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table tbody td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.admin-table tbody tr {
+    transition: background var(--transition-fast);
+}
+
+.admin-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* Tracking Number Column - NO GREEN BACKGROUND */
+.admin-table td.column-tracking_number,
+.admin-table td.tracking_number,
+.ybt-table td.tracking-number,
+.tracking-number-cell {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* Tracking Number Text - Black Color, No Background */
+.admin-table td strong,
+.admin-table tbody td:first-of-type strong {
+    background: transparent !important;
+    color: #1e293b !important;
+    padding: 0 !important;
+}
+
+/* ============================================
+   Badge Styles
+   ============================================ */
+.badge-glass {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+}
+
+/* ============================================
+   Loading States
+   ============================================ */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-normal);
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   Skeleton Loading
+   ============================================ */
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ============================================
+   Hover Effects & Animations
+   ============================================ */
+.hover-lift {
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.hover-scale {
+    transition: transform var(--transition-fast);
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+.hover-bg-light:hover {
+    background: var(--bg-tertiary);
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn var(--transition-normal) ease-out;
+}
+
+/* Slide In Animation */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.slide-in {
+    animation: slideIn var(--transition-normal) ease-out;
+}
+
+/* Pulse Animation for Notifications */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   Form Elements - Modern Design
+   ============================================ */
+.ybt-admin-wrapper input[type="text"],
+.ybt-admin-wrapper input[type="email"],
+.ybt-admin-wrapper input[type="password"],
+.ybt-admin-wrapper input[type="search"],
+.ybt-admin-wrapper select,
+.ybt-admin-wrapper textarea {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.ybt-admin-wrapper input:focus,
+.ybt-admin-wrapper select:focus,
+.ybt-admin-wrapper textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.ybt-admin-wrapper input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ============================================
+   Tooltip Styles
+   ============================================ */
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    padding: 6px 12px;
+    background: var(--text-primary);
+    color: white;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    z-index: 1000;
+}
+
+[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+/* ============================================
+   Progress Bar
+   ============================================ */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+    border-radius: var(--radius-full);
+    transition: width var(--transition-slow);
+}
+
+/* ============================================
+   Notification Toast
+   ============================================ */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border-left: 4px solid var(--primary-color);
+    animation: slideInRight var(--transition-normal) ease-out;
+    max-width: 400px;
+}
+
+.toast-success {
+    border-left-color: var(--success-color);
+}
+
+.toast-error {
+    border-left-color: var(--danger-color);
+}
+
+.toast-warning {
+    border-left-color: var(--warning-color);
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.toast-hide {
+    animation: slideOutRight var(--transition-normal) ease-in forwards;
+}
+
+@keyframes slideOutRight {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 1200px) {
+    .ybt-admin-wrapper {
+        padding: 16px;
+    }
+
+    .admin-stat-card {
+        padding: 16px;
+    }
+
+    .admin-stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .admin-stat-info h3 {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 768px) {
+    .ybt-admin-wrapper {
+        padding: 12px;
+    }
+
+    .admin-stat-card {
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .admin-stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .admin-stat-info h3 {
+        font-size: 20px;
+    }
+
+    .info-card-body {
+        padding: 14px;
+    }
+
+    .admin-table thead {
+        display: none;
+    }
+
+    .admin-table tbody td {
+        display: block;
+        padding: 10px 14px;
+    }
+
+    .admin-table tbody tr {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        margin-bottom: 10px;
+        display: block;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+    .ybt-admin-wrapper {
+        background: white;
+        padding: 0;
+    }
+
+    .glass-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+
+    .button,
+    .info-card-header a {
+        display: none;
+    }
+}
+
+/* ============================================
+   Dark Mode Support (Future)
+   ============================================ */
+/*
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1e293b;
+        --bg-secondary: #0f172a;
+        --bg-tertiary: #334155;
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --border-color: #334155;
+    }
+}
+*/
+
+/* Force remove all top spacing on YBT admin pages */
+body.toplevel_page_ybt-packer #wpbody-content,
+body[class*="ybt-packer"] #wpbody-content {
+    padding-top: 0 !important;
+    margin-top: -76px !important;
+}
+
+body.toplevel_page_ybt-packer #wpcontent,
+body[class*="ybt-packer"] #wpcontent {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Remove space before first element */
+body.toplevel_page_ybt-packer #wpbody-content > *:first-child,
+body[class*="ybt-packer"] #wpbody-content > *:first-child {
+    margin-top: 76px !important;
+    padding-top: 0 !important;
+}
+
+/* Target WordPress notices area */
+body.toplevel_page_ybt-packer .wrap,
+body[class*="ybt-packer"] .wrap {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Direct fix for navbar whitespace */
+body.toplevel_page_ybt-packer .ybt-navbar-modern,
+body[class*="ybt-packer"] .ybt-navbar-modern,
+nav.ybt-navbar-modern {
+    margin-top: -76px !important;
+    position: relative;
+    top: -76px;
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/dashboardFragment"
+        android:icon="@drawable/ic_package"
+        android:title="Dashboard" />
+    <item
+        android:id="@+id/adminOrdersFragment"
+        android:icon="@drawable/ic_search"
+        android:title="Orders" />
+    <item
+        android:id="@+id/adminAddTrackingFragment"
+        android:icon="@drawable/ic_camera"
+        android:title="Intake" />
+    <item
+        android:id="@+id/packingFragment"
+        android:icon="@drawable/ic_folder"
+        android:title="Packing" />
+    <item
+        android:id="@+id/adminChatFragment"
+        android:icon="@drawable/ic_send"
+        android:title="Support" />
+</menu>

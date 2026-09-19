@@ -1,0 +1,798 @@
+/* YBT Packer Service - GREEN & GOLD BRAND THEME */
+/* ============================================
+   SCOPED BRAND COLORS - Only for YBT User Dashboard
+   ============================================ */
+/* Only apply brand colors within YBT user dashboard */
+.ybt-dashboard-wrapper *,
+.ybt-dashboard-wrapper *::before,
+.ybt-dashboard-wrapper *::after {
+    --blue: var(--brand-green-primary, #10b981);
+    --info: var(--brand-green-primary, #10b981);
+    --primary: var(--brand-green-primary, #10b981);
+}
+
+/* Apply brand colors ONLY to YBT user dashboard elements */
+.ybt-dashboard-wrapper .bg-primary,
+.ybt-dashboard-wrapper .btn-primary,
+.ybt-dashboard-wrapper .badge-primary,
+.ybt-dashboard-wrapper .bg-info,
+.ybt-dashboard-wrapper .btn-info,
+.ybt-dashboard-wrapper .badge-info {
+    background-color: #10b981 !important;
+    border-color: #10b981 !important;
+    color: white !important;
+}
+
+/* Links - only within YBT user dashboard */
+.ybt-dashboard-wrapper a,
+.ybt-dashboard-wrapper .text-primary {
+    color: #059669 !important;
+}
+.ybt-dashboard-wrapper a:hover {
+    color: #d4af37 !important;
+}
+
+/* Focus - only within YBT user dashboard */
+.ybt-dashboard-wrapper *:focus {
+    outline-color: #d4af37 !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3) !important;
+}
+
+:root {
+    /* PRIMARY BRAND COLORS - LIGHT & VIBRANT GREEN & GOLD */
+    --brand-green-primary: #10b981;      /* Vibrant Emerald Green */
+    --brand-green-hover: #059669;        /* Darker Emerald */
+    --brand-green-light: #d1fae5;        /* Light Mint Green */
+    --brand-green-lighter: #ecfdf5;     /* Very Light Mint */
+
+    --brand-gold-primary: #d4af37;       /* Metallic Gold */
+    --brand-gold-hover: #b59021;         /* Darker Gold */
+    --brand-gold-light: #fff8e1;        /* Pale Gold/Cream */
+
+    /* MAP TO GENERIC NAMES */
+    --primary-color: var(--brand-green-primary);
+    --primary-hover: var(--brand-green-hover);
+    --primary-light: var(--brand-green-light);
+
+    --accent-gold: var(--brand-gold-primary);
+    --accent-gold-hover: var(--brand-gold-hover);
+    --accent-gold-light: var(--brand-gold-light);
+
+    /* BACKGROUNDS & EFFECTS */
+    --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    --glass-bg: rgba(255, 255, 255, 0.98);
+    --glass-border: 1px solid #a7f3d0;
+    --card-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+
+    /* TEXT COLORS */
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --text-on-primary: #ffffff;
+    --text-on-gold: #1f2937;
+}
+
+/* Scoped styles - only affect YBT dashboard */
+.ybt-dashboard-wrapper,
+.ybt-dashboard-enhanced {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Base Styles — Redesigned: Clean gradient */
+.ybt-dashboard-wrapper,
+.ybt-dashboard-enhanced {
+    background: linear-gradient(180deg, #f0fdf4 0%, #f8fafc 50%, #ffffff 100%) !important;
+    min-height: 100vh;
+    padding: 0 !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-main);
+    position: relative;
+}
+
+/* Container spacing fix */
+.ybt-dashboard-enhanced .container {
+    padding-top: 1.5rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+}
+
+/* ========== CARDS — Redesigned: Clean, flat, no blur ========== */
+.glass-card {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03) !important;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+}
+
+/* Card Headers */
+.info-card-header,
+.card-header-custom {
+    background: linear-gradient(135deg, var(--brand-green-primary), var(--brand-green-hover)) !important;
+    color: var(--text-on-primary) !important;
+    padding: 1rem 1.5rem;
+    border-bottom: 3px solid var(--brand-gold-primary);
+}
+
+.info-card-body {
+    padding: 1.5rem;
+}
+
+/* ========== STATS SECTION ========== */
+.stat-card {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border-left: 4px solid var(--brand-gold-primary);
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    background: linear-gradient(135deg, var(--brand-green-primary), var(--brand-green-hover));
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--brand-green-primary);
+}
+
+.stat-info p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ========== BUTTONS ========== */
+/* Primary Button - Green */
+.btn-primary,
+.ybt-btn-primary,
+.button-primary,
+.btn-success,
+[class*="btn-primary"],
+[class*="ybt-btn"] {
+    background: var(--brand-green-primary) !important;
+    border: 2px solid var(--brand-green-primary) !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 8px rgba(0, 77, 37, 0.2) !important;
+}
+
+.btn-primary:hover,
+.ybt-btn-primary:hover,
+.button-primary:hover,
+.btn-success:hover,
+[class*="btn-primary"]:hover,
+[class*="ybt-btn"]:hover {
+    background: var(--brand-green-hover) !important;
+    border-color: var(--brand-green-hover) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 77, 37, 0.3) !important;
+}
+
+/* Secondary Button - Gold Outline */
+.btn-secondary,
+.btn-outline-primary,
+.ybt-btn-gold,
+.button-secondary,
+[class*="btn-outline"],
+[class*="btn-gold"] {
+    background: transparent !important;
+    border: 2px solid var(--brand-gold-primary) !important;
+    color: var(--brand-gold-primary) !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-secondary:hover,
+.btn-outline-primary:hover,
+.ybt-btn-gold:hover,
+.button-secondary:hover,
+[class*="btn-outline"]:hover,
+[class*="btn-gold"]:hover {
+    background: var(--brand-gold-primary) !important;
+    color: var(--text-on-primary) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Gold Accent Button */
+.btn-accent-gold {
+    background: var(--brand-gold-primary) !important;
+    border: 2px solid var(--brand-gold-primary) !important;
+    color: var(--text-on-gold) !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-accent-gold:hover {
+    background: var(--brand-gold-hover) !important;
+    border-color: var(--brand-gold-hover) !important;
+    color: white !important;
+}
+
+/* ========== NAVIGATION ========== */
+.ybt-navbar {
+    background: linear-gradient(135deg, var(--brand-green-primary), var(--brand-green-hover)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: 3px solid var(--brand-gold-primary);
+    box-shadow: var(--card-shadow);
+    padding: 0.75rem 1rem;
+    border-radius: 0 0 12px 12px;
+    margin-bottom: 1.5rem;
+}
+
+.ybt-navbar .navbar-brand {
+    font-weight: 800;
+    color: var(--brand-gold-primary) !important;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+}
+
+.ybt-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 600;
+    padding: 0.5rem 1rem !important;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin: 0 2px;
+}
+
+.ybt-navbar .nav-link:hover {
+    background: rgba(212, 175, 55, 0.2) !important;
+    color: var(--brand-gold-primary) !important;
+}
+
+.ybt-navbar .nav-link.active {
+    background: var(--brand-gold-primary) !important;
+    color: var(--text-on-gold) !important;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+.ybt-navbar .dropdown-menu {
+    border: 1px solid var(--brand-gold-primary);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: none !important;
+    box-shadow: 0 8px 24px rgba(0, 77, 37, 0.15);
+    border-radius: 10px;
+    padding: 0.5rem;
+    margin-top: 8px;
+}
+
+.ybt-navbar .dropdown-item {
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-weight: 500;
+    color: var(--brand-green-primary) !important;
+    transition: all 0.2s;
+}
+
+.ybt-navbar .dropdown-item:hover {
+    background: var(--brand-gold-light);
+    color: var(--brand-green-primary) !important;
+}
+
+/* ========== TABLES ========== */
+.ybt-dashboard-wrapper table,
+.ybt-dashboard-enhanced table,
+.ybt-table,
+.ybt-dashboard-wrapper .wp-list-table,
+.ybt-dashboard-enhanced .wp-list-table {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--brand-gold-light);
+}
+
+.ybt-dashboard-wrapper table thead,
+.ybt-dashboard-enhanced table thead,
+.ybt-table thead,
+.ybt-dashboard-wrapper .wp-list-table thead,
+.ybt-dashboard-enhanced .wp-list-table thead {
+    background: linear-gradient(135deg, var(--brand-green-primary), var(--brand-green-hover)) !important;
+    color: white !important;
+}
+
+.ybt-dashboard-wrapper table thead th,
+.ybt-dashboard-enhanced table thead th,
+.ybt-table thead th,
+.ybt-dashboard-wrapper .wp-list-table thead th,
+.ybt-dashboard-enhanced .wp-list-table thead th {
+    border-bottom: 2px solid var(--brand-gold-primary) !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 14px 12px !important;
+}
+
+.ybt-dashboard-wrapper table tbody tr,
+.ybt-dashboard-enhanced table tbody tr,
+.ybt-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.ybt-dashboard-wrapper table tbody tr:nth-child(odd),
+.ybt-dashboard-enhanced table tbody tr:nth-child(odd),
+.ybt-table tbody tr:nth-child(odd) {
+    background: white;
+}
+
+.ybt-dashboard-wrapper table tbody tr:nth-child(even),
+.ybt-dashboard-enhanced table tbody tr:nth-child(even),
+.ybt-table tbody tr:nth-child(even) {
+    background: var(--brand-green-light);
+}
+
+.ybt-dashboard-wrapper table tbody tr:hover,
+.ybt-dashboard-enhanced table tbody tr:hover,
+.ybt-table tbody tr:hover {
+    background: var(--brand-gold-light) !important;
+}
+
+/* ========== BADGES & STATUS ========== */
+.ybt-dashboard-wrapper .badge,
+.ybt-dashboard-enhanced .badge,
+.ybt-dashboard-wrapper .status-badge,
+.ybt-dashboard-enhanced .status-badge,
+.ybt-dashboard-wrapper [class*="badge-"],
+.ybt-dashboard-enhanced [class*="badge-"] {
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+}
+
+.ybt-dashboard-wrapper .badge-success,
+.ybt-dashboard-enhanced .badge-success,
+.ybt-dashboard-wrapper .status-completed,
+.ybt-dashboard-enhanced .status-completed,
+.ybt-dashboard-wrapper .badge-completed,
+.ybt-dashboard-enhanced .badge-completed {
+    background: var(--brand-green-primary) !important;
+    color: white !important;
+    border-color: var(--brand-green-hover) !important;
+}
+
+.ybt-dashboard-wrapper .badge-warning,
+.ybt-dashboard-enhanced .badge-warning,
+.ybt-dashboard-wrapper .status-pending,
+.ybt-dashboard-enhanced .status-pending,
+.ybt-dashboard-wrapper .badge-received,
+.ybt-dashboard-enhanced .badge-received,
+.ybt-dashboard-wrapper .badge-packed,
+.ybt-dashboard-enhanced .badge-packed {
+    background: var(--brand-gold-primary) !important;
+    color: var(--text-on-gold) !important;
+    border-color: var(--brand-gold-hover) !important;
+}
+
+.ybt-dashboard-wrapper .badge-danger,
+.ybt-dashboard-enhanced .badge-danger,
+.ybt-dashboard-wrapper .status-error,
+.ybt-dashboard-enhanced .status-error,
+.ybt-dashboard-wrapper .badge-not-received,
+.ybt-dashboard-enhanced .badge-not-received {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.ybt-dashboard-wrapper .badge-info,
+.ybt-dashboard-enhanced .badge-info {
+    background: var(--brand-green-hover) !important;
+    color: white !important;
+}
+
+/* ========== FORMS & INPUTS ========== */
+.ybt-dashboard-wrapper .form-control,
+.ybt-dashboard-enhanced .form-control,
+.ybt-dashboard-wrapper input[type="text"],
+.ybt-dashboard-enhanced input[type="text"],
+.ybt-dashboard-wrapper input[type="email"],
+.ybt-dashboard-enhanced input[type="email"],
+.ybt-dashboard-wrapper input[type="password"],
+.ybt-dashboard-enhanced input[type="password"],
+.ybt-dashboard-wrapper input[type="number"],
+.ybt-dashboard-enhanced input[type="number"],
+.ybt-dashboard-wrapper input[type="search"],
+.ybt-dashboard-enhanced input[type="search"],
+.ybt-dashboard-wrapper select,
+.ybt-dashboard-enhanced select,
+.ybt-dashboard-wrapper textarea,
+.ybt-dashboard-enhanced textarea {
+    border: 2px solid var(--brand-green-light) !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    transition: all 0.3s ease !important;
+    font-size: 0.95rem;
+}
+
+.ybt-dashboard-wrapper .form-control:focus,
+.ybt-dashboard-enhanced .form-control:focus,
+.ybt-dashboard-wrapper input:focus,
+.ybt-dashboard-enhanced input:focus,
+.ybt-dashboard-wrapper select:focus,
+.ybt-dashboard-enhanced select:focus,
+.ybt-dashboard-wrapper textarea:focus,
+.ybt-dashboard-enhanced textarea:focus {
+    border-color: var(--brand-gold-primary) !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+    outline: none;
+}
+
+.ybt-dashboard-wrapper .form-label,
+.ybt-dashboard-enhanced .form-label,
+.ybt-dashboard-wrapper label,
+.ybt-dashboard-enhanced label {
+    color: var(--brand-green-primary) !important;
+    font-weight: 600 !important;
+    margin-bottom: 6px !important;
+}
+
+/* ========== ADDRESS BOX ========== */
+.address-box {
+    background: var(--brand-green-light);
+    border: 2px dashed var(--brand-gold-primary) !important;
+    border-radius: 12px;
+    padding: 1.2rem;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.address-box pre {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-main);
+    white-space: pre-wrap;
+}
+
+/* ========== JOURNEY PROGRESS ========== */
+.journey-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 2rem 0;
+    position: relative;
+}
+
+.journey-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 10%;
+    right: 10%;
+    height: 4px;
+    background: var(--brand-gold-primary);
+    transform: translateY(-50%);
+    z-index: 1;
+    border-radius: 2px;
+}
+
+.journey-step {
+    z-index: 2;
+    text-align: center;
+    width: 20%;
+}
+
+.journey-blob {
+    width: 50px;
+    height: 50px;
+    background: white;
+    border: 4px solid var(--brand-gold-primary);
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--brand-gold-primary);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.journey-step.active .journey-blob {
+    background: var(--brand-green-primary);
+    border-color: var(--brand-green-hover);
+    color: white;
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 77, 37, 0.4);
+}
+
+.journey-step-label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.journey-step.active .journey-step-label {
+    color: var(--brand-green-primary);
+}
+
+/* ========== ALERTS & NOTICES ========== */
+.alert-success {
+    background: var(--brand-green-light) !important;
+    border: 2px solid var(--brand-green-primary) !important;
+    color: var(--brand-green-primary) !important;
+    border-radius: 8px;
+}
+
+.alert-warning {
+    background: var(--brand-gold-light) !important;
+    border: 2px solid var(--brand-gold-primary) !important;
+    color: #665600 !important;
+    border-radius: 8px;
+}
+
+.alert-danger {
+    background: #fee2e2 !important;
+    border: 2px solid #dc3545 !important;
+    color: #991b1b !important;
+    border-radius: 8px;
+}
+
+.alert-info {
+    background: #e0f7fa !important;
+    border: 2px solid var(--brand-green-primary) !important;
+    color: var(--brand-green-primary) !important;
+    border-radius: 8px;
+}
+
+/* ========== PAGINATION ========== */
+/* Fix: WordPress paginate_links() outputs ul.page-numbers, not ul.pagination */
+.pagination ul.page-numbers,
+.pagination ol,
+ul.page-numbers {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+    justify-content: center !important;
+}
+.pagination ul.page-numbers > li,
+ul.page-numbers > li {
+    display: inline-flex !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.pagination .page-numbers:not(.dots),
+a.page-numbers,
+span.page-numbers:not(.dots) {
+    color: var(--brand-gold-primary) !important;
+    border: 1px solid var(--brand-gold-primary) !important;
+    border-radius: 6px !important;
+    margin: 0;
+    padding: 8px 14px;
+    font-weight: 600;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    text-decoration: none;
+}
+.page-numbers.current,
+.pagination .current,
+.pagination a:hover {
+    background: var(--brand-green-primary) !important;
+    color: var(--brand-gold-primary) !important;
+}
+.page-numbers.dots {
+    display: inline-flex !important;
+    align-items: center;
+    padding: 8px 6px;
+    border: none;
+    color: #6c757d;
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-up {
+    animation: fadeInUp 0.5s ease backwards;
+}
+
+/* ========== QUICK GUIDE ========== */
+.ybt-quick-guide {
+    background: var(--brand-gold-light);
+    border-left: 5px solid var(--brand-gold-primary);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    margin: 20px 0;
+}
+
+.ybt-quick-guide h4 {
+    color: var(--brand-green-primary) !important;
+    font-weight: 700;
+}
+
+/* ========== FOLDER UPLOAD ========== */
+.ybt-folder {
+    background: var(--brand-green-light);
+    border: 2px dashed var(--brand-gold-primary);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.ybt-folder:hover {
+    background: var(--brand-gold-light);
+    border-style: solid;
+}
+
+.ybt-folder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: var(--brand-green-primary);
+}
+
+/* ========== IMAGE GALLERY ========== */
+.ybt-image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.ybt-image-item {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--brand-gold-light);
+    transition: all 0.3s;
+}
+
+.ybt-image-item:hover {
+    border-color: var(--brand-gold-primary);
+    transform: scale(1.02);
+}
+
+.ybt-image-item img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+}
+
+/* ========== TRACKING INPUT ========== */
+.ybt-tracking-input {
+    border: 2px solid var(--brand-green-primary) !important;
+    border-radius: 10px !important;
+    padding: 14px !important;
+    margin-bottom: 12px;
+    transition: all 0.3s;
+    font-size: 1rem;
+}
+
+.ybt-tracking-input:focus {
+    border-color: var(--brand-gold-primary) !important;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* ========== MONOSPACE TEXT ========== */
+.ybt-partial-tracking,
+.tracking-number,
+code {
+    font-family: 'Fira Code', monospace;
+    font-size: 1.1rem;
+    color: var(--brand-green-primary) !important;
+    font-weight: 700;
+    background: transparent !important;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* Tracking Number Column - NO GREEN BACKGROUND */
+.wp-list-table td.column-tracking_number,
+.wp-list-table td.tracking_number,
+.ybt-table td.tracking-number,
+.tracking-number-cell,
+.ybt-tracking-number,
+.ybt-tracking-number-cell {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+.wp-list-table td.column-tracking_number:first-letter,
+.wp-list-table td.tracking_number:first-letter,
+.ybt-table td.tracking-number:first-letter {
+    text-transform: uppercase;
+}
+
+/* Override any inline green background on tracking numbers */
+tr td:has(.tracking-number),
+tbody td:has(.tracking-number),
+.ybt-tracking-number {
+    background: transparent !important;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .journey-container {
+        flex-direction: column;
+        gap: 2rem;
+        padding-left: 2rem;
+    }
+
+    .journey-container::before {
+        left: 45px;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        height: auto;
+        transform: none;
+    }
+
+    .journey-step {
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .journey-blob {
+        margin: 0;
+    }
+
+    .ybt-navbar {
+        border-radius: 0 0 8px 8px;
+        padding: 0.5rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+}

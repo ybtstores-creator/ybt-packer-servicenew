@@ -1,0 +1,424 @@
+/* Modern Chat Interface Styles - GREEN & GOLD THEME */
+/* Scoped to chat container only */
+.ybt-chat-container *,
+.ybt-chat-container *::before,
+.ybt-chat-container *::after {
+    --blue: #10b981 !important;
+    --info: #10b981 !important;
+}
+.ybt-chat-container .bg-primary,
+.ybt-chat-container .text-primary,
+.ybt-chat-container .btn-primary,
+.ybt-chat-container .btn-info,
+.ybt-chat-container .badge-primary,
+.ybt-chat-container .badge-info,
+.ybt-chat-container .alert-info,
+.ybt-chat-container .bg-info {
+    background-color: #10b981 !important;
+    color: white !important;
+}
+.ybt-chat-container a,
+.ybt-chat-container .text-primary,
+.ybt-chat-container .text-info {
+    color: #10b981 !important;
+}
+.ybt-chat-container *:focus {
+    outline-color: #d4af37 !important;
+}
+
+.ybt-chat-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    height: calc(100vh - 150px);
+    min-height: 600px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+}
+
+/* User List Sidebar */
+.ybt-chat-sidebar {
+    width: 320px;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+}
+
+.ybt-chat-sidebar-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border-bottom: 3px solid #d4af37;
+}
+
+.ybt-chat-sidebar-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.ybt-chat-search {
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-size: 14px;
+}
+
+.ybt-chat-search::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+.ybt-chat-users {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.ybt-user-item {
+    padding: 12px 15px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    border: 1px solid #e5e7eb;
+}
+
+.ybt-user-item:hover {
+    background: #f3f4f6;
+    transform: translateX(2px);
+}
+
+.ybt-user-item.active {
+    background: #228B22;
+    color: white;
+    border-color: #228B22;
+}
+
+.ybt-user-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.ybt-user-meta {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* Chat Area */
+.ybt-chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f0f2f5;
+}
+
+.ybt-chat-header {
+    padding: 15px 20px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ybt-chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ybt-chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #228B22, #DAA520);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.ybt-chat-header-text h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ybt-chat-header-text p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.ybt-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Message Bubbles */
+.ybt-message {
+    display: flex;
+    gap: 8px;
+    max-width: 70%;
+    animation: messageSlide 0.3s ease-out;
+}
+
+@keyframes messageSlide {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ybt-message.sent {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.ybt-message.received {
+    align-self: flex-start;
+}
+
+.ybt-message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.ybt-message.sent .ybt-message-avatar {
+    background: linear-gradient(135deg, #228B22, #DAA520);
+}
+
+.ybt-message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ybt-message-bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.ybt-message.sent .ybt-message-bubble {
+    background: #228B22;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.ybt-message.received .ybt-message-bubble {
+    background: white;
+    color: #1f2937;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.ybt-message-text {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.ybt-message-image {
+    max-width: 250px;
+    border-radius: 8px;
+    margin-top: 6px;
+    cursor: pointer;
+}
+
+.ybt-message-time {
+    font-size: 11px;
+    opacity: 0.7;
+    align-self: flex-end;
+}
+
+.ybt-message.sent .ybt-message-time {
+    color: rgba(255,255,255,0.8);
+}
+
+.ybt-message.received .ybt-message-time {
+    color: #6b7280;
+}
+
+/* Chat Input */
+.ybt-chat-input-area {
+    padding: 15px 20px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+}
+
+.ybt-chat-input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: #f3f4f6;
+    border-radius: 24px;
+    padding: 8px 15px;
+}
+
+.ybt-chat-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    resize: none;
+    max-height: 100px;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 6px 0;
+}
+
+.ybt-chat-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.ybt-chat-btn-attach {
+    background: transparent;
+    color: #6b7280;
+}
+
+.ybt-chat-btn-attach:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.ybt-chat-btn-send {
+    background: #228B22;
+    color: white;
+}
+
+.ybt-chat-btn-send:hover {
+    background: #006400;
+    transform: scale(1.05);
+}
+
+.ybt-chat-btn-send:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ybt-file-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.ybt-file-preview-remove {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* Empty State */
+.ybt-chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    padding: 40px;
+    text-align: center;
+}
+
+.ybt-chat-empty i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.ybt-chat-empty h3 {
+    margin: 0 0 10px 0;
+    color: #6b7280;
+}
+
+.ybt-chat-empty p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Scrollbar */
+.ybt-chat-users::-webkit-scrollbar,
+.ybt-chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ybt-chat-users::-webkit-scrollbar-track,
+.ybt-chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ybt-chat-users::-webkit-scrollbar-thumb,
+.ybt-chat-messages::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.ybt-chat-users::-webkit-scrollbar-thumb:hover,
+.ybt-chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ybt-chat-container {
+        height: calc(100vh - 100px);
+    }
+
+    .ybt-chat-sidebar {
+        width: 100%;
+        display: none;
+    }
+
+    .ybt-chat-sidebar.active {
+        display: flex;
+    }
+
+    .ybt-chat-main.hidden {
+        display: none;
+    }
+
+    .ybt-message {
+        max-width: 85%;
+    }
+}

@@ -1,0 +1,50 @@
+# Security-sensitive files
+includes/firebase-service-account.json
+secure-config/firebase-service-account.json
+*.pem
+*.key
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wp-content/ybt-security.log
+
+# Cache
+wp-content/cache/
+wp-content/uploads/
+
+# Node modules
+node_modules/
+
+# Composer vendor
+vendor/
+
+# Test files
+tests/
+phpunit.xml
+
+# Android / PackTracker build artifacts
+PackTracker/.gradle/
+PackTracker/build/
+PackTracker/app/build/
+PackTracker/local.properties
+*.apk
+*.aab
+
+# Business documents / generated artifacts (not source)
+.freebuff/
+letters/
+downloads/*.pdf
+downloads/*.jpeg
+*.idsig

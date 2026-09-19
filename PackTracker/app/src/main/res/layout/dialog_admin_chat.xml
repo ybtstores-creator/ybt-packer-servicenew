@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface"
+    android:paddingTop="12dp">
+
+    <View android:layout_width="40dp" android:layout_height="4dp"
+        android:layout_gravity="center_horizontal" android:background="@drawable/drag_handle" />
+
+    <TextView android:id="@+id/tvChatTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Chat" android:textSize="18sp" android:textStyle="bold"
+        android:textColor="@color/on_surface" android:padding="16dp" />
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
+
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvMessages"
+        android:layout_width="match_parent" android:layout_height="350dp"
+        android:clipToPadding="false" android:padding="8dp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="8dp" android:gravity="center_vertical">
+
+        <EditText android:id="@+id/etMessage" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:hint="Type a message..." android:inputType="text"
+            android:maxLines="1" android:background="@android:color/transparent" android:padding="8dp" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton android:id="@+id/btnSend"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/ic_support" android:backgroundTint="@color/primary"
+            android:layout_marginStart="8dp" app:fabSize="mini" />
+    </LinearLayout>
+</LinearLayout>

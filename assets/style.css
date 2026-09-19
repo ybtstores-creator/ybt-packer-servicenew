@@ -1,0 +1,433 @@
+/* YBT Packer Service - GREEN & GOLD BRAND THEME */
+:root {
+    --ybt-green: #10b981;
+    --ybt-green-hover: #059669;
+    --ybt-green-light: #d1fae5;
+    --ybt-gold: #d4af37;
+    --ybt-gold-hover: #b59021;
+    --ybt-gold-light: #fff8e1;
+    --ybt-dark-green: #047857;
+}
+
+.ybt-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Navbar - Green with Gold accents - MUST be at top */
+.ybt-navbar {
+    background: linear-gradient(135deg, var(--ybt-green), var(--ybt-green-hover)) !important;
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.15);
+    border-bottom: 3px solid var(--ybt-gold);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Override Bootstrap sticky-top that might conflict */
+.ybt-navbar.sticky-top {
+    position: fixed !important;
+    top: 0 !important;
+}
+
+/* Body padding ONLY for old fixed .ybt-navbar (not the modern sticky navbar) 
+body:not(.ybt-page):not(:has(.ybt-navbar-modern)) {
+    padding-top: 76px;
+}
+*/
+
+/* YBT pages use the modern sticky navbar - NO body padding needed */
+body.ybt-page {
+    padding-top: 0 !important;
+}
+
+.ybt-navbar .navbar-brand {
+    color: var(--ybt-gold) !important;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+}
+
+.ybt-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.95) !important;
+    padding: 10px 16px;
+    margin: 0 4px;
+    border-radius: 6px;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.ybt-navbar .nav-link:hover,
+.ybt-navbar .nav-link.active {
+    background: rgba(212, 175, 55, 0.25) !important;
+    color: var(--ybt-gold) !important;
+}
+
+.ybt-navbar .dropdown-menu {
+    border: 1px solid var(--ybt-gold);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+    z-index: 1050;
+    position: absolute;
+    right: 0;
+    left: auto;
+    min-width: 180px;
+    border-radius: 10px;
+    background: white;
+}
+
+.ybt-navbar .dropdown-item {
+    padding: 10px 18px;
+    color: var(--ybt-green) !important;
+    font-weight: 600;
+    border-radius: 6px;
+    margin: 2px 4px;
+}
+
+.ybt-navbar .dropdown-item:hover {
+    background-color: var(--ybt-gold-light);
+    color: var(--ybt-green) !important;
+}
+
+.ybt-navbar .dropdown-toggle::after {
+    margin-left: 0.5em;
+}
+
+.ybt-navbar .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ybt-navbar .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Cards */
+.ybt-card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 1px solid var(--ybt-gold-light);
+    transition: all 0.3s ease;
+}
+
+.ybt-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+    border-color: var(--ybt-gold);
+}
+
+.ybt-card-header {
+    background: linear-gradient(135deg, var(--ybt-green), var(--ybt-green-hover));
+    color: white;
+    padding: 16px 24px;
+    border: none;
+    border-bottom: 3px solid var(--ybt-gold);
+    font-weight: 700;
+}
+
+/* Primary Button - Green */
+.ybt-btn-primary,
+.btn-primary {
+    background: var(--ybt-green) !important;
+    border: 2px solid var(--ybt-green) !important;
+    border-radius: 8px !important;
+    padding: 10px 22px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+.ybt-btn-primary:hover,
+.btn-primary:hover {
+    background: var(--ybt-green-hover) !important;
+    border-color: var(--ybt-green-hover) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Gold Button */
+.ybt-btn-gold,
+.btn-gold {
+    background: var(--ybt-gold) !important;
+    border: 2px solid var(--ybt-gold) !important;
+    color: #1a1a1a !important;
+    border-radius: 8px !important;
+    padding: 10px 22px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.ybt-btn-gold:hover,
+.btn-gold:hover {
+    background: var(--ybt-gold-hover) !important;
+    border-color: var(--ybt-gold-hover) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Stats Card */
+.ybt-stats-card {
+    background: linear-gradient(135deg, var(--ybt-green), var(--ybt-green-hover));
+    color: white;
+    border-radius: 14px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 24px;
+    border: 2px solid var(--ybt-gold);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+}
+
+.ybt-stats-number {
+    font-size: 2.8rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+/* Tables */
+.ybt-table {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 77, 37, 0.08);
+    border: 1px solid var(--ybt-gold-light);
+}
+
+.ybt-table thead {
+    background: linear-gradient(135deg, var(--ybt-green), var(--ybt-green-hover)) !important;
+    color: white !important;
+}
+
+.ybt-table thead th {
+    border-bottom: 2px solid var(--ybt-gold) !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 14px !important;
+}
+
+.ybt-table tbody tr:nth-child(odd) {
+    background: white;
+}
+
+.ybt-table tbody tr:nth-child(even) {
+    background: var(--ybt-green-light);
+}
+
+.ybt-table tbody tr:hover {
+    background: var(--ybt-gold-light) !important;
+}
+
+/* Status Badges */
+.ybt-badge-not-received {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fecaca !important;
+}
+
+.ybt-badge-received {
+    background: var(--ybt-gold) !important;
+    color: #1a1a1a !important;
+    border: 1px solid var(--ybt-gold-hover) !important;
+}
+
+.ybt-badge-packed {
+    background: var(--ybt-green-light) !important;
+    color: var(--ybt-green) !important;
+    border: 1px solid var(--ybt-green-hover) !important;
+}
+
+.ybt-badge-completed {
+    background: var(--ybt-green) !important;
+    color: white !important;
+    border: 1px solid var(--ybt-green-hover) !important;
+}
+
+/* Image Gallery */
+.ybt-image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.ybt-image-item {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--ybt-gold-light);
+    transition: all 0.3s ease;
+}
+
+.ybt-image-item:hover {
+    border-color: var(--ybt-gold);
+    transform: scale(1.02);
+}
+
+.ybt-image-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+/* Quick Guide */
+.ybt-quick-guide {
+    background: var(--ybt-gold-light);
+    border-left: 5px solid var(--ybt-gold);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    margin: 20px 0;
+}
+
+.ybt-quick-guide h4 {
+    color: var(--ybt-green) !important;
+    font-weight: 700;
+}
+
+/* Tracking Input */
+.ybt-tracking-input {
+    border: 2px solid var(--ybt-green) !important;
+    border-radius: 10px !important;
+    padding: 14px !important;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.ybt-tracking-input:focus {
+    border-color: var(--ybt-gold) !important;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* Folder Upload */
+.ybt-folder {
+    background: var(--ybt-green-light);
+    border: 2px dashed var(--ybt-gold) !important;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 16px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ybt-folder:hover {
+    background: var(--ybt-gold-light);
+    border-style: solid;
+}
+
+.ybt-folder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    color: var(--ybt-green);
+}
+
+/* Anonymous Card */
+.ybt-anonymous-card {
+    background: white;
+    border: 2px solid var(--ybt-gold-light);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 77, 37, 0.08);
+    transition: all 0.3s ease;
+}
+
+.ybt-anonymous-card:hover {
+    border-color: var(--ybt-gold);
+}
+
+/* Partial Tracking */
+.ybt-partial-tracking {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 1.2rem;
+    color: var(--ybt-green);
+    font-weight: 700;
+    background: var(--ybt-green-light);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+/* YBT Dashboard Wrapper - no padding override */
+.ybt-dashboard-wrapper {
+    margin-top: 0 !important;
+}
+
+/* Chat Icon */
+.ybt-chat-icon {
+    font-size: 32px;
+    line-height: 1;
+    display: block;
+    pointer-events: none;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    body:not(.ybt-page) {
+        padding-top: 140px !important;
+    }
+
+    body.ybt-page {
+        padding-top: 0 !important;
+    }
+
+    .ybt-navbar {
+        padding: 0.5rem;
+    }
+
+    .ybt-sidebar {
+        min-height: auto;
+        margin-bottom: 20px;
+    }
+
+    .ybt-stats-number {
+        font-size: 2rem;
+    }
+
+    .ybt-image-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .ybt-card-header {
+        padding: 12px 16px;
+    }
+
+    .ybt-btn-primary,
+    .ybt-btn-gold {
+        padding: 8px 16px !important;
+    }
+}
+
+/* Form Elements Override */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--ybt-gold) !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* Link Colors - Scoped to YBT container only */
+.ybt-container a,
+.ybt-dashboard-wrapper a,
+.ybt-page a {
+    color: var(--ybt-green) !important;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.ybt-container a:hover,
+.ybt-dashboard-wrapper a:hover,
+.ybt-page a:hover {
+    color: var(--ybt-gold) !important;
+}

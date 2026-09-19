@@ -1,0 +1,66 @@
+# Local WordPress + MySQL test environment for the YBT Packer Service plugin.
+#
+# Usage:
+#   docker compose up -d          # start the stack
+#   docker compose run --rm wp-cli plugin activate ybt-packer-service
+#   docker compose down           # stop (keeps DB data in the named volume)
+#   docker compose down -v        # stop AND wipe the DB volume
+#
+# The YBT plugin files are bind-mounted from the repo, so edits are live.
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  wordpress:
+    image: wordpress:php8.3-apache
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: "1"
+    volumes:
+      - wp_data:/var/www/html
+      # YBT plugin bind mounts (live sync with the repo, no copy needed)
+      - ../ybt-packer-service.php:/var/www/html/wp-content/plugins/ybt-packer-service/ybt-packer-service.php
+      - ../includes:/var/www/html/wp-content/plugins/ybt-packer-service/includes
+      - ../assets:/var/www/html/wp-content/plugins/ybt-packer-service/assets
+      - ../templates:/var/www/html/wp-content/plugins/ybt-packer-service/templates
+      - ../ybt-theme:/var/www/html/wp-content/themes/ybt-theme
+    depends_on:
+      db:
+        condition: service_healthy
+
+  wp-cli:
+    image: wordpress:cli-php8.3
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes_from:
+      - wordpress
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["wp"]
+    command: ["--info"]
+
+volumes:
+  db_data:
+  wp_data:

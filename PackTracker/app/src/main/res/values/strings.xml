@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PackTracker</string>
+
+    <!-- Dashboard -->
+    <string name="loading">Loading…</string>
+    <string name="warehouse_address">Warehouse Address</string>
+    <string name="announcement">Announcement</string>
+    <string name="no_announcements">No announcements right now.</string>
+    <string name="service_status">Service Status</string>
+    <string name="quick_start">Quick Start</string>
+    <string name="quick_start_steps">1. Add your tracking numbers\n2. Mark items received\n3. Request packing\n4. Ship and track your batch</string>
+    <string name="hero_text">Your parcels, one app.</string>
+    <string name="tap_copy">Tap to copy</string>
+
+    <!-- Statuses -->
+    <string name="pending">Pending</string>
+    <string name="packed">Packed</string>
+    <string name="received">Received</string>
+    <string name="sent">Sent</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search tracking number, description or user</string>
+</resources>

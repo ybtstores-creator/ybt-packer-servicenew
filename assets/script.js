@@ -1,0 +1,248 @@
+// Global showAlert function - accessible everywhere
+function showAlert(type, message) {
+    const alert = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    const container = document.getElementById('alert-container');
+    if (container) {
+        container.innerHTML = alert;
+    } else if (typeof jQuery !== 'undefined') {
+        jQuery('#alert-container').html(alert);
+    }
+
+    // Auto dismiss after 5 seconds
+    setTimeout(function() {
+        const alertElement = document.querySelector('.alert');
+        if (alertElement) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                const bsAlert = new bootstrap.Alert(alertElement);
+                bsAlert.close();
+            } else {
+                alertElement.remove();
+            }
+        }
+    }, 5000);
+}
+
+jQuery(document).ready(function($) {
+
+    // Add tracking row handler removed - now in user-add-tracking.php template
+
+    // Remove tracking row
+    $(document).on('click', '.remove-tracking-row', function() {
+        $(this).closest('.tracking-row').remove();
+    });
+
+    // Submit user tracking form
+    $('#user-tracking-form').submit(function(e) {
+        e.preventDefault();
+
+        // Get arrays
+        const trackingNumbers = [];
+        const descriptions = [];
+
+        $('input[name="tracking_numbers[]"]').each(function() {
+            if ($(this).val().trim()) {
+                trackingNumbers.push($(this).val().trim());
+            }
+        });
+
+        $('input[name="descriptions[]"]').each(function() {
+            descriptions.push($(this).val().trim());
+        });
+
+        if (trackingNumbers.length === 0) {
+            showAlert('danger', 'Please enter at least one tracking number.');
+            return;
+        }
+
+        if (!ybt_ajax || !ybt_ajax.nonce) {
+            showAlert('danger', 'Security token missing. Please refresh the page.');
+            return;
+        }
+
+        $.ajax({
+            url: ybt_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'ybt_user_add_tracking',
+                nonce: ybt_ajax.nonce,
+                tracking_numbers: trackingNumbers,
+                descriptions: descriptions
+            },
+            success: function(response) {
+                console.log('Response:', response);
+                if (response.success) {
+                    showAlert('success', response.data);
+                    $('#user-tracking-form')[0].reset();
+                    $('.tracking-row').not(':first').remove();
+                    loadRecentSubmissions();
+                } else {
+                    showAlert('danger', response.data || 'An error occurred while processing tracking numbers.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('AJAX Error Status:', status);
+                console.log('AJAX Error:', error);
+                console.log('Response Text:', xhr.responseText);
+                console.log('Status Code:', xhr.status);
+                showAlert('danger', 'Server error (' + xhr.status + '). Check console for details.');
+            }
+        });
+    });
+
+    // Claim parcel form
+    $('#claim-parcel-form').submit(function(e) {
+        e.preventDefault();
+
+        const trackingNumber = $('#claim-tracking-number').val();
+
+        if (!ybt_ajax || !ybt_ajax.nonce) {
+            showAlert('danger', 'Security token missing. Please refresh the page.');
+            return;
+        }
+
+        $.ajax({
+            url: ybt_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'ybt_claim_parcel',
+                nonce: ybt_ajax.nonce,
+                tracking_number: trackingNumber
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', 'Parcel claimed successfully!');
+                    $('#claim-parcel-form')[0].reset();
+                    $('#claimModal').modal('hide');
+                } else {
+                    showAlert('danger', response.data);
+                }
+            }
+        });
+    });
+
+    // Toggle folder content
+    $('.ybt-folder').click(function() {
+        const content = $(this).find('.folder-content');
+        content.slideToggle();
+
+        const icon = $(this).find('.folder-icon');
+        icon.text(icon.text() === '📁' ? '📂' : '📁');
+    });
+
+    // Download images
+    $('.download-images').click(function() {
+        const images = $(this).data('images');
+        if (images) {
+            const imageArray = images.split(',');
+            imageArray.forEach(function(image, index) {
+                setTimeout(function() {
+                    const link = document.createElement('a');
+                    link.href = image;
+                    link.download = 'parcel-image-' + (index + 1);
+                    link.click();
+                }, index * 500);
+            });
+        }
+    });
+
+    // Load recent submissions
+    function loadRecentSubmissions() {
+        if (!ybt_ajax || !ybt_ajax.nonce) return;
+
+        $.ajax({
+            url: ybt_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'ybt_get_recent_submissions',
+                nonce: ybt_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#recent-submissions').html(response.data);
+                }
+            }
+        });
+    }
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Load recent submissions on page load
+    if ($('#recent-submissions').length) {
+        loadRecentSubmissions();
+    }
+
+});
+
+// Profile Page Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab functionality
+    function switchTab(tabId) {
+        const tabs = document.querySelectorAll('.ybt-profile-tab');
+        const contents = document.querySelectorAll('.ybt-profile-content');
+
+        tabs.forEach(tab => tab.classList.remove('active'));
+        contents.forEach(content => content.style.display = 'none');
+
+        const targetTab = document.querySelector(`#${tabId}`);
+        const targetContent = document.getElementById(tabId + '-content');
+
+        if (targetTab) targetTab.classList.add('active');
+        if (targetContent) targetContent.style.display = 'block';
+    }
+
+    // Handle tab clicks
+    document.querySelectorAll('.ybt-profile-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            switchTab(tabId);
+        });
+    });
+
+    // Default to first tab only if profile tabs exist
+    if (document.querySelector('.ybt-profile-tab')) {
+        switchTab('profile');
+    }
+
+    // Profile update form submission
+    const profileForm = document.getElementById('ybt-profile-form');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!ybt_ajax || !ybt_ajax.nonce) {
+                showAlert('danger', 'Security token missing. Please refresh the page.');
+                return;
+            }
+
+            const formData = new FormData(this);
+            formData.append('action', 'ybt_update_user_profile');
+            formData.append('nonce', ybt_ajax.nonce);
+
+            fetch(ybt_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'Profile updated successfully!');
+                } else {
+                    showAlert('danger', data.data || 'Failed to update profile.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'An error occurred while updating your profile.');
+            });
+        });
+    }
+});

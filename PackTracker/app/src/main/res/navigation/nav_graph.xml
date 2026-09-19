@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/dashboardFragment">
+
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.packtracker.fragments.DashboardFragment"
+        android:label="PackTracker" />
+
+    <fragment
+        android:id="@+id/trackingFragment"
+        android:name="com.packtracker.fragments.TrackingFragment"
+        android:label="Tracking" />
+
+    <fragment
+        android:id="@+id/addFragment"
+        android:name="com.packtracker.fragments.AddTrackingFragment"
+        android:label="Add Tracking" />
+
+    <fragment
+        android:id="@+id/packingFragment"
+        android:name="com.packtracker.fragments.AdminPackingFragment"
+        android:label="Packing" />
+
+    <fragment
+        android:id="@+id/chatFragment"
+        android:name="com.packtracker.fragments.ChatFragment"
+        android:label="Chat">
+    </fragment>
+
+    <!-- Admin: conversation list; ChatFragment redirects admins here -->
+    <fragment
+        android:id="@+id/adminChatFragment"
+        android:name="com.packtracker.fragments.AdminChatFragment"
+        android:label="Chat" />
+
+    <!-- Admin: full-screen conversation with one user -->
+    <fragment
+        android:id="@+id/adminChatConversationFragment"
+        android:name="com.packtracker.fragments.AdminChatConversationFragment"
+        android:label="Chat" />
+
+    <!-- Admin orders management (reachable via deep link: packtracker://admin/orders) -->
+    <fragment
+        android:id="@+id/adminOrdersFragment"
+        android:name="com.packtracker.fragments.AdminOrdersFragment"
+        android:label="Admin Orders">
+        <deepLink app:uri="packtracker://admin/orders" />
+    </fragment>
+
+    <!-- Admin warehouse intake / bulk tracking assignment -->
+    <fragment
+        android:id="@+id/adminAddTrackingFragment"
+        android:name="com.packtracker.fragments.AdminAddTrackingFragment"
+        android:label="Warehouse Intake" />
+
+    <!-- Admin user accounts management -->
+    <fragment
+        android:id="@+id/adminUsersFragment"
+        android:name="com.packtracker.fragments.AdminUsersFragment"
+        android:label="Manage Users" />
+</navigation>
