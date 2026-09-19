@@ -356,6 +356,11 @@ render_dashboard_navbar($current_user);
                      decoding="async"
                      style="max-height:120px; border-radius:8px;" />
                 <div class="small mt-2" style="color: #b59021; font-weight: 600;">Scan to Pay</div>
+                <a href="<?php echo esc_url($qr); ?>"
+                   class="btn btn-sm ybt-btn-modern ybt-btn-gold-modern py-1 px-3 mt-2 qr-download-btn"
+                   download="ybt-payment-qr.jpg">
+                  <i class="fas fa-download"></i> Download QR
+                </a>
               </div>
             <?php endif; ?>
           </div>

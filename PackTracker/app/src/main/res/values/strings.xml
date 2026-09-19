@@ -12,6 +12,7 @@
     <string name="quick_start_steps">1. Add your tracking numbers\n2. Mark items received\n3. Request packing\n4. Ship and track your batch</string>
     <string name="hero_text">Your parcels, one app.</string>
     <string name="tap_copy">Tap to copy</string>
+    <string name="download_qr">Download QR</string>
 
     <!-- Statuses -->
     <string name="pending">Pending</string>

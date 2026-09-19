@@ -489,6 +489,19 @@
                                 <ImageView android:id="@+id/ivQrCode" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginTop="8dp" android:src="@android:drawable/ic_menu_report_image" android:contentDescription="Payment QR code" />
                                 <ImageView android:id="@+id/ivCopyBank" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="12dp" android:src="@drawable/ic_copy" android:contentDescription="Copy bank details" />
                             </LinearLayout>
+                            <TextView
+                                android:id="@+id/btnDownloadQr"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:padding="8dp"
+                                android:gravity="center_vertical"
+                                android:drawablePadding="6dp"
+                                android:text="@string/download_qr"
+                                android:textColor="@color/primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:visibility="gone" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>

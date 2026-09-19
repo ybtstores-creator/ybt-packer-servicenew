@@ -1,12 +1,19 @@
 package com.packtracker.fragments
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -14,13 +21,17 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.request.transition.Transition
 import com.packtracker.R
 import com.packtracker.activities.BarcodeScannerActivity
 import com.packtracker.api.ApiClient
@@ -29,6 +40,8 @@ import com.packtracker.models.ApiResponse
 import com.packtracker.models.DashboardData
 import com.packtracker.models.DashboardInfo
 import com.packtracker.utils.UrlUtils
+import java.io.File
+import java.io.FileInputStream
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -52,6 +65,15 @@ class DashboardFragment : Fragment() {
     private lateinit var tvAccountName: TextView
     private lateinit var tvAccountNumber: TextView
     private lateinit var ivQrCode: ImageView
+    private var qrCodeUrl: String? = null
+
+    private val qrPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            qrCodeUrl?.let { fetchAndSaveQr(it) }
+        } else {
+            context?.let { Toast.makeText(it, "Permission needed to save the QR", Toast.LENGTH_SHORT).show() }
+        }
+    }
     private lateinit var swipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -145,6 +167,7 @@ class DashboardFragment : Fragment() {
         view.findViewById<View>(R.id.ivCopyAddress)?.setOnClickListener { copyWarehouseAddress() }
         view.findViewById<View>(R.id.cardBankDetails)?.setOnClickListener { copyBankDetails() }
         view.findViewById<View>(R.id.ivCopyBank)?.setOnClickListener { copyBankDetails() }
+        view.findViewById<View>(R.id.btnDownloadQr)?.setOnClickListener { downloadQrCode() }
         tvBankName.setOnClickListener { copyText("Bank Name", tvBankName.text.toString()) }
         tvAccountName.setOnClickListener { copyText("Account Name", tvAccountName.text.toString()) }
         tvAccountNumber.setOnClickListener { copyText("Account Number", tvAccountNumber.text.toString()) }
@@ -266,13 +289,17 @@ class DashboardFragment : Fragment() {
             if (!p.qrCodeImage.isNullOrEmpty()) {
                 val qrUrl = UrlUtils.fixUrl(p.qrCodeImage)
                 if (qrUrl != null) {
+                    qrCodeUrl = qrUrl
                     ivQrCode.visibility = View.VISIBLE
+                    view?.findViewById<View>(R.id.btnDownloadQr)?.visibility = View.VISIBLE
                     Glide.with(this)
                         .load(qrUrl)
                         .listener(object : RequestListener<Drawable> {
                             override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
                                 Log.e(TAG, "QR image load failed: ${e?.message}")
                                 ivQrCode.visibility = View.GONE
+                                qrCodeUrl = null
+                                view?.findViewById<View>(R.id.btnDownloadQr)?.visibility = View.GONE
                                 return false
                             }
 
@@ -281,8 +308,90 @@ class DashboardFragment : Fragment() {
                             }
                         })
                         .into(ivQrCode)
+                } else {
+                    qrCodeUrl = null
+                    view?.findViewById<View>(R.id.btnDownloadQr)?.visibility = View.GONE
                 }
+            } else {
+                qrCodeUrl = null
+                view?.findViewById<View>(R.id.btnDownloadQr)?.visibility = View.GONE
             }
+        }
+    }
+
+    private fun downloadQrCode() {
+        val ctx = context ?: return
+        val url = qrCodeUrl
+        if (url.isNullOrEmpty()) {
+            Toast.makeText(ctx, "No QR image to download", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            qrPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+        fetchAndSaveQr(url)
+    }
+
+    private fun fetchAndSaveQr(url: String) {
+        val ctx = context ?: return
+        Toast.makeText(ctx, "Downloading QR…", Toast.LENGTH_SHORT).show()
+        Glide.with(this)
+            .downloadOnly()
+            .load(url)
+            .into(object : CustomTarget<File>() {
+                override fun onResourceReady(resource: File, transition: Transition<in File>?) {
+                    saveQrToDownloads(resource)
+                }
+
+                override fun onLoadFailed(errorDrawable: Drawable?) {
+                    super.onLoadFailed(errorDrawable)
+                    Log.e(TAG, "QR download fetch failed")
+                    context?.let { Toast.makeText(it, "Could not download QR", Toast.LENGTH_SHORT).show() }
+                }
+
+                override fun onLoadCleared(placeholder: Drawable?) {}
+            })
+    }
+
+    private fun saveQrToDownloads(src: File) {
+        val ctx = context ?: return
+        val filename = "YBT_Payment_QR.jpg"
+        val mime = "image/jpeg"
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                    put(MediaStore.Downloads.MIME_TYPE, mime)
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val resolver = ctx.contentResolver
+                val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                resolver.delete(collection,
+                    "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND ${MediaStore.MediaColumns.DISPLAY_NAME}=?",
+                    arrayOf("${Environment.DIRECTORY_DOWNLOADS}/", filename))
+                val uri = resolver.insert(collection, values) ?: throw IllegalStateException("MediaStore insert failed")
+                resolver.openOutputStream(uri)?.use { out ->
+                    FileInputStream(src).use { input -> input.copyTo(out) }
+                } ?: throw IllegalStateException("Could not open output stream")
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!dir.exists()) dir.mkdirs()
+                val dest = File(dir, filename)
+                FileInputStream(src).use { input -> dest.outputStream().use { input.copyTo(it) } }
+                MediaScannerConnection.scanFile(ctx, arrayOf(dest.absolutePath), arrayOf(mime), null)
+            }
+            Toast.makeText(ctx, "QR saved to Downloads", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "QR save failed: ${e.message}")
+            Toast.makeText(ctx, "Could not save QR", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -342,5 +451,7 @@ class DashboardFragment : Fragment() {
         tvAccountName.text = ""
         tvAccountNumber.text = ""
         ivQrCode.visibility = View.GONE
+        qrCodeUrl = null
+        view?.findViewById<View>(R.id.btnDownloadQr)?.visibility = View.GONE
     }
 }
