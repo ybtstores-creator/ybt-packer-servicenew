@@ -4,10 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
-import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +16,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.packtracker.R
 import com.packtracker.activities.BarcodeScannerActivity
 import com.packtracker.api.ApiClient
@@ -24,6 +28,7 @@ import com.packtracker.models.AdminDashboardData
 import com.packtracker.models.ApiResponse
 import com.packtracker.models.DashboardData
 import com.packtracker.models.DashboardInfo
+import com.packtracker.utils.UrlUtils
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -259,20 +264,23 @@ class DashboardFragment : Fragment() {
             if (!p.accountName.isNullOrEmpty()) tvAccountName.text = p.accountName
             if (!p.accountNumber.isNullOrEmpty()) tvAccountNumber.text = p.accountNumber
             if (!p.qrCodeImage.isNullOrEmpty()) {
-                try {
-                    val bytes = Base64.decode(p.qrCodeImage, Base64.DEFAULT)
-                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    if (bitmap != null) {
-                        ivQrCode.setImageBitmap(bitmap)
-                        ivQrCode.visibility = View.VISIBLE
-                    }
-                } catch (e: Exception) {
-                    try {
-                        ivQrCode.setImageURI(Uri.parse(p.qrCodeImage))
-                        ivQrCode.visibility = View.VISIBLE
-                    } catch (e2: Exception) {
-                        Log.e(TAG, "QR load error: ${e2.message}")
-                    }
+                val qrUrl = UrlUtils.fixUrl(p.qrCodeImage)
+                if (qrUrl != null) {
+                    ivQrCode.visibility = View.VISIBLE
+                    Glide.with(this)
+                        .load(qrUrl)
+                        .listener(object : RequestListener<Drawable> {
+                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
+                                Log.e(TAG, "QR image load failed: ${e?.message}")
+                                ivQrCode.visibility = View.GONE
+                                return false
+                            }
+
+                            override fun onResourceReady(resource: Drawable, model: Any, target: Target<Drawable>, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                                return false
+                            }
+                        })
+                        .into(ivQrCode)
                 }
             }
         }
