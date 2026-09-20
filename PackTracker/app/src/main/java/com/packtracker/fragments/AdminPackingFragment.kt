@@ -201,7 +201,10 @@ class AdminPackingFragment : Fragment() {
         }
 
         currentSheet = dialog
-        dialog.setOnDismissListener { currentSheet = null }
+        dialog.setOnDismissListener {
+            currentSheet = null
+            currentDetailAdapter = null
+        }
         dialog.setContentView(view)
         dialog.show()
     }
@@ -240,7 +243,10 @@ class AdminPackingFragment : Fragment() {
                     if (response.isSuccessful && response.body()?.success == true) {
                         try { Toast.makeText(ctx, "Image uploaded: ${item.tracking_number}", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
                         // Reload batch details to refresh images
-                        currentDetailAdapter?.notifyItemChanged(position)
+                        val detailAdapter = currentDetailAdapter
+                        if (detailAdapter != null && position in 0 until detailAdapter.itemCount) {
+                            detailAdapter.notifyItemChanged(position)
+                        }
                     } else {
                         try { Toast.makeText(ctx, "Upload failed: ${response.body()?.message}", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
                     }
@@ -360,7 +366,8 @@ class BatchTrackingItemAdapter(
 
         // Upload button
         holder.btnUploadImage.setOnClickListener {
-            onUploadClick(item, holder.adapterPosition)
+            val pos = holder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) onUploadClick(item, pos)
         }
 
         holder.tvUploadStatus.visibility = View.GONE
@@ -407,11 +414,15 @@ class ImageThumbnailAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val url = images[position].replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
-        Glide.with(holder.itemView.context)
-            .load(url)
-            .placeholder(R.drawable.ic_camera)
-            .centerCrop()
-            .into(holder.iv)
+        try {
+            Glide.with(holder.itemView.context)
+                .load(url)
+                .placeholder(R.drawable.ic_camera)
+                .centerCrop()
+                .into(holder.iv)
+        } catch (_: IllegalArgumentException) {
+            // Host activity already destroyed while this row was binding
+        }
     }
 
     override fun getItemCount() = images.size

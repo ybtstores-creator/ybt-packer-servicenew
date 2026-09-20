@@ -50,6 +50,13 @@ class ParcelDetailSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // `item` is passed via field, so it is lost when the system recreates
+        // this fragment after process death — close instead of crashing.
+        if (!::item.isInitialized) {
+            dismissAllowingStateLoss()
+            return
+        }
+
         view.findViewById<ImageButton>(R.id.btnCloseSheet).setOnClickListener { dismiss() }
 
         view.findViewById<TextView>(R.id.tvSheetTrackingNumber).text =

@@ -17,7 +17,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.textfield.TextInputEditText
 import com.packtracker.R
 import com.packtracker.utils.OfflineScanStorage
 import com.packtracker.utils.OfflineScanStorage.ScanHistoryRecord
@@ -30,7 +29,7 @@ class ScanHistoryActivity : AppCompatActivity() {
     private lateinit var rvHistory: RecyclerView
     private lateinit var emptyState: View
     private lateinit var adapter: HistoryAdapter
-    private lateinit var etSearch: TextInputEditText
+    private lateinit var etSearch: android.widget.EditText
     private lateinit var chipGroup: ChipGroup
 
     private var allRecords = listOf<ScanHistoryRecord>()

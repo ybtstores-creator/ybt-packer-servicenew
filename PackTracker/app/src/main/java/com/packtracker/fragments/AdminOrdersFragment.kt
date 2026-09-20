@@ -225,10 +225,16 @@ class AdminOrdersFragment : Fragment() {
     private fun uploadImage(trackingId: Int, uri: Uri) {
         if (!isAdded) return
         val context = requireContext()
-        val inputStream = context.contentResolver.openInputStream(uri) ?: return
-        val tempFile = File(context.cacheDir, "upload_${System.currentTimeMillis()}.jpg")
-        FileOutputStream(tempFile).use { output -> inputStream.copyTo(output) }
-        inputStream.close()
+        val tempFile = try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return
+            val file = File(context.cacheDir, "upload_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { output -> inputStream.copyTo(output) }
+            inputStream.close()
+            file
+        } catch (_: Throwable) {
+            try { Toast.makeText(context, "Could not read image", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
+            return
+        }
 
         val requestFile = tempFile.asRequestBody("image/*".toMediaTypeOrNull())
         val filePart = MultipartBody.Part.createFormData("image", tempFile.name, requestFile)

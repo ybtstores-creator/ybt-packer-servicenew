@@ -33,6 +33,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
@@ -67,7 +68,12 @@ class BarcodeScannerActivity : AppCompatActivity() {
     private lateinit var rvScannedItems: RecyclerView
     private lateinit var btnConfirm: TextView
     private lateinit var btnTorch: ImageButton
-    private lateinit var cameraExecutor: ExecutorService
+    private var cameraExecutor: ExecutorService? = null
+    private var cameraProvider: ProcessCameraProvider? = null
+    private var barcodeScanner: BarcodeScanner? = null
+
+    private fun scanner(): BarcodeScanner =
+        barcodeScanner ?: BarcodeScanning.getClient().also { barcodeScanner = it }
     private var isScanning = true
     private var torchEnabled = false
     private var camera: Camera? = null
@@ -340,7 +346,12 @@ class BarcodeScannerActivity : AppCompatActivity() {
     // ═══════════════════════════════════════════════════
 
     private fun initSoundAndVibration() {
-        toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        try {
+            toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "ToneGenerator unavailable", e)
+            toneGenerator = null
+        }
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSystemService(VibratorManager::class.java)?.defaultVibrator
         } else {
@@ -350,12 +361,21 @@ class BarcodeScannerActivity : AppCompatActivity() {
     }
 
     private fun playScanFeedback() {
-        vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-        toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(100)
+            }
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+        } catch (_: Exception) {}
     }
 
     private fun playErrorFeedback() {
-        toneGenerator?.startTone(ToneGenerator.TONE_PROP_NACK, 200)
+        try {
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_NACK, 200)
+        } catch (_: Exception) {}
     }
 
     // ═══════════════════════════════════════════════════
@@ -457,6 +477,15 @@ class BarcodeScannerActivity : AppCompatActivity() {
         updateNetworkStatus()
     }
 
+    private fun saveItemOfflineAt(index: Int) {
+        if (index in scannedItems.indices) saveItemOffline(index)
+    }
+
+    private fun notifyItemRow(item: ScannedItem) {
+        val index = scannedItems.indexOf(item)
+        if (index >= 0) scannedAdapter.notifyItemChanged(index)
+    }
+
     private fun saveItemToServer(position: Int) {
         val item = scannedItems[position]
         item.saveStatus = SaveStatus.SAVING
@@ -474,13 +503,13 @@ class BarcodeScannerActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body()?.success == true) {
                         item.saveStatus = SaveStatus.SAVED
                         runOnUiThread {
-                            scannedAdapter.notifyItemChanged(position)
+                            notifyItemRow(item)
                             updateBatchCount()
                         }
                     } else {
                         // Server rejected — save offline
                         runOnUiThread {
-                            saveItemOffline(position)
+                            saveItemOfflineAt(scannedItems.indexOf(item))
                         }
                     }
                 }
@@ -488,7 +517,7 @@ class BarcodeScannerActivity : AppCompatActivity() {
                 override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
                     // Network error — save offline
                     runOnUiThread {
-                        saveItemOffline(position)
+                        saveItemOfflineAt(scannedItems.indexOf(item))
                     }
                 }
             })
@@ -501,19 +530,19 @@ class BarcodeScannerActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body()?.success == true) {
                         item.saveStatus = SaveStatus.SAVED
                         runOnUiThread {
-                            scannedAdapter.notifyItemChanged(position)
+                            notifyItemRow(item)
                             updateBatchCount()
                         }
                     } else {
                         runOnUiThread {
-                            saveItemOffline(position)
+                            saveItemOfflineAt(scannedItems.indexOf(item))
                         }
                     }
                 }
 
                 override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
                     runOnUiThread {
-                        saveItemOffline(position)
+                        saveItemOfflineAt(scannedItems.indexOf(item))
                     }
                 }
             })
@@ -524,7 +553,7 @@ class BarcodeScannerActivity : AppCompatActivity() {
     }
 
     private fun retrySave(position: Int) {
-        if (position < scannedItems.size) {
+        if (position in scannedItems.indices) {
             val item = scannedItems[position]
             if (isOffline) {
                 saveItemOffline(position)
@@ -797,9 +826,8 @@ class BarcodeScannerActivity : AppCompatActivity() {
     private fun scanImageForBarcode(uri: Uri) {
         try {
             val image = InputImage.fromFilePath(this, uri)
-            val scanner = BarcodeScanning.getClient()
             tvScanStatus.text = "Scanning image..."
-            scanner.process(image)
+            scanner().process(image)
                 .addOnSuccessListener { barcodes ->
                     if (barcodes.isNotEmpty()) {
                         val barcode = barcodes.first()
@@ -843,23 +871,26 @@ class BarcodeScannerActivity : AppCompatActivity() {
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setTargetResolution(android.util.Size(1280, 720))
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-
-            imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                if (!isScanning) { imageProxy.close(); return@setAnalyzer }
-                processImage(imageProxy)
-            }
-
             try {
-                cameraProvider.unbindAll()
-                camera = cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis)
+                val provider = cameraProviderFuture.get()
+                cameraProvider = provider
+                val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setTargetResolution(android.util.Size(1280, 720))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+
+                cameraExecutor?.let { executor ->
+                    imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                        if (!isScanning) { imageProxy.close(); return@setAnalyzer }
+                        processImage(imageProxy)
+                    }
+                }
+
+                provider.unbindAll()
+                camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis)
             } catch (e: Exception) {
-                android.util.Log.e(TAG, "Camera bind failed", e)
+                android.util.Log.e(TAG, "Camera start failed", e)
                 Toast.makeText(this, "Camera failed to start", Toast.LENGTH_SHORT).show()
                 finish()
             }
@@ -871,7 +902,7 @@ class BarcodeScannerActivity : AppCompatActivity() {
         val mediaImage = imageProxy.image ?: run { imageProxy.close(); return }
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-        BarcodeScanning.getClient().process(image)
+        scanner().process(image)
             .addOnSuccessListener { barcodes ->
                 if (barcodes.isNotEmpty() && isScanning) {
                     val barcode = barcodes.first()
@@ -931,8 +962,12 @@ class BarcodeScannerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         connectivityReceiver?.let { NetworkMonitor.unregister(this, it) }
-        cameraExecutor.shutdown()
-        toneGenerator?.release()
+        try { cameraProvider?.unbindAll() } catch (_: Exception) {}
+        cameraExecutor?.shutdownNow()
+        try { toneGenerator?.release() } catch (_: Exception) {}
+        toneGenerator = null
+        try { barcodeScanner?.close() } catch (_: Exception) {}
+        barcodeScanner = null
     }
 
     // ═══════════════════════════════════════════════════
@@ -1006,7 +1041,10 @@ class BarcodeScannerActivity : AppCompatActivity() {
                 }
             }
 
-            holder.btnRetry.setOnClickListener { onRetry(holder.adapterPosition) }
+            holder.btnRetry.setOnClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) onRetry(pos)
+            }
         }
 
         override fun getItemCount() = items.size

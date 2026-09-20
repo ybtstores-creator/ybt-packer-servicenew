@@ -30,6 +30,9 @@ class ScanSyncWorker(
         /** Unique work name for periodic scheduling */
         private const val PERIODIC_WORK_NAME = "periodic_scan_sync"
 
+        /** Cap immediate backoff retries; the periodic sync still re-processes FAILED items */
+        private const val MAX_RETRY_ATTEMPTS = 3
+
         /**
          * Schedule a periodic sync worker that runs every 15 minutes.
          * Uses flex interval so it runs within a 15-minute window.
@@ -108,6 +111,9 @@ class ScanSyncWorker(
     }
 
     override suspend fun doWork(): Result {
+        // Recover scans left in SYNCING by a previous run that was killed or timed out
+        OfflineScanStorage.resetStuckSyncing(applicationContext)
+
         val pendingScans = OfflineScanStorage.getPendingScans(applicationContext)
             .filter {
                 it.syncStatus != OfflineScanStorage.PendingScan.SyncStatus.SYNCED &&
@@ -122,7 +128,8 @@ class ScanSyncWorker(
         Log.d(TAG, "Starting sync of ${pendingScans.size} pending scans")
 
         var syncedCount = 0
-        var failedCount = 0
+        var retryableFailures = 0
+        var terminalFailures = 0
 
         // Sync each pending scan
         for (scan in pendingScans) {
@@ -136,18 +143,24 @@ class ScanSyncWorker(
 
             OfflineScanStorage.markSyncing(applicationContext, originalIndex)
 
-            val success = syncSingleScan(scan)
-
-            if (success) {
-                OfflineScanStorage.markSynced(applicationContext, originalIndex)
-                syncedCount++
-            } else {
-                OfflineScanStorage.markFailed(applicationContext, originalIndex)
-                failedCount++
+            when (syncSingleScan(scan)) {
+                SyncOutcome.SUCCESS -> {
+                    OfflineScanStorage.markSynced(applicationContext, originalIndex)
+                    syncedCount++
+                }
+                SyncOutcome.RETRYABLE -> {
+                    OfflineScanStorage.markFailed(applicationContext, originalIndex)
+                    retryableFailures++
+                }
+                SyncOutcome.TERMINAL -> {
+                    OfflineScanStorage.markFailed(applicationContext, originalIndex)
+                    terminalFailures++
+                }
             }
         }
 
-        Log.d(TAG, "Sync complete: $syncedCount synced, $failedCount failed out of ${pendingScans.size}")
+        Log.d(TAG, "Sync complete: $syncedCount synced, $retryableFailures retryable, " +
+                "$terminalFailures terminal failures out of ${pendingScans.size}")
 
         // Clean up fully synced items
         OfflineScanStorage.clearSynced(applicationContext)
@@ -160,22 +173,25 @@ class ScanSyncWorker(
             .putString("scan_stats", com.google.gson.Gson().toJson(stats))
             .apply()
 
-        return if (failedCount > 0) {
-            // There are failures — retry with backoff
-            Log.d(TAG, "$failedCount scans failed, will retry with backoff")
+        return if (retryableFailures > 0 && runAttemptCount < MAX_RETRY_ATTEMPTS) {
+            Log.d(TAG, "$retryableFailures scans hit network errors, will retry with backoff")
             Result.retry()
         } else {
+            // Remaining failures are terminal or the retry budget is spent;
+            // FAILED items stay queued and the periodic sync will pick them up.
             Result.success()
         }
     }
+
+    private enum class SyncOutcome { SUCCESS, RETRYABLE, TERMINAL }
 
     /**
      * Sync a single scan to the server. Uses CountDownLatch to make
      * the Retrofit synchronous call work within the coroutine worker.
      */
-    private fun syncSingleScan(scan: OfflineScanStorage.PendingScan): Boolean {
+    private fun syncSingleScan(scan: OfflineScanStorage.PendingScan): SyncOutcome {
         val latch = CountDownLatch(1)
-        var success = false
+        val outcome = java.util.concurrent.atomic.AtomicReference(SyncOutcome.RETRYABLE)
 
         try {
             if (scan.isAdmin && scan.targetUserId > 0) {
@@ -190,13 +206,15 @@ class ScanSyncWorker(
                         call: Call<ApiResponse<String>>,
                         response: Response<ApiResponse<String>>
                     ) {
-                        success = response.isSuccessful && response.body()?.success == true
+                        // Server answered: reject = terminal, so replaying never duplicates writes
+                        outcome.set(if (response.isSuccessful && response.body()?.success == true)
+                            SyncOutcome.SUCCESS else SyncOutcome.TERMINAL)
                         latch.countDown()
                     }
 
                     override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
                         Log.e(TAG, "Sync failed for ${scan.trackingNumber}: ${t.message}")
-                        success = false
+                        outcome.set(SyncOutcome.RETRYABLE)
                         latch.countDown()
                     }
                 })
@@ -209,28 +227,35 @@ class ScanSyncWorker(
                         call: Call<ApiResponse<String>>,
                         response: Response<ApiResponse<String>>
                     ) {
-                        success = response.isSuccessful && response.body()?.success == true
+                        outcome.set(if (response.isSuccessful && response.body()?.success == true)
+                            SyncOutcome.SUCCESS else SyncOutcome.TERMINAL)
                         latch.countDown()
                     }
 
                     override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
                         Log.e(TAG, "Sync failed for ${scan.trackingNumber}: ${t.message}")
-                        success = false
+                        outcome.set(SyncOutcome.RETRYABLE)
                         latch.countDown()
                     }
                 })
             } else {
                 // Admin without user ID — can't sync
                 Log.w(TAG, "Skipping ${scan.trackingNumber} — admin without user ID")
+                outcome.set(SyncOutcome.TERMINAL)
                 latch.countDown()
             }
 
             // Wait up to 30 seconds for the network call
-            latch.await(30, TimeUnit.SECONDS)
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                // Timed out — the request may still be in flight; treat as retryable
+                Log.w(TAG, "Sync timed out for ${scan.trackingNumber}")
+                return SyncOutcome.RETRYABLE
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Sync exception for ${scan.trackingNumber}: ${e.message}")
+            return SyncOutcome.RETRYABLE
         }
 
-        return success
+        return outcome.get()
     }
 }

@@ -218,6 +218,11 @@ class AdminChatConversationFragment : Fragment() {
         try { Toast.makeText(ctx, "Sending photo…", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
 
         try {
+            val size = imageSize(ctx, imageUri)
+            if (size > MAX_IMAGE_BYTES) {
+                try { Toast.makeText(ctx, "Image too large (max 10 MB)", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
+                return
+            }
             val bytes = ctx.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
             if (bytes == null || bytes.size > MAX_IMAGE_BYTES) {
                 try { Toast.makeText(ctx, "Image too large (max 10 MB)", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
@@ -246,9 +251,17 @@ class AdminChatConversationFragment : Fragment() {
                     if (isAdded) try { Toast.makeText(context, "Failed to send photo", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
                 }
             })
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             try { Toast.makeText(ctx, "Could not read image", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
         }
+    }
+
+    private fun imageSize(ctx: android.content.Context, uri: Uri): Long = try {
+        ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else -1L
+        } ?: -1L
+    } catch (_: Exception) {
+        -1L
     }
 
     // ── Attach flow ────────────────────────────────────────────────────────

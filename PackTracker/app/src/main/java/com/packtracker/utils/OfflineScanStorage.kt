@@ -57,6 +57,7 @@ object OfflineScanStorage {
     // PENDING SCANS (for sync queue)
     // ═══════════════════════════════════════════════
 
+    @Synchronized
     fun savePendingScan(context: Context, scan: PendingScan) {
         val list = getPendingScans(context).toMutableList()
         list.add(scan)
@@ -79,13 +80,59 @@ object OfflineScanStorage {
         addHistoryRecord(context, historyRecord)
     }
 
+    @Synchronized
     fun getPendingScans(context: Context): List<PendingScan> {
         val json = prefs(context).getString(KEY_PENDING_SCANS, null) ?: return emptyList()
         val type = object : TypeToken<List<PendingScan>>() {}.type
         return try {
-            gson.fromJson(json, type) ?: emptyList()
+            gson.fromJson<List<PendingScan?>?>(json, type)?.mapNotNull { it?.normalizedOrNull() }
+                ?: emptyList()
         } catch (e: Exception) {
+            backupCorrupted(context, KEY_PENDING_SCANS, json)
             emptyList()
+        }
+    }
+
+    /** Gson reflects into fields, so declared-non-null properties can still be null. */
+    @Suppress("SENSELESS_COMPARISON")
+    private fun PendingScan.normalizedOrNull(): PendingScan? {
+        val tracking = trackingNumber ?: return null
+        return copy(
+            trackingNumber = tracking,
+            format = format ?: "UNKNOWN",
+            syncStatus = syncStatus ?: PendingScan.SyncStatus.PENDING
+        )
+    }
+
+    /** Gson reflects into fields, so declared-non-null properties can still be null. */
+    @Suppress("SENSELESS_COMPARISON")
+    private fun ScanHistoryRecord.normalizedOrNull(): ScanHistoryRecord? {
+        val tracking = trackingNumber ?: return null
+        return copy(
+            trackingNumber = tracking,
+            format = format ?: "UNKNOWN",
+            status = status ?: ScanHistoryRecord.HistoryStatus.SAVED_ONLINE
+        )
+    }
+
+    private fun backupCorrupted(context: Context, key: String, raw: String) {
+        val p = prefs(context)
+        val backupKey = "${key}_corrupt_backup"
+        if (!p.contains(backupKey)) p.edit().putString(backupKey, raw).apply()
+    }
+
+    /** Reset SYNCING rows left over from a killed or timed-out sync run. */
+    @Synchronized
+    fun resetStuckSyncing(context: Context) {
+        val list = getPendingScans(context)
+        if (list.any { it.syncStatus == PendingScan.SyncStatus.SYNCING }) {
+            val fixed = list.map {
+                if (it.syncStatus == PendingScan.SyncStatus.SYNCING)
+                    it.copy(syncStatus = PendingScan.SyncStatus.PENDING) else it
+            }
+            prefs(context).edit()
+                .putString(KEY_PENDING_SCANS, gson.toJson(fixed))
+                .apply()
         }
     }
 
@@ -106,6 +153,7 @@ object OfflineScanStorage {
         }
     }
 
+    @Synchronized
     fun markSyncing(context: Context, index: Int) {
         val list = getPendingScans(context).toMutableList()
         if (index in list.indices) {
@@ -116,6 +164,7 @@ object OfflineScanStorage {
         }
     }
 
+    @Synchronized
     fun markSynced(context: Context, index: Int) {
         val list = getPendingScans(context).toMutableList()
         if (index in list.indices) {
@@ -130,6 +179,7 @@ object OfflineScanStorage {
         }
     }
 
+    @Synchronized
     fun markFailed(context: Context, index: Int) {
         val list = getPendingScans(context).toMutableList()
         if (index in list.indices) {
@@ -144,6 +194,7 @@ object OfflineScanStorage {
         }
     }
 
+    @Synchronized
     fun clearSynced(context: Context) {
         val list = getPendingScans(context).filter {
             it.syncStatus != PendingScan.SyncStatus.SYNCED
@@ -182,6 +233,7 @@ object OfflineScanStorage {
     }
 
     /** Add a record for a scan saved directly to server (not offline) */
+    @Synchronized
     fun recordOnlineSave(context: Context, trackingNumber: String, format: String,
                          isAdmin: Boolean = false, targetUserId: Int = 0) {
         val record = ScanHistoryRecord(
@@ -209,12 +261,15 @@ object OfflineScanStorage {
         }
     }
 
+    @Synchronized
     fun getScanHistory(context: Context): List<ScanHistoryRecord> {
         val json = prefs(context).getString(KEY_SCAN_HISTORY, null) ?: return emptyList()
         val type = object : TypeToken<List<ScanHistoryRecord>>() {}.type
         return try {
-            gson.fromJson(json, type) ?: emptyList()
+            gson.fromJson<List<ScanHistoryRecord?>?>(json, type)?.mapNotNull { it?.normalizedOrNull() }
+                ?: emptyList()
         } catch (e: Exception) {
+            backupCorrupted(context, KEY_SCAN_HISTORY, json)
             emptyList()
         }
     }
