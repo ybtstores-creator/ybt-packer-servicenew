@@ -11,9 +11,11 @@ a local WordPress. Two WordPress targets are supported and both are kept green:
 Pick one with env vars; nothing in the suites hard-codes a driver (see §3).
 
 > **No credentials live in this file.** Local test logins and passwords are kept outside
-> the plugin checkout in `C:/Users/HP/ybt-wp-docker/TESTING-credentials.local.md`, so they
-> can never be committed or shipped in a deploy zip. Export `YBT_ADMIN_PASS` /
-> `YBT_ALICE_PASS` / `YBT_BOB_PASS` from that note before running a suite. If the note is
+> the plugin checkout in `C:/Users/HP/ybt-wp-docker/TESTING-credentials.local.md`, with the
+> machine-readable form `C:/Users/HP/ybt-wp-docker/ybt-test-env.sh` — the harnesses in
+> `docker/` source that file (override its location with `YBT_TEST_ENV=/path/to/env.sh`) and
+> exit with code 2 rather than fall back to an embedded password. Nothing secret can be
+> committed or shipped in a deploy zip. If the note is
 > missing, reset the account instead of guessing —
 > `wp user update <login> --user_pass='<new>' --role=administrator --allow-root`.
 
@@ -94,16 +96,19 @@ submit path can be exercised). The admin harness covers the depot console and th
 tracking register (filter panel, manifest table, bulk selection via localStorage,
 status buttons, modals) with the same shim approach.
 ```bash
-# XAMPP target (what the app talks to) — export YBT_ADMIN_PASS first (local credentials note)
+# XAMPP target (what the app talks to). Source the local credentials env first, then
+# point the admin pair at the QA admin — XAMPP's uid-1 `admin` has no known password.
+source /c/Users/HP/ybt-wp-docker/ybt-test-env.sh
 cd docker && YBT_API_BASE="http://localhost/wordpress/wp-admin/admin-ajax.php" \
-  YBT_DB_DRIVER=xampp YBT_ADMIN_USER=ybtqa \
+  YBT_DB_DRIVER=xampp YBT_ADMIN_USER="$YBT_QA_ADMIN_USER" YBT_ADMIN_PASS="$YBT_QA_ADMIN_PASS" \
   bash run-api-tests.sh
 
 # Docker target (regression)
 cd docker && bash run-api-tests.sh
 ```
 
-Both runs must end `RESULTS: 85 passed, 0 failed` (exit 0). Overridable vars:
+Both runs must end with `0 failed` (exit 0; the script exits with the failure count).
+The XAMPP run measured `92 passed, 0 failed` on 2026-10-07. Overridable vars:
 `YBT_API_BASE`, `YBT_DB_DRIVER` (`docker` | `xampp`), `YBT_ADMIN_USER`/`YBT_ADMIN_PASS`,
 `YBT_ALICE_USER`/`YBT_ALICE_PASS`, `YBT_BOB_USER`/`YBT_BOB_PASS`, `XAMPP_MYSQL`,
 `XAMPP_PHP`, `XAMPP_DB_NAME`, `XAMPP_DB_USER`/`XAMPP_DB_PASS`, `XAMPP_WP_ROOT`, `DOCKER_WP_ROOT`.
