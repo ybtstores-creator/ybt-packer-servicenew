@@ -11,7 +11,7 @@
         android:layout_gravity="center_horizontal" android:background="@drawable/drag_handle" />
 
     <TextView android:id="@+id/tvChatTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Chat" android:textSize="18sp" android:textStyle="bold"
+        android:text="Chat" android:textSize="@dimen/text_subtitle" android:textStyle="bold"
         android:textColor="@color/on_surface" android:padding="16dp" />
 
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />

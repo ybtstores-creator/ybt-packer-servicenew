@@ -6,7 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- System tray notification for new messages (Android 13+ runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -21,6 +22,18 @@
         android:theme="@style/Theme.PackTracker"
         android:usesCleartextTraffic="false"
         tools:targetApi="34">
+
+        <!-- WorkManager is initialised on demand by PackTrackerApplication. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <activity
             android:name=".activities.LoginActivity"
@@ -59,6 +72,20 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.PackTracker" />
+
+        <!-- FCM: receives instant push from the WordPress sender. -->
+        <service
+            android:name=".utils.PackTrackerMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Tray group bookkeeping when the user swipes a child away. -->
+        <receiver
+            android:name=".utils.TrayDismissReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

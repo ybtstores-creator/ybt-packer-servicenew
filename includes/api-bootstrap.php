@@ -11,7 +11,7 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
  * YBT API Bootstrap Guard
  *
  * Included at the top of every API file (mobile-api.php, ajax-handlers.php,
- * admin_api.php, temp_api_endpoint.php).
+ * temp_api_endpoint.php).
  *
  * Guarantees:
  *  1. WordPress is fully loaded (ABSPATH + WPINC + $wpdb).

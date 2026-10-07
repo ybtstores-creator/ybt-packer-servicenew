@@ -71,9 +71,11 @@ class BarcodeScannerActivity : AppCompatActivity() {
     private var cameraExecutor: ExecutorService? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var barcodeScanner: BarcodeScanner? = null
+    private var isActivityDestroyed = false
 
-    private fun scanner(): BarcodeScanner =
-        barcodeScanner ?: BarcodeScanning.getClient().also { barcodeScanner = it }
+    private fun scanner(): BarcodeScanner? =
+        if (isActivityDestroyed) null
+        else barcodeScanner ?: BarcodeScanning.getClient().also { barcodeScanner = it }
     private var isScanning = true
     private var torchEnabled = false
     private var camera: Camera? = null
@@ -262,9 +264,39 @@ class BarcodeScannerActivity : AppCompatActivity() {
         tvScanStatus.text = "Syncing $totalCount pending scans..."
         tvScanStatus.setTextColor(0xFFFFB74D.toInt())
 
-        pending.forEachIndexed { index, scan ->
-            val originalIndex = OfflineScanStorage.getPendingScans(this).indexOf(scan)
-            OfflineScanStorage.markSyncing(this, originalIndex)
+        pending.forEach { scan ->
+            // Capture identifiers — NOT array index
+            val scanTrackingNumber = scan.trackingNumber
+            val scanTimestamp = scan.timestamp
+
+            // Find current index and mark syncing
+            val currentIdx = OfflineScanStorage.getPendingScans(this)
+                .indexOfFirst { it.trackingNumber == scanTrackingNumber && it.timestamp == scanTimestamp }
+            if (currentIdx >= 0) OfflineScanStorage.markSyncing(this, currentIdx)
+
+            val callback = object : retrofit2.Callback<ApiResponse<String>> {
+                override fun onResponse(call: retrofit2.Call<ApiResponse<String>>, response: retrofit2.Response<ApiResponse<String>>) {
+                    // Re-find the current index at callback time
+                    val idx = OfflineScanStorage.getPendingScans(this@BarcodeScannerActivity)
+                        .indexOfFirst { it.trackingNumber == scanTrackingNumber && it.timestamp == scanTimestamp }
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        if (idx >= 0) OfflineScanStorage.markSynced(this@BarcodeScannerActivity, idx)
+                        syncedCount++
+                    } else {
+                        if (idx >= 0) OfflineScanStorage.markFailed(this@BarcodeScannerActivity, idx)
+                        failedCount++
+                    }
+                    runOnUiThread { updateSyncProgress(syncedCount, failedCount, totalCount) }
+                }
+
+                override fun onFailure(call: retrofit2.Call<ApiResponse<String>>, t: Throwable) {
+                    val idx = OfflineScanStorage.getPendingScans(this@BarcodeScannerActivity)
+                        .indexOfFirst { it.trackingNumber == scanTrackingNumber && it.timestamp == scanTimestamp }
+                    if (idx >= 0) OfflineScanStorage.markFailed(this@BarcodeScannerActivity, idx)
+                    failedCount++
+                    runOnUiThread { updateSyncProgress(syncedCount, failedCount, totalCount) }
+                }
+            }
 
             if (scan.isAdmin && scan.targetUserId > 0) {
                 ApiClient.getService(this).addAdminTrackingBulk(
@@ -273,46 +305,12 @@ class BarcodeScannerActivity : AppCompatActivity() {
                     description = null,
                     itemCount = 1,
                     shippingMethod = null
-                ).enqueue(object : Callback<ApiResponse<String>> {
-                    override fun onResponse(call: Call<ApiResponse<String>>, response: Response<ApiResponse<String>>) {
-                        if (response.isSuccessful && response.body()?.success == true) {
-                            OfflineScanStorage.markSynced(this@BarcodeScannerActivity, originalIndex)
-                            syncedCount++
-                        } else {
-                            OfflineScanStorage.markFailed(this@BarcodeScannerActivity, originalIndex)
-                            failedCount++
-                        }
-                        runOnUiThread { updateSyncProgress(syncedCount, failedCount, totalCount) }
-                    }
-
-                    override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
-                        OfflineScanStorage.markFailed(this@BarcodeScannerActivity, originalIndex)
-                        failedCount++
-                        runOnUiThread { updateSyncProgress(syncedCount, failedCount, totalCount) }
-                    }
-                })
+                ).enqueue(callback)
             } else if (!scan.isAdmin) {
                 ApiClient.getService(this).addTracking(
                     trackingNumber = scan.trackingNumber,
                     description = null
-                ).enqueue(object : Callback<ApiResponse<String>> {
-                    override fun onResponse(call: Call<ApiResponse<String>>, response: Response<ApiResponse<String>>) {
-                        if (response.isSuccessful && response.body()?.success == true) {
-                            OfflineScanStorage.markSynced(this@BarcodeScannerActivity, originalIndex)
-                            syncedCount++
-                        } else {
-                            OfflineScanStorage.markFailed(this@BarcodeScannerActivity, originalIndex)
-                            failedCount++
-                        }
-                        runOnUiThread { updateSyncProgress(syncedCount, failedCount, totalCount) }
-                    }
-
-                    override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
-                        OfflineScanStorage.markFailed(this@BarcodeScannerActivity, originalIndex)
-                        failedCount++
-                        runOnUiThread { updateSyncProgress(syncedCount, failedCount, totalCount) }
-                    }
-                })
+                ).enqueue(callback)
             }
         }
     }
@@ -391,15 +389,14 @@ class BarcodeScannerActivity : AppCompatActivity() {
                         Toast.makeText(this, "Already saved to server", Toast.LENGTH_SHORT).show()
                     }
                     SaveStatus.OFFLINE_SAVED -> {
-                        // Remove from OfflineScanStorage
-                        if (item.offlineIndex >= 0) {
-                            val pending = OfflineScanStorage.getPendingScans(this).toMutableList()
-                            if (item.offlineIndex < pending.size) {
-                                pending.removeAt(item.offlineIndex)
-                                getSharedPreferences("offline_scans", MODE_PRIVATE).edit()
-                                    .putString("pending_scans", com.google.gson.Gson().toJson(pending))
-                                    .apply()
-                            }
+                        // Remove from OfflineScanStorage by matching tracking number
+                        val pending = OfflineScanStorage.getPendingScans(this).toMutableList()
+                        val idx = pending.indexOfFirst { it.trackingNumber == item.value }
+                        if (idx >= 0) {
+                            pending.removeAt(idx)
+                            getSharedPreferences("offline_scans", MODE_PRIVATE).edit()
+                                .putString("pending_scans", com.google.gson.Gson().toJson(pending))
+                                .apply()
                         }
                         scannedItems.removeAt(position)
                         scannedAdapter.notifyItemRemoved(position)
@@ -827,7 +824,8 @@ class BarcodeScannerActivity : AppCompatActivity() {
         try {
             val image = InputImage.fromFilePath(this, uri)
             tvScanStatus.text = "Scanning image..."
-            scanner().process(image)
+            val scannerInstance = scanner() ?: return
+            scannerInstance.process(image)
                 .addOnSuccessListener { barcodes ->
                     if (barcodes.isNotEmpty()) {
                         val barcode = barcodes.first()
@@ -902,7 +900,8 @@ class BarcodeScannerActivity : AppCompatActivity() {
         val mediaImage = imageProxy.image ?: run { imageProxy.close(); return }
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-        scanner().process(image)
+        val scannerInstance = scanner() ?: run { imageProxy.close(); return }
+        scannerInstance.process(image)
             .addOnSuccessListener { barcodes ->
                 if (barcodes.isNotEmpty() && isScanning) {
                     val barcode = barcodes.first()
@@ -960,6 +959,7 @@ class BarcodeScannerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        isActivityDestroyed = true
         super.onDestroy()
         connectivityReceiver?.let { NetworkMonitor.unregister(this, it) }
         try { cameraProvider?.unbindAll() } catch (_: Exception) {}

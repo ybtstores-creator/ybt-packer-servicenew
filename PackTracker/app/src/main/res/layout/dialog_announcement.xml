@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Announcement popup: admin-sent message shown as a centered dialog right
+     after sign-in (mirrors the web dashboard modal). Rounded white card via
+     bg_popup_card; the dialog window itself is transparent. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="24dp"
+    android:orientation="vertical"
+    android:background="@drawable/bg_popup_card"
+    android:padding="24dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <TextView
+        android:id="@+id/tvAnnIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_circle_green"
+        android:gravity="center"
+        android:text="📣"
+        android:textSize="20sp"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/tvAnnKicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:text="ANNOUNCEMENT"
+        style="@style/TextAppearance.PackTracker.SectionLabel" />
+
+    <TextView
+        android:id="@+id/tvAnnTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/text_title"
+        android:textStyle="bold" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:maxHeight="260dp">
+
+        <TextView
+            android:id="@+id/tvAnnBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="@dimen/text_body" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/tvAnnDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="@dimen/text_micro" />
+
+    <Button
+        android:id="@+id/btnAnnGotIt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/green_primary"
+        android:text="Got it"
+        android:textColor="#FFFFFFFF"
+        android:textStyle="bold" />
+</LinearLayout>

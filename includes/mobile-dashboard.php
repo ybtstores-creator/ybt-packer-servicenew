@@ -17,10 +17,8 @@ function ybt_mobile_dashboard_info_handler() {
         if (preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
             $token = trim($matches[1]);
         }
-    } elseif (!empty($_POST['token'])) {
-        // SECURITY: POST body only — $_REQUEST would accept ?token= and leak the
-        // JWT into access logs, history and Referer headers.
-        $token = sanitize_text_field(wp_unslash($_POST['token']));
+    } elseif (!empty($_REQUEST['token'])) {
+        $token = sanitize_text_field(wp_unslash($_REQUEST['token']));
     }
 
     $token_data = ybt_validate_mobile_token($token);
@@ -184,6 +182,6 @@ function ybt_mobile_admin_update_warehouse_handler() {
 add_action('wp_ajax_ybt_mobile_admin_update_warehouse', 'ybt_mobile_admin_update_warehouse_handler');
 add_action('wp_ajax_nopriv_ybt_mobile_admin_update_warehouse', 'ybt_mobile_admin_update_warehouse_handler');
 
-add_action('wp_ajax_ybt_mobile_dashboard_info', 'ybt_mobile_dashboard_info_handler');
-add_action('wp_ajax_nopriv_ybt_mobile_dashboard_info', 'ybt_mobile_dashboard_info_handler');
+// Note: ybt_mobile_dashboard_info is centrally registered and handled in YBT_API_Router (YBT_API_Tracking_Handler).
+
 

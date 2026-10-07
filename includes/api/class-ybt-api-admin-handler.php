@@ -136,16 +136,29 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         if (!$tracking_id || empty($new_status)) {
             YBT_API_Response::error('ID and status required', 'missing_data');
+            return;
         }
 
         global $wpdb;
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE id = %d", $tracking_id));
-        if (!$item) YBT_API_Response::error('Item not found', 'not_found', 404);
+        if (!$item) {
+            YBT_API_Response::error('Item not found', 'not_found', 404);
+            return;
+        }
+
+        $valid_statuses = array('not_received', 'received', 'packing_in_progress', 'packed', 'completed');
+        if (!in_array($new_status, $valid_statuses, true)) {
+            YBT_API_Response::error('Invalid status value', 'invalid_status');
+        }
 
         $update_data = array('status' => $new_status);
         
         if ($new_status === 'received' && empty($item->date_received)) {
             $update_data['date_received'] = current_time('mysql');
+        } elseif ($new_status === 'packing_in_progress' && empty($item->date_packing_requested)) {
+            $update_data['date_packing_requested'] = current_time('mysql');
+        } elseif ($new_status === 'packed' && empty($item->date_packed)) {
+            $update_data['date_packed'] = current_time('mysql');
         } elseif ($new_status === 'completed' && empty($item->date_completed)) {
             $update_data['date_completed'] = current_time('mysql');
         }
@@ -161,7 +174,9 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
             if (function_exists('ybt_log_activity')) {
                 ybt_log_activity($this->user_id, 'admin_update_status', "Updated tracking $item->tracking_number to $new_status");
             }
-            if ($item->user_id && class_exists('YBT_Notifications')) {
+            // apply_update() returns 0 (not false) when nothing changed, so the
+            // status itself decides — otherwise a replayed request re-pushes.
+            if ($item->user_id && $item->status !== $new_status && class_exists('YBT_Notifications')) {
                 YBT_Notifications::send_tracking_update($item->user_id, $item->tracking_number, $new_status);
             }
             YBT_API_Response::success(null, 'Status updated successfully');
@@ -182,7 +197,10 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
         }
 
         $barcode = strtoupper(trim($barcode));
-        if (empty($barcode)) YBT_API_Response::error('No barcode scanned', 'missing_barcode');
+        if (empty($barcode)) {
+            YBT_API_Response::error('No barcode scanned', 'missing_barcode');
+            return;
+        }
 
         global $wpdb;
         $item = $wpdb->get_row($wpdb->prepare(
@@ -220,8 +238,10 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
                     'status' => 'received',
                     'is_new' => true
                 ), 'New Parcel Added as Anonymous');
+                return;
             } else {
                 YBT_API_Response::error('Failed to add new parcel', 'insert_failed');
+                return;
             }
         }
 
@@ -236,6 +256,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
                 YBT_Notifications::send_tracking_update($item->user_id, $item->tracking_number, 'received');
             }
             YBT_API_Response::success(array('tracking_number' => $barcode, 'status' => 'received'), 'Marked as Received');
+            return;
         }
 
         YBT_API_Response::success(array('tracking_number' => $barcode, 'status' => $item->status), 'Item found');
@@ -250,11 +271,20 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         // FIXED: Explicitly use 'get' method since Android app sends query parameters via GET
         $target_user_id = $this->get_param('target_user_id', 0, 'int', 'get');
-        if (!$target_user_id) YBT_API_Response::error('User ID required', 'missing_id');
+        if (!$target_user_id) {
+            $target_user_id = $this->get_param('user_id', 0, 'int', 'get');
+        }
+        if (!$target_user_id) {
+            YBT_API_Response::error('User ID required', 'missing_id');
+            return;
+        }
 
         global $wpdb;
         $user = get_userdata($target_user_id);
-        if (!$user) YBT_API_Response::error('User not found', 'not_found', 404);
+        if (!$user) {
+            YBT_API_Response::error('User not found', 'not_found', 404);
+            return;
+        }
 
         $custom_id = get_user_meta($user->ID, 'ybt_custom_user_id', true) ?: 'Pending';
 
@@ -264,7 +294,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
         ));
 
         $batches = $wpdb->get_results($wpdb->prepare(
-            "SELECT batch_id, COUNT(*) as item_count, MAX(date_packing_requested) as request_date, status
+            "SELECT batch_id, COUNT(*) as item_count, MAX(date_packing_requested) as request_date, MAX(status) as status
              FROM {$wpdb->prefix}ybt_tracking
              WHERE user_id = %d AND batch_id IS NOT NULL AND batch_id != ''
              GROUP BY batch_id
@@ -292,17 +322,25 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
         $this->require_admin();
 
         $target_user_id = $this->get_param('target_user_id', 0, 'int');
+        if (!$target_user_id) {
+            $target_user_id = $this->get_param('user_id', 0, 'int');
+        }
         $new_password = isset($_POST['new_password']) ? $_POST['new_password'] : '';
 
         if (!$target_user_id || empty($new_password)) {
             YBT_API_Response::error('User ID and new password required', 'missing_data');
+            return;
         }
 
         if (strlen($new_password) < 8) {
             YBT_API_Response::error('Password must be at least 8 characters', 'weak_password');
+            return;
         }
 
-        if (!get_userdata($target_user_id)) YBT_API_Response::error('User not found', 'not_found', 404);
+        if (!get_userdata($target_user_id)) {
+            YBT_API_Response::error('User not found', 'not_found', 404);
+            return;
+        }
 
         wp_set_password($new_password, $target_user_id);
         YBT_API_Response::success(null, 'Password reset successfully');
@@ -379,24 +417,52 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
     }
 
     /**
+     * Normalize a tracking-number payload into a clean, unique list.
+     *
+     * Callers post the numbers in three shapes:
+     *  - the Android Intake textarea posts one string with a newline per number,
+     *  - the REST controller posts a JSON array,
+     *  - the web admin posts tracking_numbers[] as a PHP array.
+     * Accept all of them, splitting single strings on newlines, commas,
+     * semicolons or pipes instead of commas only.
+     *
+     * @param string|array $raw
+     * @return array
+     */
+    public static function normalize_tracking_numbers($raw) {
+        $parts = is_array($raw) ? $raw : preg_split('/[\r\n,;|]+/', (string) $raw);
+        $parts = array_map(function ($n) {
+            return trim(sanitize_text_field((string) $n));
+        }, $parts);
+
+        return array_values(array_unique(array_filter($parts)));
+    }
+
+    /**
      * Admin: Add Tracking in Bulk
      */
     public function add_tracking_bulk() {
         $this->require_admin();
 
         $target_user_id = $this->get_param('target_user_id', 0, 'int');
-        $tracking_input = $this->get_param('tracking_numbers');
+        if (!$target_user_id) {
+            $target_user_id = $this->get_param('user_id', 0, 'int');
+        }
+        $tracking_raw = isset($_POST['tracking_numbers']) ? wp_unslash($_POST['tracking_numbers']) : '';
         $description = $this->get_param('description', '');
         $item_count = $this->get_param('item_count', 1, 'int');
         $shipping_method = $this->get_param('shipping_method', 'sea');
 
-        if (empty($tracking_input)) {
+        if (empty($tracking_raw)) {
             YBT_API_Response::error('Tracking numbers are required', 'missing_tracking');
+            return;
         }
 
-        $tracking_input = trim($tracking_input);
-        if (empty($tracking_input)) {
+        $tracking_numbers = self::normalize_tracking_numbers($tracking_raw);
+
+        if (empty($tracking_numbers)) {
             YBT_API_Response::error('Tracking numbers cannot be empty', 'empty_tracking');
+            return;
         }
 
         $target_user = null;
@@ -407,9 +473,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'ybt_tracking';
-        $tracking_numbers = array_map('trim', explode(',', $tracking_input));
-        $tracking_numbers = array_filter($tracking_numbers);
-        
+
         if (empty($tracking_numbers)) {
             YBT_API_Response::error('No valid tracking numbers found', 'invalid_tracking');
         }
@@ -539,6 +603,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         if (!$tracking_id || empty($target_custom_id)) {
             YBT_API_Response::error('Tracking ID and Target Customer ID required', 'missing_data');
+            return;
         }
 
         global $wpdb;
@@ -551,6 +616,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         if (!$tracking_item) {
             YBT_API_Response::error('Parcel record not found in database (ID: ' . $tracking_id . ')', 'not_found', 404);
+            return;
         }
 
         $target_user = null;
@@ -601,6 +667,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         if (!$target_user) {
             YBT_API_Response::error('Customer not found for identifier: ' . $target_custom_id_clean, 'not_found', 404);
+            return;
         }
 
         $updated = $wpdb->update(
@@ -634,7 +701,11 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         $tracking_id = $this->get_param('tracking_id', 0, 'int');
         if (!$tracking_id) {
+            $tracking_id = $this->get_param('id', 0, 'int');
+        }
+        if (!$tracking_id) {
             YBT_API_Response::error('Tracking ID required', 'missing_id');
+            return;
         }
 
         // Check if file was uploaded - handle both $_FILES and php://input
@@ -643,18 +714,26 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
             $image_data = $_FILES['image'];
         } elseif (!empty($_FILES) && isset($_FILES['image'])) {
             YBT_API_Response::error('File upload error: code ' . $_FILES['image']['error'], 'upload_error');
+            return;
         } else {
             YBT_API_Response::error('No image uploaded', 'missing_file');
+            return;
         }
 
         global $wpdb;
         // Full row is fetched so the audit trail can compare previous values.
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE id = %d", $tracking_id));
-        if (!$item) YBT_API_Response::error('Tracking record not found', 'not_found', 404);
+        if (!$item) {
+            YBT_API_Response::error('Tracking record not found', 'not_found', 404);
+            return;
+        }
 
         if (function_exists('ybt_security')) {
             $upload = ybt_security()->secure_file_upload($image_data);
-            if (!$upload['success']) YBT_API_Response::error(implode(', ', $upload['errors']), 'upload_failed');
+            if (!$upload['success']) {
+                YBT_API_Response::error(implode(', ', $upload['errors']), 'upload_failed');
+                return;
+            }
         } else {
             if (!function_exists('wp_handle_upload')) require_once(ABSPATH . 'wp-admin/includes/file.php');
             
@@ -663,6 +742,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
                 $validation = ybt_validate_file_upload($image_data, array('jpg', 'jpeg', 'png', 'gif', 'webp'), 5242880);
                 if (is_wp_error($validation)) {
                     YBT_API_Response::error($validation->get_error_message(), 'upload_failed');
+                    return;
                 }
                 // Sanitize filename
                 if (function_exists('ybt_sanitize_filename')) {
@@ -672,7 +752,10 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
             
             // Fix: Use the actual tmp_name from the uploaded file
             $upload = wp_handle_upload($image_data, array('test_form' => false));
-            if (isset($upload['error'])) YBT_API_Response::error($upload['error'], 'upload_failed');
+            if (isset($upload['error'])) {
+                YBT_API_Response::error($upload['error'], 'upload_failed');
+                return;
+            }
         }
 
         $url = $upload['url'];
@@ -711,7 +794,10 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         $id = $this->get_param('id', 0, 'int');
         if (!$id) $id = $this->get_param('tracking_id', 0, 'int');
-        if (!$id) YBT_API_Response::error('ID required', 'missing_id');
+        if (!$id) {
+            YBT_API_Response::error('ID required', 'missing_id');
+            return;
+        }
 
         global $wpdb;
         $data = array();
@@ -729,7 +815,10 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
             $data['shipping_method'] = sanitize_text_field(wp_unslash($_POST['shipping_method']));
         }
 
-        if (empty($data)) YBT_API_Response::error('No data to update', 'missing_data');
+        if (empty($data)) {
+            YBT_API_Response::error('No data to update', 'missing_data');
+            return;
+        }
 
         YBT_Tracking_Audit::apply_update($id, $data, 'edit', array(
             'admin_id' => $this->user_id,
@@ -768,12 +857,14 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         if ($tracking_id <= 0) {
             YBT_API_Response::error('Tracking ID or tracking number required', 'missing_id');
+            return;
         }
 
         $limit = max(1, min(500, (int) ($this->get_param('limit', 100, 'int', 'post') ?: $this->get_param('limit', 100, 'int', 'get'))));
 
         if (!class_exists('YBT_Tracking_Audit')) {
             YBT_API_Response::error('Audit module unavailable', 'audit_missing', 500);
+            return;
         }
 
         $item = $wpdb->get_row($wpdb->prepare(
@@ -784,6 +875,7 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
 
         if (!$item) {
             YBT_API_Response::error('Tracking record not found', 'not_found', 404);
+            return;
         }
 
         $entries = YBT_Tracking_Audit::get_history($tracking_id, $limit);
@@ -809,11 +901,17 @@ class YBT_API_Admin_Handler extends YBT_API_Handler_Base {
         $id = $this->get_param('id', 0, 'int');
         if (!$id) $id = $this->get_param('tracking_id', 0, 'int');
 
-        if (!$id) YBT_API_Response::error('ID required', 'missing_id');
+        if (!$id) {
+            YBT_API_Response::error('ID required', 'missing_id');
+            return;
+        }
 
         global $wpdb;
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE id = %d", $id));
-        if (!$item) YBT_API_Response::error('Tracking record not found', 'not_found', 404);
+        if (!$item) {
+            YBT_API_Response::error('Tracking record not found', 'not_found', 404);
+            return;
+        }
 
         $deleted = $wpdb->delete("{$wpdb->prefix}ybt_tracking", array('id' => $id));
 

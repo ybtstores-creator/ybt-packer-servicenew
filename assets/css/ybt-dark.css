@@ -1,0 +1,302 @@
+/* ==========================================================================
+   YBT DARK THEME — activated via <html data-theme="dark">
+   Set pre-paint from localStorage (key: ybt-theme, falls back to system).
+   wp-admin never sets the attribute and stays light by design.
+
+   Strategy: surfaces and text that were tokenized in Phase 2.5 flip on their
+   own (--ybt-card-bg, --ybt-input-bg, --ybt-page-bg …); the rules left here
+   cover legacy aliases plus literals gradients/filters/hovers cannot express.
+   ========================================================================== */
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* Legacy alias namespaces (defined in premium / user-dashboard CSS) */
+    --ybt-text-main: var(--ybt-slate-100);
+    --ybt-text-secondary: var(--ybt-slate-300);
+    --ybt-text-muted: var(--ybt-slate-500);
+    --ybt-bg-gradient: var(--ybt-page-bg);
+    --ybt-dark-slate: #020617;
+
+    --glass-bg: rgba(15, 23, 42, 0.92);
+    --glass-border: #1e293b;
+    --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+
+    --text-main: var(--ybt-slate-100);
+    --text-muted: var(--ybt-slate-400);
+    --bg-gradient: linear-gradient(135deg, #0b1220 0%, var(--ybt-slate-900) 100%);
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    /* Bootstrap utility bridge */
+    --bs-body-color: var(--ybt-slate-200);
+    --bs-body-bg: var(--ybt-slate-900);
+    --bs-border-color: var(--ybt-slate-700);
+    --bs-emphasis-color: var(--ybt-slate-100);
+    --bs-secondary-color: var(--ybt-slate-400);
+}
+
+/* ---- Page & section canvases ---- */
+html[data-theme="dark"] body.ybt-page,
+html[data-theme="dark"] .ybt-theme-root,
+html[data-theme="dark"] .ybt-dashboard-wrapper,
+html[data-theme="dark"] .ybt-dashboard-enhanced {
+    background: var(--ybt-page-bg) !important;
+    color: var(--ybt-slate-200) !important;
+}
+
+html[data-theme="dark"] .auth-split-wrapper {
+    background: linear-gradient(160deg, #0b1220 0%, var(--ybt-slate-900) 55%, #020617 100%);
+}
+html[data-theme="dark"] .auth-split-container {
+    background: var(--ybt-slate-800);
+    color: var(--ybt-slate-100);
+}
+
+html[data-theme="dark"] .ybt-dashboard-wrapper table tbody tr:hover,
+html[data-theme="dark"] .ybt-page table tbody tr:hover {
+    background: var(--ybt-slate-800);
+}
+
+/* ---- Navbar ---- */
+html[data-theme="dark"] .ybt-navbar-modern,
+html[data-theme="dark"] .ybt-navbar-mobile {
+    background: rgba(15, 23, 42, 0.95);
+    border-bottom-color: rgba(16, 185, 129, 0.18);
+    border-top-color: rgba(16, 185, 129, 0.18);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] .ybt-brand-title,
+html[data-theme="dark"] .ybt-brand-subtitle {
+    color: var(--ybt-slate-100);
+}
+
+html[data-theme="dark"] .ybt-nav-link,
+html[data-theme="dark"] .ybt-mobile-link,
+html[data-theme="dark"] .ybt-user-name {
+    color: var(--ybt-slate-400);
+}
+html[data-theme="dark"] .ybt-nav-link:hover,
+html[data-theme="dark"] .ybt-nav-link.active,
+html[data-theme="dark"] .ybt-mobile-link:hover,
+html[data-theme="dark"] .ybt-mobile-link.active {
+    color: var(--ybt-emerald-400);
+}
+
+html[data-theme="dark"] .ybt-user-trigger {
+    background: var(--ybt-slate-800);
+    border-color: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .ybt-user-dropdown {
+    background: var(--ybt-slate-800);
+    border-color: var(--ybt-slate-700);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="dark"] .ybt-dropdown-name { color: var(--ybt-slate-100); }
+html[data-theme="dark"] .ybt-dropdown-email { color: var(--ybt-slate-400); }
+html[data-theme="dark"] .ybt-dropdown-divider { background: var(--ybt-slate-700); }
+html[data-theme="dark"] .ybt-dropdown-item { color: var(--ybt-slate-300); }
+html[data-theme="dark"] .ybt-dropdown-item:hover { background: var(--ybt-slate-700); }
+
+/* ---- Theme toggle ---- */
+.ybt-theme-toggle {
+    background: transparent;
+    border: 1px solid var(--ybt-slate-200);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ybt-slate-500);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ybt-theme-toggle:hover {
+    border-color: var(--ybt-emerald-500);
+    color: var(--ybt-emerald-500);
+}
+html[data-theme="dark"] .ybt-theme-toggle {
+    border-color: var(--ybt-slate-600);
+    color: var(--ybt-gold-400, #dfbc55);
+}
+
+/* ---- Cards (surfaces come from --ybt-card-* tokens; only literals remain) ---- */
+html[data-theme="dark"] .ybt-card-modern {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+html[data-theme="dark"] .ybt-card-modern:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme="dark"] .ybt-warehouse-card-modern,
+html[data-theme="dark"] .ybt-payment-card-modern {
+    background: var(--ybt-slate-800);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="dark"] .ybt-stat-value-modern { color: var(--ybt-slate-50); }
+html[data-theme="dark"] .ybt-stat-label-modern { color: var(--ybt-slate-400); }
+html[data-theme="dark"] .ybt-warehouse-title-modern,
+html[data-theme="dark"] .ybt-payment-value-modern { color: var(--ybt-slate-100); }
+html[data-theme="dark"] .ybt-warehouse-address-modern,
+html[data-theme="dark"] .ybt-payment-label-modern { color: var(--ybt-slate-400); }
+
+/* ---- Activity table ---- */
+html[data-theme="dark"] .ybt-activity-row-modern:hover {
+    background: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .ybt-activity-cell-modern {
+    color: var(--ybt-slate-200);
+    border-bottom-color: var(--ybt-slate-700);
+}
+
+/* ---- Bootstrap surfaces (dashboards use .card/.table/.modal/.form-control) ---- */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .list-group-item {
+    background-color: var(--ybt-slate-800);
+    border-color: var(--ybt-slate-700);
+    color: var(--ybt-slate-200);
+}
+html[data-theme="dark"] .card-header,
+html[data-theme="dark"] .modal-header,
+html[data-theme="dark"] .modal-footer {
+    background-color: var(--ybt-slate-800);
+    border-color: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+html[data-theme="dark"] .table {
+    --bs-table-color: var(--ybt-slate-200);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--ybt-slate-700);
+    --bs-table-striped-bg: rgba(148, 163, 184, 0.06);
+    --bs-table-hover-bg: rgba(148, 163, 184, 0.1);
+    border-color: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .table thead th,
+html[data-theme="dark"] .table td,
+html[data-theme="dark"] .table th {
+    color: var(--ybt-slate-300);
+    border-color: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="search"],
+html[data-theme="dark"] input[type="tel"],
+html[data-theme="dark"] textarea {
+    background-color: var(--ybt-slate-900);
+    border-color: var(--ybt-slate-700);
+    color: var(--ybt-slate-100);
+}
+html[data-theme="dark"] .form-control::placeholder {
+    color: var(--ybt-slate-500);
+}
+html[data-theme="dark"] .text-muted,
+html[data-theme="dark"] .text-secondary {
+    color: var(--ybt-slate-400) !important;
+}
+html[data-theme="dark"] .dropdown-menu {
+    background-color: var(--ybt-slate-800);
+    border-color: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .dropdown-item {
+    color: var(--ybt-slate-200);
+}
+html[data-theme="dark"] .dropdown-item:hover {
+    background-color: var(--ybt-slate-700);
+    color: var(--ybt-slate-50);
+}
+
+/* ---- Notifications: bell dropdown + inbox + parcel timeline (ybt-timeline.css) ---- */
+html[data-theme="dark"] .ybt-bell-dropdown,
+html[data-theme="dark"] .ybt-inbox-dialog {
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="dark"] .ybt-bell-item-title,
+html[data-theme="dark"] .ybt-inbox-item-title,
+html[data-theme="dark"] .ybt-timeline-title {
+    color: var(--ybt-slate-100);
+}
+html[data-theme="dark"] .ybt-bell-item-text,
+html[data-theme="dark"] .ybt-timeline-message {
+    color: var(--ybt-slate-300);
+}
+html[data-theme="dark"] .ybt-bell-item-meta,
+html[data-theme="dark"] .ybt-bell-empty,
+html[data-theme="dark"] .ybt-inbox-item-date,
+html[data-theme="dark"] .ybt-timeline-meta {
+    color: var(--ybt-slate-500);
+}
+html[data-theme="dark"] .ybt-bell-dropdown-header,
+html[data-theme="dark"] .ybt-bell-dropdown-footer {
+    border-color: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .ybt-bell-dropdown-header,
+html[data-theme="dark"] .ybt-inbox-item-head {
+    color: var(--ybt-slate-200);
+}
+html[data-theme="dark"] .ybt-bell-item:hover {
+    background: var(--ybt-slate-700);
+}
+html[data-theme="dark"] .ybt-timeline-dot {
+    box-shadow: 0 0 0 3px var(--ybt-slate-800);
+}
+html[data-theme="dark"] .ybt-inbox-item:hover {
+    background: rgba(148, 163, 184, 0.08);
+}
+
+/* ---- Support chat (assets/chat-style.css loads outside our chain) ---- */
+html[data-theme="dark"] .ybt-chat-main,
+html[data-theme="dark"] .ybt-chat-input-area,
+html[data-theme="dark"] .ybt-file-preview {
+    background: var(--ybt-card-bg);
+    color: var(--ybt-slate-200);
+    border-color: var(--ybt-card-border);
+}
+html[data-theme="dark"] .bg-white {
+    background-color: var(--ybt-slate-700) !important;
+}
+html[data-theme="dark"] .bg-light {
+    background-color: var(--ybt-slate-800) !important;
+    color: var(--ybt-slate-200) !important;
+}
+
+/* ---- Status badges: keep canonical hues, lift text for dark surfaces ---- */
+html[data-theme="dark"] .text-primary,
+html[data-theme="dark"] .ybt-dashboard-enhanced .text-primary {
+    color: var(--ybt-emerald-300);
+}
+html[data-theme="dark"] .ybt-status-badge-modern.completed {
+    color: var(--ybt-emerald-300);
+}
+html[data-theme="dark"] a.ybt-inbox-item-track,
+html[data-theme="dark"] .ybt-inbox-item-track {
+    color: var(--ybt-emerald-400);
+}
+
+/* ---- Toasts / banners ---- */
+html[data-theme="dark"] .ybt-toast-modern {
+    color: var(--ybt-slate-100);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

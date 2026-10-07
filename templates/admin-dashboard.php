@@ -1,12 +1,14 @@
 <?php
 /**
  * Professional Admin Dashboard Template - Enhanced
- * YBT Packer Service v2.1
+ * YBT Packing Service v2.1
  *
  * Performance optimizations:
  * - Uses cached stats from ybt_get_dashboard_stats()
  * - Cached recent activity queries
  * - Lazy loading for images
+ *
+ * Redesigned on the consignment-note system (.ybt-ledger scope).
  */
 
 if (!defined('ABSPATH')) {
@@ -66,241 +68,284 @@ try {
     $today_added = $week_completed = 0;
     $recent_activity = array();
 }
+
+// Chip class per status (the five real statuses, shared atom)
+if (!function_exists('ybt_admin_ledger_chip')) {
+    function ybt_admin_ledger_chip($status) {
+        $allowed = array('not_received', 'received', 'packing_in_progress', 'packed', 'completed');
+        return in_array($status, $allowed, true) ? 'ybd-chip ybd-chip-' . $status : 'ybd-chip';
+    }
+}
 ?>
 
-<div class="wrap ybt-admin-wrapper" style="margin-top: 0; padding-top: 20px;">
-    <?php if ($stats_error): ?>
-    <div class="notice notice-error is-dismissible" id="ybt-db-notice">
-        <p>
-            <strong><?php _e('Database Status Alert:', 'ybt-packer'); ?></strong>
-            <?php echo esc_html($error_message); ?>
-        </p>
-        <?php if ($tables_missing): ?>
-            <p>
-                <button id="ybt-fix-db" class="button button-primary">
-                    <i class="fas fa-tools me-1"></i> <?php _e('Attempt Database Repair / Setup', 'ybt-packer'); ?>
-                </button>
-                <span id="ybt-fix-status" style="margin-left: 10px; font-weight: bold;"></span>
-            </p>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
+<style>
+/* ================================================================
+   ADMIN CONSOLE — "The depot ledger" (page-specific layer)
+   Shared tokens & atoms come from assets/css/ybt-consignment.css
+   (scope root: .ybt-ledger).
+   ================================================================ */
+.ybt-admin-wrapper .ybt-ledger{ padding:clamp(16px,2.5vw,30px); }
+/* tally strip: the six figures */
+.ybt-ledger .ybt-tally{
+	display:grid;
+	grid-template-columns:repeat(6,1fr);
+	gap:14px;
+	margin-bottom:clamp(18px,2.5vw,26px);
+}
+.ybt-ledger .ybt-tallycard{
+	background:var(--paper);
+	border:1.5px solid var(--kraft-line);
+	border-radius:10px;
+	padding:14px 16px;
+}
+.ybt-ledger .ybt-tallycard.ybt-tally-ink{ border-color:var(--ink); box-shadow:4px 4px 0 rgba(15,31,23,.12); }
+.ybt-ledger .ybt-tallycard .ybt-tallylabel{
+	font-family:var(--mono);
+	font-size:10px;font-weight:600;
+	letter-spacing:.14em;text-transform:uppercase;
+	color:#5c5543;
+	display:flex;align-items:center;gap:7px;
+	margin-bottom:6px;
+}
+.ybt-ledger .ybt-tallycard .ybt-tallylabel i{ font-size:12px; }
+.ybt-ledger .ybt-tallycard .ybt-tallyno{
+	font-family:var(--mono);
+	font-weight:600;
+	font-size:clamp(1.35rem,2.2vw,1.75rem);
+	color:var(--ink);
+	line-height:1;
+}
+.ybt-ledger .ybt-tally-not_received .ybt-tallylabel{ color:var(--kraft-deep); }
+.ybt-ledger .ybt-tally-not_received .ybt-tallyno{ color:#5c5543; }
+.ybt-ledger .ybt-tally-received .ybt-tallylabel{ color:var(--emerald); }
+.ybt-ledger .ybt-tally-received .ybt-tallyno{ color:var(--emerald-deep); }
+.ybt-ledger .ybt-tally-packing_in_progress .ybt-tallylabel{ color:var(--gold); }
+.ybt-ledger .ybt-tally-packing_in_progress .ybt-tallyno{ color:var(--gold-deep); }
+.ybt-ledger .ybt-tally-packed .ybt-tallylabel{ color:var(--emerald); }
+.ybt-ledger .ybt-tally-packed .ybt-tallyno{ color:var(--emerald); }
+.ybt-ledger .ybt-tally-completed .ybt-tallylabel{ color:var(--emerald-deep); }
+.ybt-ledger .ybt-tally-completed .ybt-tallyno{ color:var(--emerald-deep); }
+/* two-column working area */
+.ybt-ledger .ybt-ledgergrid{
+	display:grid;
+	grid-template-columns:1.9fr 1fr;
+	gap:18px;
+	align-items:start;
+}
+.ybt-ledger .ybt-ledgercol{ display:flex; flex-direction:column; gap:18px; min-width:0; }
+/* two-column working area */
+.ybt-ledger .ybt-qastack{ display:flex; flex-direction:column; gap:10px; }
+.ybt-ledger .ybt-qastack .ybd-btn{ width:100%; }
+/* system tools list */
+.ybt-ledger .ybt-toollist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.ybt-ledger .ybt-toollist a{
+	display:flex;align-items:center;gap:10px;
+	padding:10px 12px;
+	border-radius:8px;
+	color:var(--ink);
+	font-weight:600;
+	font-size:14px;
+	text-decoration:none;
+}
+.ybt-ledger .ybt-toollist a i{ color:#5c5543; width:16px; text-align:center; }
+.ybt-ledger .ybt-toollist a:hover{ background:#fbf8f1; }
+.ybt-ledger .ybt-toollist a:hover i{ color:var(--emerald-deep); }
+/* activity manifest cells */
+.ybt-ledger .ybt-who{ display:flex; align-items:center; gap:9px; }
+.ybt-ledger .ybt-who .ybt-av {
+	width:26px;height:26px;flex:0 0 26px;
+	display:flex;align-items:center;justify-content:center;
+	border-radius:50%;
+	background:var(--kraft);
+	border:1px solid var(--kraft-deep);
+	font-family:var(--mono);
+	font-size:10.5px;font-weight:600;
+	color:#5c5543;
+}
+.ybt-ledger .ybt-who .anon{ color:#8b968f; font-style:italic; }
+.ybt-ledger .ybt-actdesc{ display:block; color:#5a6a61; font-size:12px; margin-top:2px; }
+/* db-repair notice in-system */
+.ybt-ledger .ybt-dbalert{
+	display:flex;align-items:flex-start;gap:14px;
+	background:#fdeeee;
+	border:1px solid #f3c9c9;
+	border-left-width:5px;
+	border-radius:0 10px 10px 0;
+	padding:16px 18px;
+	margin-bottom:18px;
+}
+.ybt-ledger .ybt-dbalert i{ color:#9c2020; font-size:20px; margin-top:2px; }
+.ybt-ledger .ybt-dbalert strong{ display:block; color:#9c2020; margin-bottom:2px; }
+@media (max-width:1200px){
+	.ybt-ledger .ybt-tally{ grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:992px){
+	.ybt-ledger .ybt-ledgergrid{ grid-template-columns:1fr; }
+}
+@media (max-width:560px){
+	.ybt-ledger .ybt-tally{ grid-template-columns:repeat(2,1fr); }
+}
+</style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="wp-heading-inline" style="font-size: 2rem; color: var(--text-primary);"><i class="fas fa-tachometer-alt me-2 text-primary"></i> <?php _e('YBT Management Console', 'ybt-packer'); ?></h1>
-            <p class="text-muted mt-2"><?php _e('Professional Freight & Logistics Dashboard', 'ybt-packer'); ?></p>
-        </div>
-        <div class="d-flex gap-2">
-            <button class="button button-primary button-large" onclick="location.reload()">
-                <i class="fas fa-sync-alt"></i> <?php _e('Refresh Data', 'ybt-packer'); ?>
-            </button>
-        </div>
-    </div>
+<div class="ybt-ledger">
 
-    <!-- Stats Grid -->
-    <div class="row">
-        <!-- Not Received -->
-        <div class="col-md-4 col-lg-2 mb-4">
-             <div class="glass-card admin-stat-card">
-                <div class="admin-stat-icon" style="background: rgba(218, 165, 32, 0.1); color: #DAA520;">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="admin-stat-info">
-                    <h3><?php echo number_format($stats['not_received']); ?></h3>
-                    <p>Pending</p>
-                </div>
-            </div>
-        </div>
+	<!-- head -->
+	<div class="ybt-ledgerhead">
+		<div>
+			<p class="ybd-eyebrow">Depot ledger &middot; YBT management console</p>
+			<h1><?php _e('Operations overview', 'ybt-packer'); ?></h1>
+			<p><?php _e('Every parcel in the pipeline, from expected arrival to dispatch.', 'ybt-packer'); ?></p>
+		</div>
+		<button class="ybd-btn ybd-btn-dark" onclick="location.reload()">
+			<i class="fas fa-sync-alt"></i><?php _e('Refresh data', 'ybt-packer'); ?>
+		</button>
+	</div>
 
-        <!-- Received -->
-        <div class="col-md-4 col-lg-2 mb-4">
-             <div class="glass-card admin-stat-card">
-                <div class="admin-stat-icon" style="background: rgba(184, 134, 11, 0.1); color: #B8860B;">
-                    <i class="fas fa-warehouse"></i>
-                </div>
-                <div class="admin-stat-info">
-                    <h3><?php echo number_format($stats['received']); ?></h3>
-                    <p>Received</p>
-                </div>
-            </div>
-        </div>
+	<?php if ($stats_error): ?>
+	<div class="ybt-dbalert" id="ybt-db-notice">
+		<i class="fas fa-triangle-exclamation"></i>
+		<div>
+			<strong><?php _e('Database status alert:', 'ybt-packer'); ?></strong>
+			<span><?php echo esc_html($error_message); ?></span>
+			<?php if ($tables_missing): ?>
+				<div style="margin-top:10px;">
+					<button id="ybt-fix-db" class="ybd-btn ybd-btn-gold">
+						<i class="fas fa-tools"></i><?php _e('Attempt database repair / setup', 'ybt-packer'); ?>
+					</button>
+					<span id="ybt-fix-status" style="margin-left:10px;font-weight:700;"></span>
+				</div>
+			<?php endif; ?>
+		</div>
+	</div>
+	<?php endif; ?>
 
-        <!-- Processing -->
-        <div class="col-md-4 col-lg-2 mb-4">
-             <div class="glass-card admin-stat-card">
-                <div class="admin-stat-icon" style="background: rgba(76, 175, 80, 0.1); color: #4CAF50;">
-                    <i class="fas fa-cogs"></i>
-                </div>
-                <div class="admin-stat-info">
-                    <h3><?php echo number_format($stats['packing_in_progress']); ?></h3>
-                    <p>Packing</p>
-                </div>
-            </div>
-        </div>
+	<!-- tally strip -->
+	<div class="ybt-tally">
+		<div class="ybt-tallycard ybt-tally-not_received">
+			<span class="ybt-tallylabel"><i class="fas fa-clock"></i><?php _e('Pending', 'ybt-packer'); ?></span>
+			<span class="ybt-tallyno"><?php echo number_format($stats['not_received']); ?></span>
+		</div>
+		<div class="ybt-tallycard ybt-tally-received">
+			<span class="ybt-tallylabel"><i class="fas fa-warehouse"></i><?php _e('Received', 'ybt-packer'); ?></span>
+			<span class="ybt-tallyno"><?php echo number_format($stats['received']); ?></span>
+		</div>
+		<div class="ybt-tallycard ybt-tally-packing_in_progress">
+			<span class="ybt-tallylabel"><i class="fas fa-cogs"></i><?php _e('Packing', 'ybt-packer'); ?></span>
+			<span class="ybt-tallyno"><?php echo number_format($stats['packing_in_progress']); ?></span>
+		</div>
+		<div class="ybt-tallycard ybt-tally-packed">
+			<span class="ybt-tallylabel"><i class="fas fa-box"></i><?php _e('Ready', 'ybt-packer'); ?></span>
+			<span class="ybt-tallyno"><?php echo number_format($stats['packed']); ?></span>
+		</div>
+		<div class="ybt-tallycard ybt-tally-completed">
+			<span class="ybt-tallylabel"><i class="fas fa-check-circle"></i><?php _e('Sent', 'ybt-packer'); ?></span>
+			<span class="ybt-tallyno"><?php echo number_format($stats['completed']); ?></span>
+		</div>
+		<div class="ybt-tallycard ybt-tally-ink">
+			<span class="ybt-tallylabel"><i class="fas fa-chart-pie"></i><?php _e('Total', 'ybt-packer'); ?></span>
+			<span class="ybt-tallyno"><?php echo number_format($stats['total']); ?></span>
+		</div>
+	</div>
 
-        <!-- Packed -->
-        <div class="col-md-4 col-lg-2 mb-4">
-             <div class="glass-card admin-stat-card">
-                <div class="admin-stat-icon" style="background: rgba(34, 139, 34, 0.1); color: #228B22;">
-                    <i class="fas fa-box"></i>
-                </div>
-                <div class="admin-stat-info">
-                    <h3><?php echo number_format($stats['packed']); ?></h3>
-                    <p>Ready</p>
-                </div>
-            </div>
-        </div>
+	<div class="ybt-ledgergrid">
+		<!-- activity manifest -->
+		<div class="ybt-ledgercol">
+			<div class="ybd-panel">
+				<div class="ybd-panelhead">
+					<span class="ybd-hint"><i class="fas fa-history"></i><?php _e('Recent activity log', 'ybt-packer'); ?></span>
+					<a href="<?php echo admin_url('admin.php?page=ybt-manage-tracking'); ?>" class="ybd-ghostlink"><?php _e('View all', 'ybt-packer'); ?></a>
+				</div>
+				<?php if ($recent_activity): ?>
+				<div class="ybd-tablewrap">
+					<table class="ybd-manifest">
+						<thead>
+							<tr>
+								<th><?php _e('Status', 'ybt-packer'); ?></th>
+								<th><?php _e('Tracking #', 'ybt-packer'); ?></th>
+								<th><?php _e('User', 'ybt-packer'); ?></th>
+								<th><?php _e('Added', 'ybt-packer'); ?></th>
+								<th style="text-align:right;"><?php _e('Actions', 'ybt-packer'); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ($recent_activity as $item): ?>
+							<tr>
+								<td><span class="<?php echo ybt_admin_ledger_chip($item->status); ?>"><?php echo esc_html(str_replace('_', ' ', ucfirst($item->status))); ?></span></td>
+								<td>
+									<span class="ybd-trackno"><?php echo esc_html($item->tracking_number); ?></span>
+									<?php if($item->description): ?>
+										<span class="ybt-actdesc"><?php echo esc_html(wp_trim_words($item->description, 5)); ?></span>
+									<?php endif; ?>
+								</td>
+								<td>
+									<?php if ($item->user_display_name): ?>
+									<div class="ybt-who">
+										<span class="ybt-av"><?php echo esc_html(strtoupper(substr($item->user_display_name, 0, 1))); ?></span>
+										<?php echo esc_html($item->user_display_name); ?>
+									</div>
+									<?php else: ?>
+									<span class="anon">Anonymous</span>
+									<?php endif; ?>
+								</td>
+								<td class="ybd-date"><?php echo esc_html(human_time_diff(strtotime($item->date_added), current_time('timestamp')) . ' ago'); ?></td>
+								<td style="text-align:right;">
+									<a href="<?php echo admin_url('admin.php?page=ybt-manage-tracking&edit=' . $item->id); ?>" class="ybd-btn ybd-btn-emerald" style="padding:5px 10px;font-size:12.5px;" title="Edit">
+										<i class="fas fa-edit"></i>
+									</a>
+								</td>
+							</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+				<?php else: ?>
+				<div class="ybd-empty">
+					<div class="ybd-emptyicon"><i class="fas fa-inbox"></i></div>
+					<h4>Nothing logged yet</h4>
+					<p>No recent activity found.</p>
+				</div>
+				<?php endif; ?>
+			</div>
+		</div>
 
-        <!-- Completed -->
-        <div class="col-md-4 col-lg-2 mb-4">
-             <div class="glass-card admin-stat-card">
-                <div class="admin-stat-icon" style="background: rgba(0, 100, 0, 0.1); color: #006400;">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="admin-stat-info">
-                    <h3><?php echo number_format($stats['completed']); ?></h3>
-                    <p>Sent</p>
-                </div>
-            </div>
-        </div>
+		<!-- side column -->
+		<div class="ybt-ledgercol">
+			<div class="ybd-panel">
+				<div class="ybd-panelhead">
+					<span class="ybd-hint"><i class="fas fa-bolt"></i><?php _e('Quick actions', 'ybt-packer'); ?></span>
+				</div>
+				<div class="ybd-panelbody">
+					<div class="ybt-qastack">
+						<a href="<?php echo admin_url('admin.php?page=ybt-add-tracking'); ?>" class="ybd-btn ybd-btn-gold">
+							<i class="fas fa-plus-circle"></i><?php _e('Add new package', 'ybt-packer'); ?>
+						</a>
+						<a href="<?php echo admin_url('admin.php?page=ybt-process-packing'); ?>" class="ybd-btn ybd-btn-emerald">
+							<i class="fas fa-box-open"></i><?php _e('Process packing requests', 'ybt-packer'); ?>
+						</a>
+						<a href="<?php echo admin_url('admin.php?page=ybt-payment-evidence'); ?>" class="ybd-btn ybd-btn-emerald">
+							<i class="fas fa-file-invoice-dollar"></i><?php _e('Verify payments', 'ybt-packer'); ?>
+						</a>
+						<button class="ybd-btn ybd-btn-dark" onclick="ybtExportData()">
+							<i class="fas fa-download"></i><?php _e('Export all data', 'ybt-packer'); ?>
+						</button>
+					</div>
+				</div>
+			</div>
 
-        <!-- Total -->
-         <div class="col-md-4 col-lg-2 mb-4">
-             <div class="glass-card admin-stat-card">
-                <div class="admin-stat-icon" style="background: rgba(0, 0, 0, 0.05); color: #333;">
-                    <i class="fas fa-chart-pie"></i>
-                </div>
-                <div class="admin-stat-info">
-                    <h3><?php echo number_format($stats['total']); ?></h3>
-                    <p>Total</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <!-- Main Content Column -->
-        <div class="col-lg-8">
-            <div class="glass-card">
-                <div class="info-card-header d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-history me-2"></i><?php _e('Recent Activity Log', 'ybt-packer'); ?></span>
-                    <a href="<?php echo admin_url('admin.php?page=ybt-manage-tracking'); ?>" class="button button-small"><?php _e('View All', 'ybt-packer'); ?></a>
-                </div>
-                <div class="info-card-body p-0">
-                    <?php if ($recent_activity): ?>
-                        <div class="table-responsive">
-                            <table class="table admin-table mb-0" style="width: 100%;">
-                                <thead>
-                                    <tr>
-                                        <th>Status</th>
-                                        <th>Tracking #</th>
-                                        <th>User</th>
-                                        <th>Added</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($recent_activity as $item): ?>
-                                    <tr>
-                                        <td>
-                                            <?php
-                                            $icon = 'fa-box';
-                                            $color = '#666';
-                                            switch($item->status) {
-                                                case 'not_received': $icon = 'fa-clock'; $color = '#DAA520'; break;
-                                                case 'received': $icon = 'fa-warehouse'; $color = '#B8860B'; break;
-                                                case 'packing_in_progress': $icon = 'fa-cogs'; $color = '#4CAF50'; break;
-                                                case 'packed': $icon = 'fa-check'; $color = '#228B22'; break;
-                                                case 'completed': $icon = 'fa-check-double'; $color = '#006400'; break;
-                                            }
-                                            ?>
-                                            <span class="badge-glass" style="color: <?php echo $color; ?>;">
-                                                <i class="fas <?php echo $icon; ?> me-1"></i>
-                                                <?php echo esc_html(str_replace('_', ' ', ucfirst($item->status))); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <strong><?php echo esc_html($item->tracking_number); ?></strong>
-                                            <?php if($item->description): ?>
-                                                <br><small class="text-muted"><?php echo esc_html(wp_trim_words($item->description, 5)); ?></small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($item->user_display_name): ?>
-                                                <div class="d-flex align-items-center">
-                                                    <div style="width: 24px; height: 24px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 8px; font-size: 10px;">
-                                                        <?php echo strtoupper(substr($item->user_display_name, 0, 1)); ?>
-                                                    </div>
-                                                    <?php echo esc_html($item->user_display_name); ?>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-muted">Anonymous</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-muted small">
-                                            <?php echo human_time_diff(strtotime($item->date_added), current_time('timestamp')) . ' ago'; ?>
-                                        </td>
-                                        <td>
-                                            <a href="<?php echo admin_url('admin.php?page=ybt-manage-tracking&edit=' . $item->id); ?>" class="button button-small">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="p-5 text-center text-muted">
-                            <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                            <p>No recent activity found.</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar Column -->
-        <div class="col-lg-4">
-            <!-- Quick Actions -->
-            <div class="glass-card mb-4">
-                <div class="info-card-header">
-                    <span><i class="fas fa-bolt me-2 text-warning"></i><?php _e('Quick Actions', 'ybt-packer'); ?></span>
-                </div>
-                <div class="info-card-body">
-                    <div class="d-grid gap-2">
-                        <a href="<?php echo admin_url('admin.php?page=ybt-add-tracking'); ?>" class="button button-primary" style="text-align: center; justify-content: center; display: flex; align-items: center; padding: 10px;">
-                            <i class="fas fa-plus-circle me-2"></i> Add New Package
-                        </a>
-                        <a href="<?php echo admin_url('admin.php?page=ybt-process-packing'); ?>" class="button button-secondary" style="text-align: center; justify-content: center; display: flex; align-items: center; padding: 10px;">
-                            <i class="fas fa-box-open me-2"></i> Process Packing Requests
-                        </a>
-                        <a href="<?php echo admin_url('admin.php?page=ybt-payment-evidence'); ?>" class="button button-secondary" style="text-align: center; justify-content: center; display: flex; align-items: center; padding: 10px;">
-                            <i class="fas fa-file-invoice-dollar me-2"></i> Verify Payments
-                        </a>
-                         <button class="button button-secondary" onclick="ybtExportData()" style="text-align: center; justify-content: center; display: flex; align-items: center; padding: 10px;">
-                            <i class="fas fa-download me-2"></i> Export All Data
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin Tools -->
-            <div class="glass-card">
-                 <div class="info-card-header">
-                    <span><i class="fas fa-sliders-h me-2 text-info"></i><?php _e('System Tools', 'ybt-packer'); ?></span>
-                </div>
-                 <div class="info-card-body">
-                     <ul class="list-unstyled mb-0 d-grid gap-2">
-                         <li><a href="<?php echo admin_url('admin.php?page=ybt-settings'); ?>" class="text-decoration-none d-block p-2 rounded hover-bg-light"><i class="fas fa-cog me-2 text-muted"></i> Plugin Settings</a></li>
-                         <li><a href="<?php echo admin_url('admin.php?page=ybt-user-summary'); ?>" class="text-decoration-none d-block p-2 rounded hover-bg-light"><i class="fas fa-users me-2 text-muted"></i> User Profiles</a></li>
-                         <li><a href="<?php echo admin_url('admin.php?page=ybt-messages'); ?>" class="text-decoration-none d-block p-2 rounded hover-bg-light"><i class="fas fa-bullhorn me-2 text-muted"></i> Broadcast Message</a></li>
-                     </ul>
-                 </div>
-            </div>
-        </div>
-    </div>
+			<div class="ybd-panel">
+				<div class="ybd-panelhead">
+					<span class="ybd-hint"><i class="fas fa-sliders-h"></i><?php _e('System tools', 'ybt-packer'); ?></span>
+				</div>
+				<div class="ybd-panelbody">
+					<ul class="ybt-toollist">
+						<li><a href="<?php echo admin_url('admin.php?page=ybt-settings'); ?>"><i class="fas fa-cog"></i><?php _e('Plugin settings', 'ybt-packer'); ?></a></li>
+						<li><a href="<?php echo admin_url('admin.php?page=ybt-user-summary'); ?>"><i class="fas fa-users"></i><?php _e('User profiles', 'ybt-packer'); ?></a></li>
+						<li><a href="<?php echo admin_url('admin.php?page=ybt-messages'); ?>"><i class="fas fa-bullhorn"></i><?php _e('Broadcast message', 'ybt-packer'); ?></a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 
 <script>
@@ -312,13 +357,13 @@ if (typeof ybt_admin === 'undefined') {
     };
 }
 
-const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[s])) : '';
+const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])) : '';
 
 jQuery(document).ready(function($) {
     // Fix whitespace at top
     setTimeout(function() {
         const firstElement = $('#wpbody-content').children().first();
-        if (firstElement.length && firstElement.offset().top > 50) {
+        if (firstElement.length && firstElement.offset && firstElement.offset().top > 50) {
             firstElement.css('margin-top', '-76px');
         }
     }, 100);

@@ -7,7 +7,7 @@
     <fragment
         android:id="@+id/dashboardFragment"
         android:name="com.packtracker.fragments.DashboardFragment"
-        android:label="PackTracker" />
+        android:label="Dashboard" />
 
     <fragment
         android:id="@+id/trackingFragment"
@@ -29,6 +29,12 @@
         android:name="com.packtracker.fragments.ChatFragment"
         android:label="Chat">
     </fragment>
+
+    <!-- Notification inbox (customer + admin) -->
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.packtracker.fragments.NotificationsFragment"
+        android:label="Notifications" />
 
     <!-- Admin: conversation list; ChatFragment redirects admins here -->
     <fragment

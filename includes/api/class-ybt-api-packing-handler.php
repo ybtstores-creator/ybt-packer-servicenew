@@ -23,15 +23,18 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
 
         if (empty($tracking_ids)) {
             YBT_API_Response::error('Please select at least one item', 'missing_items');
+            return;
         }
 
         if (empty($shipping_company_name) || empty($shipping_company_address) || empty($shipping_company_phone)) {
             YBT_API_Response::error('Please fill in all required shipping fields', 'missing_shipping_info');
+            return;
         }
 
         $ids_array = array_filter(array_map('intval', explode(',', $tracking_ids)));
         if (empty($ids_array)) {
             YBT_API_Response::error('No valid tracking IDs provided', 'invalid_ids');
+            return;
         }
 
         // Verify ownership and status (only 'received' items can be requested for packing)
@@ -43,14 +46,17 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
 
         if (count($items_to_check) != count($ids_array)) {
             YBT_API_Response::error('Some items were not found', 'not_found');
+            return;
         }
 
         foreach ($items_to_check as $item) {
             if ($item->user_id != $this->user_id) {
                 YBT_API_Response::error("Item #{$item->id} does not belong to you", 'permission_denied');
+                return;
             }
             if ($item->status !== 'received') {
                 YBT_API_Response::error("Item #{$item->id} is currently '{$item->status}' and cannot be requested for packing again.", 'invalid_status');
+                return;
             }
         }
 
@@ -67,6 +73,9 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
             $m = strtolower(trim($item->shipping_method));
             if ($m !== '') $requested_methods[$m] = true;
         }
+        // Wrap batch assignment and update in a transaction to prevent race conditions during concurrent packing requests
+        $wpdb->query('START TRANSACTION');
+
         if (count($requested_methods) === 1) {
             $method = key($requested_methods);
             $candidate_batch_id = $wpdb->get_var($wpdb->prepare(
@@ -79,7 +88,7 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
                  HAVING COUNT(*) > 0
                     AND COUNT(CASE WHEN LOWER(TRIM(shipping_method)) = %s THEN 1 END) = COUNT(*)
                  ORDER BY MAX(date_packing_requested) DESC
-                 LIMIT 1",
+                 LIMIT 1 FOR UPDATE",
                 $this->user_id, $method
             ));
             if (!empty($candidate_batch_id)) {
@@ -104,7 +113,7 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
                 "SELECT shipping_company_name, shipping_address, shipping_company_phone, shipping_mark
                  FROM {$wpdb->prefix}ybt_tracking
                  WHERE batch_id = %s AND shipping_company_name IS NOT NULL AND shipping_company_name != ''
-                 LIMIT 1",
+                 LIMIT 1 FOR UPDATE",
                 $batch_id
             ));
             if ($existing_batch_info) {
@@ -134,6 +143,7 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
         }
 
         if ($updated_count > 0) {
+            $wpdb->query('COMMIT');
             if (function_exists('ybt_log_activity')) {
                 $log_note = $merged ? "Requested packing for $updated_count items via mobile (merged into batch $batch_id)" : "Requested packing for $updated_count items via mobile";
                 ybt_log_activity($this->user_id, 'request_packing', $log_note);
@@ -145,6 +155,7 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
                 'merged' => $merged
             ), $merged ? "Items added to existing packing batch $batch_id" : "Packing request submitted successfully");
         } else {
+            $wpdb->query('ROLLBACK');
             YBT_API_Response::error('Failed to submit packing request', 'update_failed');
         }
     }
@@ -220,10 +231,12 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
 
         if (!$tracking_id && empty($batch_id)) {
             YBT_API_Response::error('Invalid tracking ID or Batch ID', 'missing_id');
+            return;
         }
 
         if (empty($_FILES['payment_evidence'])) {
             YBT_API_Response::error('No file uploaded', 'missing_file');
+            return;
         }
 
         global $wpdb;
@@ -234,13 +247,19 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
                 "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE batch_id = %s AND user_id = %d",
                 $batch_id, $this->user_id
             ));
-            if ($count == 0) YBT_API_Response::error('Batch not found or access denied', 'permission_denied');
+            if ($count == 0) {
+                YBT_API_Response::error('Batch not found or access denied', 'permission_denied');
+                return;
+            }
         } else {
             $item = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE id = %d AND user_id = %d",
                 $tracking_id, $this->user_id
             ));
-            if (!$item) YBT_API_Response::error('Item not found or access denied', 'permission_denied');
+            if (!$item) {
+                YBT_API_Response::error('Item not found or access denied', 'permission_denied');
+                return;
+            }
             if (!empty($item->batch_id)) $batch_id = $item->batch_id;
         }
 
@@ -249,11 +268,15 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
             $upload = ybt_security()->secure_file_upload($_FILES['payment_evidence']);
             if (!$upload['success']) {
                 YBT_API_Response::error(implode(', ', $upload['errors']), 'upload_failed');
+                return;
             }
         } else {
             if (!function_exists('wp_handle_upload')) require_once(ABSPATH . 'wp-admin/includes/file.php');
             $upload = wp_handle_upload($_FILES['payment_evidence'], array('test_form' => false));
-            if (isset($upload['error'])) YBT_API_Response::error($upload['error'], 'upload_failed');
+            if (isset($upload['error'])) {
+                YBT_API_Response::error($upload['error'], 'upload_failed');
+                return;
+            }
         }
 
         $uploaded_url = isset($upload['url']) ? $upload['url'] : '';
@@ -262,7 +285,7 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
             $wpdb->update(
                 "{$wpdb->prefix}ybt_tracking",
                 array('payment_evidence' => $uploaded_url),
-                array('batch_id' => $batch_id, 'user_id' => $this->user_id)
+                array('batch_id' => $batch_id)
             );
             YBT_API_Response::success(null, 'Payment evidence applied to batch');
         } else {
@@ -328,7 +351,10 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
 
         // FIXED: Explicitly use 'get' method since Android app sends query parameters via GET
         $batch_id = $this->get_param('batch_id', '', 'text', 'get');
-        if (empty($batch_id)) YBT_API_Response::error('Batch ID required', 'missing_batch_id');
+        if (empty($batch_id)) {
+            YBT_API_Response::error('Batch ID required', 'missing_batch_id');
+            return;
+        }
 
         global $wpdb;
         $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE batch_id = %s", $batch_id));
@@ -351,11 +377,13 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
 
         if (empty($batch_id) || empty($carton_data_json)) {
             YBT_API_Response::error('Batch ID and carton data required', 'missing_data');
+            return;
         }
 
         $carton_list = json_decode($carton_data_json, true);
         if (!is_array($carton_list)) {
             YBT_API_Response::error('Invalid carton data format', 'invalid_json');
+            return;
         }
 
         global $wpdb;
@@ -510,7 +538,25 @@ class YBT_API_Packing_Handler extends YBT_API_Handler_Base {
 
         $user_id = $wpdb->get_var($wpdb->prepare("SELECT user_id FROM {$wpdb->prefix}ybt_tracking WHERE batch_id = %s LIMIT 1", $batch_id));
         if ($user_id && class_exists('YBT_Notifications')) {
-            YBT_Notifications::send_tracking_update($user_id, 'Packing Completed', "Your parcel batch $batch_id has been packed!");
+            // Batch-level notice: send_tracking_update() takes a tracking number, and
+            // passing a label there wrote inbox rows that deep-linked to nothing.
+            $title = '✅ Package Packed!';
+            $body  = "Your parcel batch $batch_id has been packed!";
+            YBT_Notifications::notify(
+                (int) $user_id,
+                $title,
+                $body,
+                array(
+                    'type'      => 'batch_packed',
+                    'batch_id'  => $batch_id,
+                    'timestamp' => time(),
+                ),
+                array(
+                    'type'  => 'batch_packed',
+                    'title' => $title,
+                    'body'  => $body,
+                )
+            );
         }
 
         YBT_API_Response::success($batch_id, 'Packing completed successfully');

@@ -1,0 +1,408 @@
+/**
+ * YBT Parcel Timeline + Notifications Bell styles.
+ * Status colors follow the canonical palette (ybt_get_status_badge_color);
+ * consolidated into design tokens in a later pass.
+ */
+
+/* ============================ Parcel timeline ============================ */
+
+.ybt-parcel-timeline {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.ybt-timeline-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 6px;
+}
+
+.ybt-timeline-item {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    padding: 0 0 18px 0;
+}
+
+.ybt-timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+/* connector line */
+.ybt-timeline-item::before {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 20px;
+    bottom: -2px;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.ybt-timeline-item:last-child::before {
+    display: none;
+}
+
+.ybt-timeline-dot {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ybt-status-not-received);
+    color: #fff;
+    font-size: 9px;
+    z-index: 1;
+    box-shadow: 0 0 0 3px #fff;
+}
+
+.ybt-timeline-self { background: var(--ybt-status-packing); }
+.ybt-timeline-done { background: var(--ybt-emerald-600); }
+.ybt-timeline-status-not_received .ybt-timeline-dot { background: var(--ybt-status-not-received); }
+.ybt-timeline-status-received .ybt-timeline-dot { background: var(--ybt-status-received); }
+.ybt-timeline-status-packing_in_progress .ybt-timeline-dot { background: var(--ybt-status-packing); }
+.ybt-timeline-status-packed .ybt-timeline-dot { background: var(--ybt-status-packed); }
+.ybt-timeline-status-completed .ybt-timeline-dot { background: var(--ybt-status-completed); }
+
+.ybt-timeline-body { min-width: 0; }
+
+.ybt-timeline-title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.9rem;
+}
+
+.ybt-timeline-message {
+    color: #475569;
+    font-size: 0.82rem;
+    margin-top: 1px;
+}
+
+.ybt-timeline-meta {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+/* ============================ Notifications bell ========================== */
+
+.ybt-bell-wrap {
+    position: relative;
+}
+
+.ybt-bell-trigger {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.75);
+    color: #047857;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.ybt-bell-trigger:hover,
+.ybt-bell-trigger.active {
+    background: #ecfdf5;
+    transform: translateY(-1px);
+}
+
+.ybt-badge-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: #d97706;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(217, 119, 6, 0.5);
+}
+
+.ybt-bell-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    max-width: 85vw;
+    background: var(--ybt-card-bg);
+    border: 1px solid var(--ybt-card-border);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+    z-index: 1050;
+    overflow: hidden;
+}
+
+.ybt-bell-dropdown.show {
+    display: block;
+}
+
+.ybt-bell-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #1e293b;
+}
+
+ul.ybt-bell-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.ybt-bell-item {
+    display: flex;
+    gap: 10px;
+    padding: 9px 14px;
+}
+
+.ybt-bell-item:hover {
+    background: #f8fafc;
+}
+
+.ybt-bell-item-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 50%;
+}
+
+.ybt-bell-type-track { background: #047857; }
+.ybt-bell-type-other { background: #94a3b8; }
+
+.ybt-bell-item-title {
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.ybt-bell-item-text {
+    font-size: 0.78rem;
+    color: #475569;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ybt-bell-item-meta,
+.ybt-bell-empty,
+.ybt-inbox-loading {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.ybt-bell-empty,
+.ybt-inbox-loading {
+    padding: 14px;
+    text-align: center;
+    list-style: none;
+}
+
+.ybt-bell-dropdown-footer {
+    border-top: 1px solid #f1f5f9;
+    padding: 8px;
+    text-align: center;
+}
+
+.ybt-bell-dropdown-footer a {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #047857;
+    text-decoration: none;
+}
+
+.ybt-bell-dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+/* ============================ Inbox modal ================================ */
+
+.ybt-inbox-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 1060;
+    align-items: center;
+    justify-content: center;
+}
+
+.ybt-inbox-modal .ybt-inbox-dialog {
+    width: 100%;
+    max-width: 520px;
+    max-height: 82vh;
+    overflow-y: auto;
+    background: var(--ybt-card-bg);
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative;
+}
+
+.ybt-inbox-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+ul.ybt-inbox-list {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+}
+
+.ybt-inbox-item {
+    padding: 12px 2px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.ybt-inbox-item:last-child {
+    border-bottom: none;
+}
+
+.ybt-inbox-item-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+}
+
+.ybt-inbox-item-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1e293b;
+}
+
+.ybt-inbox-item-date {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.ybt-inbox-item-body {
+    font-size: 0.83rem;
+    color: #475569;
+    margin-top: 2px;
+}
+
+.ybt-inbox-item-track {
+    font-size: 0.75rem;
+    color: #047857;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    .ybt-bell-trigger {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+/* ============================ Announcement popup ========================= */
+/* Admin-sent messages shown once per login on the dashboard until dismissed. */
+
+.ybt-ann-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 1070;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.ybt-ann-dialog {
+    width: 100%;
+    max-width: 420px;
+    background: var(--ybt-card-bg);
+    border: 1px solid var(--ybt-card-border);
+    border-radius: 18px;
+    padding: 28px 26px 20px;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+    position: relative;
+    animation: ybt-ann-pop 0.18s ease-out;
+}
+
+@keyframes ybt-ann-pop {
+    from { transform: scale(0.94); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+.ybt-ann-megaphone {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 16px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #047857;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ybt-ann-kicker {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #047857;
+    margin-bottom: 6px;
+}
+
+.ybt-ann-dialog h5 {
+    color: #1e293b;
+    font-size: 1.05rem;
+    overflow-wrap: anywhere;
+}
+
+.ybt-ann-body {
+    color: #475569;
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.ybt-ann-meta {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ybt-ann-dialog {
+        animation: none;
+    }
+}

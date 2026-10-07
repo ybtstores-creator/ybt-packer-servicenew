@@ -8,7 +8,6 @@ if (!current_user_can('manage_options')) {
 global $wpdb;
 
 // Enqueue Enhanced CSS
-wp_enqueue_style('ybt-admin-dashboard-enhanced', YBT_PLUGIN_URL . 'assets/css/admin-dashboard-enhanced.css', array(), YBT_VERSION);
 
 // Get user filter
 $selected_user = isset($_GET['user']) ? sanitize_text_field($_GET['user']) : '';
@@ -32,28 +31,30 @@ if ($status_filter) {
     $where_values[] = $status_filter;
 }
 
+// Display-name mapping in SQL (mirrors the PHP mapping used below)
+$display_case = "CASE WHEN username IS NULL OR username = '' OR username = 'N/A' OR username = 'Anonymous' THEN 'Anonymous' ELSE username END";
+
 $where_clause = '';
 if (!empty($where_conditions)) {
     $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
 }
 
-// Get tracking data
-$query = "SELECT * FROM {$wpdb->prefix}ybt_tracking $where_clause ORDER BY username, status, tracking_number";
+/*
+ * Per-user aggregate: counts scale with distinct users × statuses, not table rows.
+ * (Was: SELECT * over the entire tracking table — a 12MB page at 10k parcels.)
+ */
+$agg_query = "SELECT {$display_case} AS display_name, status, COUNT(*) AS status_total
+              FROM {$wpdb->prefix}ybt_tracking $where_clause
+              GROUP BY display_name, status";
+$agg_rows = !empty($where_values)
+    ? $wpdb->get_results($wpdb->prepare($agg_query, $where_values))
+    : $wpdb->get_results($agg_query);
 
-if (!empty($where_values)) {
-    $tracking_items = $wpdb->get_results($wpdb->prepare($query, $where_values));
-} else {
-    $tracking_items = $wpdb->get_results($query);
-}
-
-// Get all users for filter dropdown
-$all_users = $wpdb->get_results("SELECT DISTINCT username FROM {$wpdb->prefix}ybt_tracking WHERE username IS NOT NULL ORDER BY username");
-
-// Group items by user
+$total_matching = 0;
+$global_counts  = array('not_received' => 0, 'received' => 0, 'packing' => 0, 'completed' => 0);
 $users_data = array();
-foreach ($tracking_items as $item) {
-    $raw_username = $item->username;
-    $username = (!$raw_username || $raw_username === '' || $raw_username === 'N/A' || $raw_username === 'Anonymous') ? 'Anonymous' : $raw_username;
+foreach ($agg_rows as $row) {
+    $username = $row->display_name;
     if (!isset($users_data[$username])) {
         $users_data[$username] = array(
             'total' => 0,
@@ -65,15 +66,47 @@ foreach ($tracking_items as $item) {
             'items' => array()
         );
     }
-    $users_data[$username]['total']++;
-
-    // Safety check for dynamic statuses
-    if (!isset($users_data[$username][$item->status])) {
-        $users_data[$username][$item->status] = 0;
+    $count = (int) $row->status_total;
+    $users_data[$username]['total'] += $count;
+    if (!isset($users_data[$username][$row->status])) {
+        $users_data[$username][$row->status] = 0;
     }
+    $users_data[$username][$row->status] += $count;
+    $total_matching += $count;
 
-    $users_data[$username][$item->status]++;
-    $users_data[$username]['items'][] = $item;
+    if ($row->status === 'not_received')      $global_counts['not_received'] += $count;
+    elseif ($row->status === 'received')      $global_counts['received'] += $count;
+    elseif ($row->status === 'packed' || $row->status === 'packing_in_progress') $global_counts['packing'] += $count;
+    elseif ($row->status === 'completed')     $global_counts['completed'] += $count;
+}
+ksort($users_data);
+
+/*
+ * Bounded item listing: explicit columns + hard cap (per-user filter gets a
+ * larger window). The header counts come from the aggregate above, so they
+ * stay accurate even when this list is truncated.
+ */
+$item_limit = ($selected_user && $selected_user !== 'all') ? 2000 : 500;
+$items_query = "SELECT id, tracking_number, username, status, description, item_count, date_added, date_completed
+                FROM {$wpdb->prefix}ybt_tracking $where_clause
+                ORDER BY date_added DESC LIMIT %d";
+
+if (!empty($where_values)) {
+    $tracking_items = $wpdb->get_results($wpdb->prepare($items_query, array_merge($where_values, array($item_limit))));
+} else {
+    $tracking_items = $wpdb->get_results($wpdb->prepare($items_query, $item_limit));
+}
+
+// Get all users for filter dropdown
+$all_users = $wpdb->get_results("SELECT DISTINCT username FROM {$wpdb->prefix}ybt_tracking WHERE username IS NOT NULL ORDER BY username");
+
+// Distribute the bounded item list into their user groups
+foreach ($tracking_items as $item) {
+    $raw_username = $item->username;
+    $username = (!$raw_username || $raw_username === '' || $raw_username === 'N/A' || $raw_username === 'Anonymous') ? 'Anonymous' : $raw_username;
+    if (isset($users_data[$username])) {
+        $users_data[$username]['items'][] = $item;
+    }
 }
 ?>
 
@@ -145,7 +178,7 @@ foreach ($tracking_items as $item) {
                             <i class="fas fa-box-open"></i>
                         </div>
                         <div class="stat-content">
-                            <h3><?php echo count($tracking_items); ?></h3>
+                            <h3><?php echo (int) $total_matching; ?></h3>
                             <p>Total Items</p>
                         </div>
                     </div>
@@ -155,25 +188,37 @@ foreach ($tracking_items as $item) {
                         <div class="stat-content w-100">
                              <div class="d-flex justify-content-between mb-1">
                                  <span class="text-danger small fw-bold">Not Received</span>
-                                 <span class="fw-bold"><?php echo count(array_filter($tracking_items, function($i){return $i->status==='not_received';})); ?></span>
+                                 <span class="fw-bold"><?php echo (int) $global_counts['not_received']; ?></span>
                              </div>
                              <div class="d-flex justify-content-between mb-1">
                                  <span class="text-warning small fw-bold" style="color:#DAA520!important;">Received</span>
-                                 <span class="fw-bold"><?php echo count(array_filter($tracking_items, function($i){return $i->status==='received';})); ?></span>
+                                 <span class="fw-bold"><?php echo (int) $global_counts['received']; ?></span>
                              </div>
                              <div class="d-flex justify-content-between mb-1">
                                  <span class="text-info small fw-bold">Packed</span>
-                                 <span class="fw-bold"><?php echo count(array_filter($tracking_items, function($i){return $i->status==='packed'||$i->status==='packing_in_progress';})); ?></span>
+                                 <span class="fw-bold"><?php echo (int) $global_counts['packing']; ?></span>
                              </div>
                              <div class="d-flex justify-content-between">
                                  <span class="text-success small fw-bold">Completed</span>
-                                 <span class="fw-bold"><?php echo count(array_filter($tracking_items, function($i){return $i->status==='completed';})); ?></span>
+                                 <span class="fw-bold"><?php echo (int) $global_counts['completed']; ?></span>
                              </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Truncation Notice -->
+        <?php if ($total_matching > $item_limit): ?>
+            <div class="glass-card mb-4" style="border-left: 4px solid #f0b849;">
+                <div class="info-card-body d-flex justify-content-between align-items-center flex-wrap gap-2 py-3">
+                    <span class="small text-muted">
+                        <i class="fas fa-triangle-exclamation me-2" style="color:#f0b849;"></i>
+                        Showing the <?php echo (int) $item_limit; ?> most recent of <?php echo (int) $total_matching; ?> parcels. Narrow by user or status to reach older items.
+                    </span>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- User Details -->
         <?php if ($users_data): ?>

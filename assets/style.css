@@ -18,7 +18,7 @@
 /* Navbar - Green with Gold accents - MUST be at top */
 .ybt-navbar {
     background: linear-gradient(135deg, var(--ybt-green), var(--ybt-green-hover)) !important;
-    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.25);
     border-bottom: 3px solid var(--ybt-gold);
     position: fixed !important;
     top: 0 !important;
@@ -417,17 +417,20 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
 }
 
-/* Link Colors - Scoped to YBT container only */
-.ybt-container a,
-.ybt-dashboard-wrapper a,
-.ybt-page a {
+/* Link Colors - Scoped to YBT container only.
+   Consignment-note atoms (.ybd-btn*, .ybt-btn*) set their own colors and must
+   not be hijacked here — historically this !important turned every gold button
+   link emerald. */
+.ybt-container a:not([class*="ybd-btn"]):not([class*="ybt-btn"]),
+.ybt-dashboard-wrapper a:not([class*="ybd-btn"]):not([class*="ybt-btn"]),
+.ybt-page a:not([class*="ybd-btn"]):not([class*="ybt-btn"]) {
     color: var(--ybt-green) !important;
     font-weight: 600;
     transition: color 0.3s ease;
 }
 
-.ybt-container a:hover,
-.ybt-dashboard-wrapper a:hover,
-.ybt-page a:hover {
+.ybt-container a:hover:not([class*="ybd-btn"]):not([class*="ybt-btn"]),
+.ybt-dashboard-wrapper a:hover:not([class*="ybd-btn"]):not([class*="ybt-btn"]),
+.ybt-page a:hover:not([class*="ybd-btn"]):not([class*="ybt-btn"]) {
     color: var(--ybt-gold) !important;
 }

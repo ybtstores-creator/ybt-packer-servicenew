@@ -318,6 +318,10 @@ class YBT_Tracking_Audit {
             isset($args['admin_name']) ? $args['admin_name'] : null
         );
 
+        $action  = sanitize_key($action) ?: 'edit';
+        $summary = isset($args['summary']) ? $args['summary'] : self::build_summary($action, $changes);
+        $source  = isset($args['source']) ? $args['source'] : self::detect_source();
+
         // This trail is an ADMIN accountability record: customer self-service
         // changes (claiming a parcel, editing their own entry) are not attributed
         // as admin work. System actions (id 0) are labelled "System".
@@ -325,12 +329,20 @@ class YBT_Tracking_Audit {
             && empty($args['force'])
             && function_exists('user_can')
             && !user_can($actor['id'], 'manage_options')) {
+            // The customer action is still a parcel-timeline event; the events
+            // subsystem listens here and records the customer-facing version.
+            do_action('ybt_tracking_event', $tracking_id, $action, array(
+                'summary'         => $summary,
+                'source'          => $source,
+                'actor_id'        => $actor['id'],
+                'actor_name'      => $actor['name'],
+                'actor_role'      => 'customer',
+                'tracking_number' => $tracking_number,
+                'changes'         => $changes,
+                'before'          => $before,
+            ));
             return false;
         }
-
-        $action  = sanitize_key($action) ?: 'edit';
-        $summary = isset($args['summary']) ? $args['summary'] : self::build_summary($action, $changes);
-        $source  = isset($args['source']) ? $args['source'] : self::detect_source();
 
         $changes_json = !empty($changes)
             ? wp_json_encode(array_values($changes), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
@@ -362,6 +374,19 @@ class YBT_Tracking_Audit {
             }
             return false;
         }
+
+        // Same seam for the timeline: admin/system edits are audited AND shown
+        // to the parcel owner (as a friendly event, not a field diff).
+        do_action('ybt_tracking_event', $tracking_id, $action, array(
+            'summary'         => $summary,
+            'source'          => $source,
+            'actor_id'        => $actor['id'],
+            'actor_name'      => $actor['name'],
+            'actor_role'      => !empty($args['force']) ? 'system' : 'admin',
+            'tracking_number' => $tracking_number,
+            'changes'         => $changes,
+            'before'          => $before,
+        ));
 
         // Stamp the tracking row so the list can show "last edited by" without a join.
         $wpdb->query($wpdb->prepare(
@@ -803,21 +828,14 @@ class YBT_Tracking_Audit {
     }
 
     /**
-     * Client IP, same trust order as the logger.
+     * Client IP, same trust rules as the logger.
      */
     private static function client_ip() {
-        $keys = array('HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR');
-        foreach ($keys as $key) {
-            if (!empty($_SERVER[$key])) {
-                $ip = sanitize_text_field(wp_unslash($_SERVER[$key]));
-                if (strpos($ip, ',') !== false) {
-                    $parts = explode(',', $ip);
-                    $ip = trim($parts[0]);
-                }
-                return substr($ip, 0, 45);
-            }
+        $ip = function_exists('ybt_get_client_ip') ? ybt_get_client_ip() : '';
+        if ($ip === '' && isset($_SERVER['REMOTE_ADDR'])) {
+            $ip = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));
         }
-        return '0.0.0.0';
+        return substr($ip, 0, 45);
     }
 }
 

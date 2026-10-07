@@ -427,11 +427,13 @@ class YBT_REST_API {
 			$update_data['date_completed'] = current_time('mysql');
 		}
 
+		$before = YBT_Tracking_Audit::snapshot($id);
+
 		$result = YBT_Tracking_Audit::apply_update(
 			$id,
 			$update_data,
 			'status_change',
-			array('format' => null, 'where_format' => array('%d'), 'source' => 'rest')
+			array('before' => $before, 'format' => null, 'where_format' => array('%d'), 'source' => 'rest')
 		);
 
 		if ($result === false) {
@@ -442,7 +444,11 @@ class YBT_REST_API {
 			return new WP_Error('not_found', 'Tracking item not found', array('status' => 404));
 		}
 
-		do_action('ybt_tracking_updated', $id);
+		do_action('ybt_tracking_updated', $id, $status);
+
+		if ($before && $before->status !== $status) {
+			ybt_notify_status_change($before->user_id, $before->tracking_number, $status);
+		}
 
 		return new WP_REST_Response(array('message' => 'Tracking item updated successfully'));
 	}

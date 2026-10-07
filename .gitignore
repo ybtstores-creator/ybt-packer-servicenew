@@ -48,3 +48,4 @@ letters/
 downloads/*.pdf
 downloads/*.jpeg
 *.idsig
+secure-config/sensitive-documents/

@@ -1,6 +1,6 @@
 <?php
 /**
- * YBT Packer Service — Firebase Cloud Messaging (FCM) Credentials Settings
+ * YBT Packing Service — Firebase Cloud Messaging (FCM) Credentials Settings
  */
 if (!defined('ABSPATH')) exit;
 
@@ -21,6 +21,21 @@ if (getenv('YBT_FCM_SERVICE_ACCOUNT_JSON')) {
     $config_method = "Encrypted Database (Active)";
     $status_badge = '<span class="badge bg-success" style="background:#10b981; color:#fff; padding:6px 12px; border-radius:20px; font-weight:600;"><i class="dashicons dashicons-lock me-1"></i> Encrypted in Database</span>';
 }
+
+// A configured-but-broken credential used to render the same green badge as a
+// working one, so a revoked key or a key from the wrong Firebase project looked
+// healthy until an admin wondered why nobody's phone buzzed. Surface it here.
+$fcm_status = class_exists('YBT_Notifications') ? YBT_Notifications::status() : null;
+$last_error = (string) get_option('ybt_fcm_last_error', '');
+$fcm_problems = array();
+if ($fcm_status && $fcm_status['configured']) {
+    if (!empty($fcm_status['project_mismatch'])) {
+        $fcm_problems[] = $fcm_status['message'];
+    } elseif ($last_error !== '') {
+        $fcm_problems[] = 'Last attempt failed: ' . $last_error;
+    }
+}
+?>
 ?>
 
 <div class="wrap ybt-admin-wrapper">
@@ -30,6 +45,29 @@ if (getenv('YBT_FCM_SERVICE_ACCOUNT_JSON')) {
     </div>
 
     <div class="ybt-admin-container" style="max-width: 900px;">
+        <?php if (!empty($fcm_problems)) { ?>
+        <div class="notice notice-error" style="border-left:4px solid #dc2626; border-radius:8px; background:#fef2f2;">
+            <h4 style="margin:0 0 6px; font-weight:700; color:#b91c1c;"><i class="dashicons dashicons-warning me-1"></i> Push notifications are not being delivered</h4>
+            <?php foreach ($fcm_problems as $problem) { ?>
+                <p style="margin:0 0 6px; font-size:0.95rem; color:#991b1b;"><?php echo esc_html($problem); ?></p>
+            <?php } ?>
+            <p style="margin:0; font-size:0.9rem; color:#7f1d1d;">
+                Inbox entries still arrive in the app; only the phone push is missing. Re-paste a
+                service-account key for the app's own Firebase project, then press
+                <em>Test Connection</em> below.
+            </p>
+        </div>
+        <?php } elseif ($fcm_status && $fcm_status['configured']) { ?>
+        <div class="notice notice-info" style="border-left:4px solid #10b981; border-radius:8px; background:#ecfdf5;">
+            <p style="margin:0; font-size:0.95rem; color:#047857;">
+                <i class="dashicons dashicons-yes me-1"></i> Credentials loaded for Firebase project
+                <code><?php echo esc_html($fcm_status['project_id']); ?></code>
+                <?php if (!empty($fcm_status['app_project_id'])) { ?>
+                    (Android app: <code><?php echo esc_html($fcm_status['app_project_id']); ?></code>)
+                <?php } ?>
+            </p>
+        </div>
+        <?php } ?>
         <div class="card p-4 shadow-sm" style="border-radius:12px; background:#fff; border:1px solid #cbd5e1;">
             <div class="card-body">
                 <div class="notice notice-info p-3 mb-4" style="background:#ecfdf5; border-left:4px solid #10b981; border-radius:8px; color:#047857;">

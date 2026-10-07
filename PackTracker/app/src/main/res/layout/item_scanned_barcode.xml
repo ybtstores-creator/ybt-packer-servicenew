@@ -15,8 +15,8 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:text=""
-        android:textColor="#99FFFFFF"
-        android:textSize="12sp"
+        android:textColor="@color/overlay_text_mid"
+        android:textSize="@dimen/text_caption"
         android:textStyle="bold" />
 
     <LinearLayout
@@ -33,7 +33,7 @@
             android:ellipsize="end"
             android:text="0000000000"
             android:textColor="@color/white"
-            android:textSize="14sp"
+            android:textSize="@dimen/text_body"
             android:textStyle="bold" />
 
         <TextView
@@ -41,8 +41,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text=""
-            android:textColor="#CCFFFFFF"
-            android:textSize="10sp" />
+            android:textColor="@color/overlay_text_high"
+            android:textSize="@dimen/text_micro" />
 
         <TextView
             android:id="@+id/tvStatus"
@@ -50,15 +50,15 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textColor="@color/white"
-            android:textSize="11sp" />
+            android:textSize="@dimen/text_micro" />
 
         <TextView
             android:id="@+id/tvDuplicate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Duplicate"
-            android:textColor="#FFFFB74D"
-            android:textSize="10sp"
+            android:textColor="@color/overlay_pending"
+            android:textSize="@dimen/text_micro"
             android:visibility="gone" />
 
         <TextView
@@ -66,8 +66,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Saved"
-            android:textColor="#FF81C784"
-            android:textSize="10sp"
+            android:textColor="@color/overlay_success"
+            android:textSize="@dimen/text_micro"
             android:visibility="gone" />
 
         <TextView
@@ -75,8 +75,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Saved offline — will sync"
-            android:textColor="#CCFFFFFF"
-            android:textSize="10sp"
+            android:textColor="@color/overlay_text_high"
+            android:textSize="@dimen/text_micro"
             android:visibility="gone" />
 
         <TextView
@@ -84,8 +84,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Failed to save"
-            android:textColor="#FFFF6B6B"
-            android:textSize="10sp"
+            android:textColor="@color/overlay_error"
+            android:textSize="@dimen/text_micro"
             android:visibility="gone" />
     </LinearLayout>
 

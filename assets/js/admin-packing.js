@@ -33,11 +33,72 @@ jQuery(document).ready(function($) {
         updateSelectionIndicator();
     });
 
-    // User group header toggle
+    // User group header toggle with lazy row loading.
+    // Groups render as headers only; rows are fetched via AJAX the first time
+    // a group is expanded, so the initial DOM stays tiny at any scale.
     $(document).on('click', '.user-group-header', function() {
-        $(this).toggleClass('collapsed');
-        $(this).next('.user-group-content').slideToggle(200);
-        $(this).find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');
+        const $header = $(this);
+        const $group = $header.closest('.user-request-container');
+        const $content = $group.find('.user-group-content').first();
+
+        $header.toggleClass('collapsed');
+        $content.slideToggle(200);
+        $header.find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');
+
+        if ($group.data('loaded')) return;
+        $group.data('loaded', 1);
+
+        const username = $group.data('username');
+        const urlParams = new URLSearchParams(window.location.search);
+        $.ajax({
+            url: ybt_admin.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'ybt_get_packing_group_rows',
+                nonce: ybt_admin.nonce,
+                user: username,
+                search: urlParams.get('search') || ''
+            },
+            success: function(response) {
+                if (response && response.success) {
+                    const data = response.data;
+                    let $tbody = $content.find('table tbody');
+                    if (!$tbody.length) {
+                        $content.html(
+                            '<table class="table admin-table mb-0 border-0"><thead><tr>' +
+                            '<th class="check-column text-center" style="width: 40px;">' +
+                            '<input type="checkbox" class="user-select-all" data-user=""></th>' +
+                            '<th>Warehouse Info</th><th>Tracking #</th><th>Description</th><th>Date</th>' +
+                            '<th>Method</th><th>Images</th><th>Count</th><th>Complete</th><th>Actions</th>' +
+                            '</tr></thead><tbody></tbody></table>'
+                        );
+                        $tbody = $content.find('table tbody');
+                        $content.find('.user-select-all').attr('data-user', username);
+                    }
+                    $tbody.html(data.html);
+                    $group.data('loaded', 1);
+                    $group.attr('data-loaded', '1');
+
+                    if (data.truncated) {
+                        $tbody.append(
+                            '<tr class="ybt-group-truncated"><td colspan="10" class="text-center text-muted p-2">' +
+                            'Showing ' + data.shown + ' of ' + data.total + ' — refine by search to reach older items.' +
+                            '</td></tr>'
+                        );
+                    }
+
+                    // Restore any persisted selections onto the fresh checkboxes.
+                    document.dispatchEvent(new CustomEvent('ybt_group_rows_loaded'));
+                } else {
+                    $group.data('loaded', 0);
+                    $content.html('<div class="p-4 text-center text-muted">Failed to load items. Expand again to retry.</div>');
+                }
+            },
+            error: function() {
+                $group.data('loaded', 0);
+                $content.html('<div class="p-4 text-center text-muted">Failed to load items. Expand again to retry.</div>');
+            }
+        });
     });
 
     // Select all in user group

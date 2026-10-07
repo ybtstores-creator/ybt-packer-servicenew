@@ -1,3 +1,4 @@
+<?php if (!defined('ABSPATH')) exit; ?>
 <style>
 /* Professional Settings Page Styles */
 .ybt-settings-header {

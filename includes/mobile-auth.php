@@ -204,20 +204,17 @@ function ybt_mobile_register_handler() {
 }
 
 /**
- * Enable auth endpoints for AJAX requests
+ * Note: AJAX actions for 'ybt_mobile_login' and 'ybt_mobile_register'
+ * are now centrally registered and handled by YBT_API_Router (YBT_API_Auth_Handler).
+ * The functions below are retained for backwards compatibility with any direct callers.
  */
-add_action('wp_ajax_ybt_mobile_login', 'ybt_mobile_login_handler');
-add_action('wp_ajax_nopriv_ybt_mobile_login', 'ybt_mobile_login_handler');
-add_action('wp_ajax_ybt_mobile_register', 'ybt_mobile_register_handler');
-add_action('wp_ajax_nopriv_ybt_mobile_register', 'ybt_mobile_register_handler');
+
 
 /**
  * Utility to clear output buffers for clean JSON output
  */
 if (!function_exists('ybt_clear_output_buffers')) {
 	function ybt_clear_output_buffers() {
-		// During offline-sync replay, the replay loop's capture buffer must survive.
-		if (class_exists('YBT_API_Response') && !empty(YBT_API_Response::$capturing)) return;
 		while (ob_get_level()) {
 			ob_end_clean();
 		}

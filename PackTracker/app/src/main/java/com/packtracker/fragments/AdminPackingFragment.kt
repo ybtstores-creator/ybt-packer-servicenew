@@ -6,12 +6,14 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -21,6 +23,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.packtracker.R
 import com.packtracker.api.ApiClient
@@ -29,6 +32,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -200,6 +205,8 @@ class AdminPackingFragment : Fragment() {
             tvEmptyCartons.visibility = View.VISIBLE
         }
 
+        setupCartonEditor(view, batch.batch_id ?: "", cartons, dialog)
+
         currentSheet = dialog
         dialog.setOnDismissListener {
             currentSheet = null
@@ -207,6 +214,119 @@ class AdminPackingFragment : Fragment() {
         }
         dialog.setContentView(view)
         dialog.show()
+    }
+
+    // ═══════════════════════════════════════
+    // Carton editor (save & pack)
+    // ═══════════════════════════════════════
+
+    /**
+     * The server replaces the batch's whole carton list on save, so the editor
+     * is seeded from the existing cartons and row order becomes carton_number.
+     */
+    private fun setupCartonEditor(sheetView: View, batchId: String, existing: List<Carton>, dialog: BottomSheetDialog) {
+        val ctx = context ?: return
+        val rows = sheetView.findViewById<LinearLayout>(R.id.llCartonRows)
+        val btnAdd = sheetView.findViewById<MaterialButton>(R.id.btnAddCarton)
+        val btnSave = sheetView.findViewById<MaterialButton>(R.id.btnSaveCartons)
+
+        val currency = existing.mapNotNull { it.payment_currency?.takeIf { c -> c.isNotBlank() } }.firstOrNull() ?: "CNY"
+
+        fun addRow(weight: String?, payment: String?) {
+            val row = LayoutInflater.from(ctx).inflate(R.layout.item_carton_edit, rows, false)
+            row.findViewById<TextInputEditText>(R.id.etCartonWeight).setText(weight ?: "")
+            row.findViewById<TextInputEditText>(R.id.etCartonPayment).setText(payment ?: "")
+            row.findViewById<ImageButton>(R.id.btnRemoveCarton).setOnClickListener {
+                rows.removeView(row)
+                relabelCartonRows(rows)
+            }
+            rows.addView(row)
+            relabelCartonRows(rows)
+        }
+
+        existing.forEach { addRow(it.weight_kg, it.payment_amount) }
+        if (rows.childCount == 0) addRow(null, null)
+
+        btnAdd.setOnClickListener { addRow(null, null) }
+        btnSave.setOnClickListener { submitCartons(rows, batchId, currency, btnSave, dialog) }
+    }
+
+    private fun relabelCartonRows(rows: LinearLayout) {
+        for (i in 0 until rows.childCount) {
+            rows.getChildAt(i).findViewById<TextView>(R.id.tvCartonLabel).text = "Carton ${i + 1}"
+        }
+    }
+
+    private fun submitCartons(rows: LinearLayout, batchId: String, currency: String,
+                              btnSave: MaterialButton, dialog: BottomSheetDialog) {
+        val ctx = context ?: return
+        if (rows.childCount == 0) {
+            showQuickToast("Add at least one carton before packing")
+            return
+        }
+
+        val payload = JSONArray()
+        for (i in 0 until rows.childCount) {
+            val row = rows.getChildAt(i)
+            val weightField = row.findViewById<TextInputEditText>(R.id.etCartonWeight)
+            val paymentField = row.findViewById<TextInputEditText>(R.id.etCartonPayment)
+            val weight = weightField.text?.toString()?.trim()?.toDoubleOrNull()
+            if (weight == null || weight <= 0.0) {
+                weightField.error = "Required"
+                showQuickToast("Carton ${i + 1} needs a weight")
+                return
+            }
+            val payment = paymentField.text?.toString()?.trim()?.toDoubleOrNull() ?: 0.0
+            if (payment < 0.0) {
+                paymentField.error = "Must be 0 or more"
+                showQuickToast("Carton ${i + 1} has a negative payment")
+                return
+            }
+            payload.put(JSONObject().apply {
+                put("weight", weight)
+                put("payment", payment)
+                put("currency", currency)
+            })
+        }
+
+        btnSave.isEnabled = false
+        btnSave.text = "SAVING..."
+        val actionPart = "ybt_mobile_admin_save_cartons".toRequestBody("text/plain".toMediaTypeOrNull())
+        val batchPart = batchId.toRequestBody("text/plain".toMediaTypeOrNull())
+        val dataPart = payload.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+        ApiClient.getService(ctx).saveAdminCartons(
+            action = actionPart,
+            batchId = batchPart,
+            cartonData = dataPart,
+            files = emptyList()
+        ).enqueue(object : Callback<ApiResponse<String>> {
+            override fun onResponse(call: Call<ApiResponse<String>>, response: Response<ApiResponse<String>>) {
+                if (!isAdded) return
+                btnSave.isEnabled = true
+                btnSave.text = "SAVE & PACK"
+                if (response.isSuccessful && response.body()?.success == true) {
+                    showQuickToast("Batch $batchId packed — ${payload.length()} carton(s)")
+                    currentSheet = null
+                    dialog.dismiss()
+                    loadPackingRequests()
+                } else {
+                    showQuickToast(response.body()?.message ?: "Could not save cartons")
+                }
+            }
+            override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
+                Log.w(TAG, "saveAdminCartons failed for $batchId", t)
+                if (!isAdded) return
+                btnSave.isEnabled = true
+                btnSave.text = "SAVE & PACK"
+                showQuickToast("Could not save cartons. Check your connection and try again.")
+            }
+        })
+    }
+
+    private fun showQuickToast(msg: String) {
+        val ctx = context ?: return
+        try { Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
     }
 
     // ═══════════════════════════════════════
@@ -338,17 +458,19 @@ class BatchTrackingItemAdapter(
         holder.tvWeight.text = "${item.weight_kg ?: 0} kg"
 
         val status = item.status ?: ""
+        // Status dot fill: canonical palette, fixed so the white label keeps contrast.
         val (statusText, color) = when (status) {
-            "not_received" -> "Not Received" to Color.parseColor("#EF4444")
-            "received" -> "Received" to Color.parseColor("#10B981")
+            "not_received" -> "Not Received" to Color.parseColor("#64748B")
+            "received" -> "Received" to Color.parseColor("#0EA5E9")
             "packing_in_progress" -> "Packing" to Color.parseColor("#F59E0B")
-            "packed" -> "Packed" to Color.parseColor("#3B82F6")
-            "completed" -> "Completed" to Color.parseColor("#6366F1")
+            "packed" -> "Packed" to Color.parseColor("#10B981")
+            "completed" -> "Completed" to Color.parseColor("#047857")
             else -> status to Color.parseColor("#6B7280")
         }
         holder.statusDot.setBackgroundColor(color)
         holder.tvStatus.text = statusText
-        holder.tvStatus.setTextColor(color)
+        // Presentation only: web-style status chip text (dot fill unchanged)
+        com.packtracker.utils.StatusChipStyle.bind(holder.tvStatus, status)
 
         // Show images row with thumbnails
         val images = parseImages(item.images)

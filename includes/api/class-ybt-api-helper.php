@@ -160,10 +160,24 @@ class YBT_API_Helper {
         if (function_exists('ybt_get_jwt_secret_key')) {
             return ybt_get_jwt_secret_key();
         }
-        // SECURITY: single source of truth is ybt_get_jwt_secret_key(); never
-        // fall back to a core salt or a hardcoded string.
-        YBT_API_Response::error('Server configuration error: JWT secret not configured', 'server_error', 500);
-        exit;
+        $env_key = getenv('YBT_JWT_SECRET_KEY');
+        if (!empty($env_key)) {
+            return $env_key;
+        }
+        if (defined('YBT_JWT_SECRET_KEY') && !empty(YBT_JWT_SECRET_KEY)) {
+            return YBT_JWT_SECRET_KEY;
+        }
+        // SECURITY: Require a proper secret key — never fall back to a hardcoded string
+        if (defined('AUTH_KEY') && AUTH_KEY !== 'put your unique phrase here' && !empty(AUTH_KEY)) {
+            return AUTH_KEY;
+        }
+        $stored_key = get_option('ybt_jwt_secret_key');
+        if ($stored_key) {
+            return $stored_key;
+        }
+        $generated_key = wp_generate_password(64, true, true);
+        update_option('ybt_jwt_secret_key', $generated_key);
+        return $generated_key;
     }
 
     /**

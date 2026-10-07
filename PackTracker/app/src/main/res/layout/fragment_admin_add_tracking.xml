@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/background" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="20dp">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bulk Add Tracking" android:textSize="24sp" android:fontFamily="sans-serif-black" android:textColor="@color/on_surface" android:layout_marginBottom="8dp" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Add tracking numbers for a specific user" android:textSize="14sp" android:textColor="@color/on_surface_variant" android:layout_marginBottom="24dp" android:lineSpacingMultiplier="1.4" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bulk Add Tracking" android:textSize="@dimen/text_display" android:fontFamily="sans-serif-black" android:textColor="@color/on_surface" android:layout_marginBottom="8dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Add tracking numbers for a specific user" android:textSize="@dimen/text_body" android:textColor="@color/on_surface_variant" android:layout_marginBottom="24dp" android:lineSpacingMultiplier="1.4" />
         <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilUserId" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" android:hint="User ID" style="@style/Widget.PackTracker.TextInputLayout">
             <com.google.android.material.textfield.TextInputEditText android:id="@+id/etUserId" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>

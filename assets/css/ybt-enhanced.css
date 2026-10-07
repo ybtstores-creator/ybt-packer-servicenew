@@ -157,7 +157,7 @@
 .ybt-login-wrapper .ybt-card {
     border: none;
     border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.25);
     overflow: hidden;
 }
 

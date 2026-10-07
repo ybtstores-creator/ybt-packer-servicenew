@@ -134,7 +134,7 @@ class YBT_Shortcodes {
      */
     public static function enqueue_frontend_assets() {
         // Simple page check
-        $is_ybt_page = is_page(array('dashboard', 'add-tracking', 'not-received', 'received', 'packed', 'completed', 'profile', 'support', 'login', 'register', 'packing-in-progress', 'anonymous', 'home'));
+        $is_ybt_page = is_page(array('dashboard', 'add-tracking', 'not-received', 'received', 'packed', 'completed', 'profile', 'support', 'login', 'register', 'packing-in-progress', 'anonymous', 'home', 'app-download'));
 
         if (!$is_ybt_page) {
             return;
@@ -165,15 +165,12 @@ class YBT_Shortcodes {
             wp_enqueue_script('ybt-combined', YBT_PLUGIN_URL . 'assets/ybt-combined.min.js', array('jquery'), YBT_VERSION, true);
         }
 
-        // 3. Premium Design System Theme (All YBT pages)
-        wp_enqueue_style('ybt-premium-theme', YBT_PLUGIN_URL . 'assets/css/ybt-premium-theme.css', array('ybt-bootstrap'), YBT_VERSION . '-flat-v4');
+        // 3b. Consignment-note design system (tokens, atoms, and the legacy
+        //     bridge for pages not yet migrated)
+        wp_enqueue_style('ybt-consignment', YBT_PLUGIN_URL . 'assets/css/ybt-consignment.css', array('ybt-bootstrap'), YBT_VERSION . '-flat-v2');
 
-        // 4. User Dashboard Specific (Apply to all tracking pages)
-        $user_pages = array('dashboard', 'add-tracking', 'not-received', 'received', 'packed', 'completed', 'profile', 'support', 'packing-in-progress', 'anonymous', 'home');
-        if (is_page($user_pages)) {
-            wp_enqueue_style('ybt-user-dashboard', YBT_PLUGIN_URL . 'assets/css/user-dashboard-enhanced.css', array(), YBT_VERSION . '-flat-v4');
-            wp_enqueue_style('ybt-user-dashboard-modern', YBT_PLUGIN_URL . 'assets/css/user-dashboard-modern.css', array(), YBT_VERSION . '-flat-v4');
-        }
+        // 4. (user-dashboard-enhanced / user-dashboard-modern removed — fully
+        //    superseded by the consignment-note system; all classes orphaned)
 
         // 4. Localization
         $handle = (defined('WP_DEBUG') && WP_DEBUG) ? 'ybt-frontend' : 'ybt-combined';
@@ -184,6 +181,12 @@ class YBT_Shortcodes {
             'claim_nonce'       => wp_create_nonce('ybt_claim_parcel'),
             'version'           => YBT_VERSION
         ));
+
+        // 5. Notifications bell + parcel timeline (web). The script reads the
+        //    ybt_ajax object localized above at load time, so it depends on
+        //    $handle to keep the script-data printed before it executes.
+        wp_enqueue_style('ybt-timeline', YBT_PLUGIN_URL . 'assets/css/ybt-timeline.css', array(), YBT_VERSION);
+        wp_enqueue_script('ybt-timeline', YBT_PLUGIN_URL . 'assets/js/ybt-timeline.js', array('jquery', $handle), YBT_VERSION, true);
     }
 
     public static function app_download() {

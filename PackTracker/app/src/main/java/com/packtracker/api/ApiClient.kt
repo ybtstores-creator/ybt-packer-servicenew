@@ -2,6 +2,7 @@ package com.packtracker.api
 
 import android.content.Context
 import android.util.Log
+import com.packtracker.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -11,7 +12,8 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
 
     private const val TAG = "PackTracker"
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    /** Base URL; public so CrashReporter can post reports without Retrofit. */
+    val BASE_URL: String = BuildConfig.BASE_URL
     private var service: ApiService? = null
 
     @JvmStatic
@@ -41,7 +43,16 @@ object ApiClient {
                     requestBuilder.header("Authorization", "Bearer $token")
                 }
                 Log.d(TAG, "Request: ${original.url.encodedPath}")
-                chain.proceed(requestBuilder.build())
+                val response = chain.proceed(requestBuilder.build())
+                if (response.code == 401 && !token.isNullOrEmpty() && token != "demo_token" && token != "guest_session") {
+                    Log.w(TAG, "Received 401 Unauthorized for authenticated request. Token expired or revoked.")
+                    clearToken(appContext)
+                    val intent = android.content.Intent("com.packtracker.ACTION_UNAUTHORIZED").apply {
+                        setPackage(appContext.packageName)
+                    }
+                    appContext.sendBroadcast(intent)
+                }
+                response
             }
             .addInterceptor(loggingInterceptor)
 

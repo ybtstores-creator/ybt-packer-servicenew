@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: YBT Offline Sync
- * Description: Adds offline sync functionality to YBT Packer Service mobile app
+ * Description: Adds offline sync functionality to YBT Packing Service mobile app
  * Version: 1.0
  * Author: YBT Solutions
  */

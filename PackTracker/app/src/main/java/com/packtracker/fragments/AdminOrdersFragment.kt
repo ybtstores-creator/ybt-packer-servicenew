@@ -57,6 +57,7 @@ class AdminOrdersFragment : Fragment() {
     private lateinit var etSearch: TextInputEditText
     private var allOrders: List<TrackingItem> = emptyList()
     private var currentOrderId: Int? = null
+    private var currentSheet: com.google.android.material.bottomsheet.BottomSheetDialog? = null
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -136,21 +137,24 @@ class AdminOrdersFragment : Fragment() {
      */
     private fun showEditHistory(order: TrackingItem) {
         val id = order.id ?: return
+        if (!isAdded || childFragmentManager.isStateSaved) return
         val fm = childFragmentManager
-        if (fm.isStateSaved) return
         EditHistoryDialogFragment.newInstance(id, order.tracking_number)
             .show(fm, "edit_history")
     }
 
     private fun showOrderDetail(order: TrackingItem) {
+        if (!isAdded || parentFragmentManager.isStateSaved) return
         val context = context ?: return
         val dialog = BottomSheetDialog(context)
+        currentSheet = dialog
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_order_detail, null)
 
         view.findViewById<TextView>(R.id.tvDetailTrackingNumber)?.let { header ->
             header.text = "#${order.tracking_number}"
             // Long-press the header for the edit history too.
             header.setOnLongClickListener {
+                if (!isAdded || childFragmentManager.isStateSaved) return@setOnLongClickListener true
                 order.id?.let { id ->
                     EditHistoryDialogFragment.newInstance(id, order.tracking_number)
                         .show(childFragmentManager, "edit_history")
@@ -181,6 +185,7 @@ class AdminOrdersFragment : Fragment() {
 
         // Image upload button - check if receipt confirmed first
         view.findViewById<TextView>(R.id.btnUploadImage).setOnClickListener {
+            if (!isAdded) return@setOnClickListener
             if (order.status == "not_received") {
                 android.app.AlertDialog.Builder(context)
                     .setTitle("Confirm Receipt First")
@@ -202,6 +207,7 @@ class AdminOrdersFragment : Fragment() {
 
         // Delete button
         view.findViewById<View>(R.id.btnDeleteOrder)?.setOnClickListener {
+            if (!isAdded) return@setOnClickListener
             android.app.AlertDialog.Builder(context)
                 .setTitle("Delete Order")
                 .setMessage("Delete ${order.tracking_number}? This cannot be undone.")
@@ -214,6 +220,7 @@ class AdminOrdersFragment : Fragment() {
 
         // Update status button
         view.findViewById<Button>(R.id.btnUpdateStatus).setOnClickListener {
+            if (!isAdded) return@setOnClickListener
             val newStatus = STATUS_OPTIONS[spinner.selectedItemPosition]
             updateStatus(order.id ?: return@setOnClickListener, newStatus, dialog)
         }
@@ -297,6 +304,12 @@ class AdminOrdersFragment : Fragment() {
                     try { Toast.makeText(context, "Failed: ${t.message}", Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
                 }
             })
+    }
+
+    override fun onDestroyView() {
+        currentSheet?.dismiss()
+        currentSheet = null
+        super.onDestroyView()
     }
 
     private fun parseImages(images: Any?): List<String> {
@@ -400,15 +413,8 @@ class OrderAdapter(
 
         val statusText = item.status?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: "?"
         holder.tvStatus.text = statusText
-        val color = when (item.status) {
-            "not_received" -> 0xFFEF4444.toInt()
-            "received" -> 0xFF10B981.toInt()
-            "packing_in_progress" -> 0xFFF59E0B.toInt()
-            "packed" -> 0xFF3B82F6.toInt()
-            "completed" -> 0xFF6366F1.toInt()
-            else -> 0xFF94A3B8.toInt()
-        }
-        holder.tvStatus.setBackgroundColor(color)
+        // Presentation only: web-style status chip (was solid fill + white label)
+        com.packtracker.utils.StatusChipStyle.bind(holder.tvStatus, item.status)
 
         // Load image thumbnails
         val images = parseImages(item.images)

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Type scale. Collapses 15 ad-hoc sp values found in layouts onto six steps.
+  Mirrors the text size tokens in assets/css/ybt-tokens.css.
+-->
+<resources>
+    <dimen name="text_micro">11sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+    <dimen name="text_body_sm">13sp</dimen>
+    <dimen name="text_body">14sp</dimen>
+    <dimen name="text_title">16sp</dimen>
+    <dimen name="text_subtitle">18sp</dimen>
+    <dimen name="text_headline">20sp</dimen>
+    <dimen name="text_display">26sp</dimen>
+
+    <style name="TextAppearance.PackTracker.Micro" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_micro</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">@dimen/text_caption</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.BodySmall" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">@dimen/text_body_sm</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">@dimen/text_body</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.Title" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">@dimen/text_title</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.SectionLabel" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textColor">@color/primary</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.Headline" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">@dimen/text_headline</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.Display" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textSize">@dimen/text_display</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Display face: the site's Archivo Black headings (ybt-consignment.css).
+         Presentation only; wordmark, toolbar titles, greeting, section heads. -->
+    <style name="TextAppearance.PackTracker.DisplayFace" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:fontFamily">@font/archivo_black</item>
+        <item name="android:textColor">@color/ink</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.DisplayFace.OnDark" parent="TextAppearance.PackTracker.DisplayFace">
+        <item name="android:textColor">#FFFFFFFF</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.ToolbarTitle" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:fontFamily">@font/archivo_black</item>
+        <item name="android:textColor">@color/on_background</item>
+        <item name="android:textSize">@dimen/text_title</item>
+    </style>
+</resources>

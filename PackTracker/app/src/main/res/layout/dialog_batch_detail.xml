@@ -7,13 +7,23 @@
     android:background="@color/surface"
     android:paddingTop="12dp">
 
-    <!-- Drag handle -->
+    <!-- Drag handle stays pinned while the body scrolls -->
     <View android:layout_width="40dp" android:layout_height="4dp" android:layout_gravity="center_horizontal" android:background="@drawable/drag_handle" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
     <!-- Header -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Batch Details" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/on_surface" />
-        <TextView android:id="@+id/tvBatchId" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="@color/primary" android:layout_marginTop="4dp" android:fontFamily="monospace" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Batch Details" android:textSize="@dimen/text_subtitle" android:textStyle="bold" android:textColor="@color/on_surface" />
+        <TextView android:id="@+id/tvBatchId" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="@dimen/text_body" android:textColor="@color/primary" android:layout_marginTop="4dp" android:fontFamily="monospace" />
     </LinearLayout>
 
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
@@ -22,39 +32,39 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="12dp" android:weightSum="3">
         <com.google.android.material.card.MaterialCardView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="4dp" app:cardCornerRadius="8dp" app:cardBackgroundColor="@color/primary_light">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp" android:gravity="center">
-                <TextView android:id="@+id/tvItemCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="20sp" android:textStyle="bold" android:textColor="@color/primary" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Items" android:textSize="11sp" android:textColor="@color/on_surface_variant" />
+                <TextView android:id="@+id/tvItemCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="@dimen/text_headline" android:textStyle="bold" android:textColor="@color/primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Items" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="4dp" app:cardCornerRadius="8dp" app:cardBackgroundColor="@color/secondary_light">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp" android:gravity="center">
-                <TextView android:id="@+id/tvTotalWeight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="20sp" android:textStyle="bold" android:textColor="@color/secondary" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Weight" android:textSize="11sp" android:textColor="@color/on_surface_variant" />
+                <TextView android:id="@+id/tvTotalWeight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="@dimen/text_headline" android:textStyle="bold" android:textColor="@color/secondary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Weight" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.card.MaterialCardView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="4dp" app:cardCornerRadius="8dp" app:cardBackgroundColor="#EFF6FF">
+        <com.google.android.material.card.MaterialCardView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="4dp" app:cardCornerRadius="8dp" app:cardBackgroundColor="@color/primary_light">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp" android:gravity="center">
-                <TextView android:id="@+id/tvCartonCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="20sp" android:textStyle="bold" android:textColor="@color/status_completed" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Cartons" android:textSize="11sp" android:textColor="@color/on_surface_variant" />
+                <TextView android:id="@+id/tvCartonCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="@dimen/text_headline" android:textStyle="bold" android:textColor="@color/status_completed" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Cartons" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
     <!-- Batch info -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="16dp" android:paddingBottom="8dp">
-        <TextView android:id="@+id/tvCompany" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="13sp" android:textColor="@color/on_surface_variant" android:drawablePadding="6dp" />
-        <TextView android:id="@+id/tvRequestDate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/on_surface_variant" />
+        <TextView android:id="@+id/tvCompany" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="@dimen/text_body_sm" android:textColor="@color/on_surface_variant" android:drawablePadding="6dp" />
+        <TextView android:id="@+id/tvRequestDate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="@dimen/text_body_sm" android:textColor="@color/on_surface_variant" />
     </LinearLayout>
 
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
 
     <!-- Items section header + filter -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="10dp">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="TRACKING ITEMS" android:textSize="12sp" android:textStyle="bold" android:textColor="@color/on_surface_variant" android:letterSpacing="0.1" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="TRACKING ITEMS" android:textSize="@dimen/text_caption" android:textStyle="bold" android:textColor="@color/on_surface_variant" android:letterSpacing="0.1" />
 
-        <TextView android:id="@+id/tvFilterCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/on_surface_variant" android:layout_marginEnd="8dp" />
+        <TextView android:id="@+id/tvFilterCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" android:layout_marginEnd="8dp" />
     </LinearLayout>
 
     <!-- Tracking items search -->
@@ -81,7 +91,7 @@
             android:layout_height="wrap_content"
             android:inputType="text"
             android:maxLines="1"
-            android:textSize="13sp" />
+            android:textSize="@dimen/text_body_sm" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -95,7 +105,7 @@
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginTop="4dp" />
 
     <!-- Cartons section -->
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="CARTONS" android:textSize="12sp" android:textStyle="bold" android:textColor="@color/on_surface_variant" android:paddingHorizontal="16dp" android:paddingVertical="10dp" android:letterSpacing="0.1" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="CARTONS" android:textSize="@dimen/text_caption" android:textStyle="bold" android:textColor="@color/on_surface_variant" android:paddingHorizontal="16dp" android:paddingVertical="10dp" android:letterSpacing="0.1" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCartons"
@@ -103,10 +113,46 @@
         android:layout_height="wrap_content"
         android:nestedScrollingEnabled="false"
         android:paddingHorizontal="12dp"
-        android:paddingBottom="16dp"
         android:clipToPadding="false" />
 
     <!-- Empty states -->
-    <TextView android:id="@+id/tvEmptyItems" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="No items in this batch" android:textColor="@color/on_surface_variant" android:textSize="14sp" android:gravity="center" android:padding="20dp" android:visibility="gone" />
-    <TextView android:id="@+id/tvEmptyCartons" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="No cartons packed yet" android:textColor="@color/on_surface_variant" android:textSize="14sp" android:gravity="center" android:padding="20dp" android:visibility="gone" />
+    <TextView android:id="@+id/tvEmptyItems" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="No items in this batch" android:textColor="@color/on_surface_variant" android:textSize="@dimen/text_body" android:gravity="center" android:padding="20dp" android:visibility="gone" />
+    <TextView android:id="@+id/tvEmptyCartons" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="No cartons packed yet" android:textColor="@color/on_surface_variant" android:textSize="@dimen/text_body" android:gravity="center" android:paddingHorizontal="20dp" android:paddingVertical="12dp" android:visibility="gone" />
+
+    <!-- Carton editor: rows are added here, then saved through ybt_mobile_admin_save_cartons -->
+    <LinearLayout
+        android:id="@+id/llCartonRows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp" />
+
+    <LinearLayout
+        android:id="@+id/cartonEditorActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="20dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddCarton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="ADD CARTON" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSaveCartons"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="SAVE &amp; PACK" />
+    </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

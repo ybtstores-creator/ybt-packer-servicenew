@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('CLI only.');
+}
 if (!defined('ABSPATH')) {
     http_response_code(403);
     exit('Direct access forbidden.');

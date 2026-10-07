@@ -10,13 +10,17 @@ if (!defined('ABSPATH')) exit;
 class YBT_API_Response {
 
     /**
-     * When enabled (offline-sync replay), responses are captured into
-     * self::$captured and a YBT_Sync_Halt_Exception is thrown instead of
-     * sending the HTTP response and dying — so the sync loop can continue
-     * with the next operation.
+     * Optional capture sink used while replaying offline sync operations.
+     *
+     * When set to a callable, the full response array is handed to it instead
+     * of being sent with wp_send_json() — which would terminate the request
+     * via wp_die() and abort the remaining queued operations. The sink is
+     * expected to throw (see ybt_replay_offline_operation()) so the replayed
+     * handler unwinds immediately.
+     *
+     * @var callable|null
      */
-    public static $capturing = false;
-    public static $captured  = null;
+    public static $response_sink = null;
 
     /**
      * Send a success response
@@ -32,7 +36,14 @@ class YBT_API_Response {
             $response['data'] = $data;
         }
 
-        self::emit($response);
+        if (self::$response_sink !== null) {
+            call_user_func(self::$response_sink, $response);
+            return;
+        }
+
+        while (ob_get_level()) ob_end_clean();
+
+        wp_send_json($response);
     }
 
     /**
@@ -50,24 +61,15 @@ class YBT_API_Response {
             $response['details'] = $details;
         }
 
-        self::emit($response, $status_code);
-    }
-
-    /**
-     * Emit the JSON response — or capture it during sync replay.
-     */
-    private static function emit($response, $status_code = null) {
-        if (self::$capturing) {
-            self::$captured = $response;
-            throw new YBT_Sync_Halt_Exception('sync-response-captured');
+        if (self::$response_sink !== null) {
+            call_user_func(self::$response_sink, $response);
+            return;
         }
 
         while (ob_get_level()) ob_end_clean();
 
         // Set HTTP status code
-        if ($status_code !== null) {
-            status_header($status_code);
-        }
+        status_header($status_code);
 
         wp_send_json($response);
     }

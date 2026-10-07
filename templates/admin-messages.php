@@ -7,7 +7,16 @@ if (!current_user_can('manage_options')) {
 
 global $wpdb;
 
-$messages = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ybt_admin_messages ORDER BY date_created DESC");
+/* Bounded: newest 100 broadcasts. This list grows forever once messages are
+ * sent, so an unbounded SELECT would slowly bloat the page load. */
+$messages_limit = 100;
+$messages = $wpdb->get_results($wpdb->prepare(
+    "SELECT id, message, image_url, video_url, date_created
+     FROM {$wpdb->prefix}ybt_admin_messages
+     ORDER BY date_created DESC LIMIT %d",
+    $messages_limit
+));
+$messages_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_admin_messages");
 ?>
 
 <div class="wrap">
@@ -57,7 +66,7 @@ $messages = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ybt_admin_messages 
         <!-- Messages List -->
         <div class="card">
             <div class="card-header">
-                <h3>Active Messages (<?php echo count($messages); ?>)</h3>
+                <h3>Active Messages (<?php echo count($messages); ?><?php echo $messages_total > $messages_limit ? ' of ' . (int) $messages_total . ' — showing newest' : ''; ?>)</h3>
             </div>
             <div class="card-body">
                 <?php if ($messages): ?>

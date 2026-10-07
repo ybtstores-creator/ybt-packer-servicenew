@@ -1,44 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  PackTracker brand + theme colours.
+  Ramps are the literal source of truth and mirror assets/css/ybt-tokens.css
+  (see BRAND-TOKENS.md). Roles below may reference a ramp entry; values-night/
+  colours.xml overrides the roles only, so ramp literals never change.
+-->
 <resources>
-    <!-- Brand palette -->
-    <color name="primary">#2563EB</color>
-    <color name="primary_light">#EFF6FF</color>
-    <color name="primary_dark">#1E40AF</color>
-    <color name="secondary">#10B981</color>
-    <color name="secondary_light">#ECFDF5</color>
-    <color name="gold_primary">#D4AF37</color>
-    <color name="luxury_gold">#C9A227</color>
-    <color name="green_primary">#10B981</color>
+    <!-- ==================== Brand ramps (never theme-flipped) ==================== -->
+    <color name="emerald_50">#FFECFDF5</color>
+    <color name="emerald_100">#FFD1FAE5</color>
+    <color name="emerald_200">#FFA7F3D0</color>
+    <color name="emerald_300">#FF6EE7B7</color>
+    <color name="emerald_400">#FF34D399</color>
+    <color name="emerald_500">#FF10B981</color>
+    <color name="emerald_600">#FF059669</color>
+    <color name="emerald_700">#FF047857</color>
+    <color name="emerald_800">#FF065F46</color>
+    <color name="emerald_900">#FF064E3B</color>
 
-    <!-- Material-ish roles -->
-    <color name="on_surface">#1E293B</color>
-    <color name="on_surface_variant">#64748B</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="background">#F8FAFC</color>
-    <color name="white">#FFFFFF</color>
-    <color name="black">#000000</color>
+    <color name="gold_50">#FFFFF8E1</color>
+    <color name="gold_100">#FFFEF3C7</color>
+    <color name="gold_200">#FFF5E6C3</color>
+    <color name="gold_300">#FFE8CD7C</color>
+    <color name="gold_400">#FFDFBC55</color>
+    <color name="gold_500">#FFD4AF37</color>
+    <color name="gold_600">#FFB59021</color>
+    <color name="gold_700">#FF856404</color>
+
+    <color name="slate_50">#FFF8FAFC</color>
+    <color name="slate_100">#FFF1F5F9</color>
+    <color name="slate_200">#FFE2E8F0</color>
+    <color name="slate_300">#FFCBD5E1</color>
+    <color name="slate_400">#FF94A3B8</color>
+    <color name="slate_500">#FF64748B</color>
+    <color name="slate_600">#FF475569</color>
+    <color name="slate_700">#FF334155</color>
+    <color name="slate_800">#FF1E293B</color>
+    <color name="slate_900">#FF0F172A</color>
+    <color name="slate_950">#FF020617</color>
+
+    <!-- ==================== M3 roles — light values ==================== -->
+    <color name="primary">@color/emerald_700</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="primary_container">@color/emerald_100</color>
+    <color name="on_primary_container">@color/emerald_900</color>
+
+    <color name="secondary">@color/gold_500</color>
+    <color name="on_secondary">@color/slate_900</color>
+    <color name="secondary_container">@color/gold_100</color>
+    <color name="on_secondary_container">@color/gold_700</color>
+
+    <color name="tertiary">@color/emerald_500</color>
+    <color name="on_tertiary">#FFFFFFFF</color>
+    <color name="tertiary_container">@color/emerald_50</color>
+    <color name="on_tertiary_container">@color/emerald_800</color>
+
+    <color name="error">#FFDC2626</color>
+    <color name="on_error">#FFFFFFFF</color>
+    <color name="error_container">#FFFEE2E2</color>
+    <color name="on_error_container">#FF7F1D1D</color>
+
+    <color name="background">@color/kraft</color>
+    <!-- kraft paper canvas (site design system: ybt-consignment.css) -->
+    <color name="kraft">#FFF1EAD9</color>
+    <color name="chip_neutral_bg">#FFFBF8F1</color>
+    <color name="chip_neutral_fg">#FF5C5543</color>
+    <color name="kraft_line">#FFD9CCB0</color>
+    <color name="kraft_deep">#FFB9A67F</color>
+    <color name="ink">#FF0F1F17</color>
+    <color name="header_subtitle">#FF3D4A42</color>
+    <color name="on_background">@color/slate_900</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="on_surface">@color/slate_900</color>
+    <color name="surface_variant">@color/slate_100</color>
+    <color name="on_surface_variant">@color/slate_600</color>
+
+    <color name="surface_container_lowest">#FFFFFFFF</color>
+    <color name="surface_container_low">@color/slate_50</color>
+    <color name="surface_container">@color/slate_100</color>
+    <color name="surface_container_high">#FFE9EEF4</color>
+    <color name="surface_container_highest">#FFDDE5EC</color>
+    <color name="surface_bright">#FFFFFFFF</color>
+    <color name="surface_dim">@color/slate_200</color>
+
+    <color name="outline">@color/slate_400</color>
+    <color name="outline_variant">@color/slate_200</color>
+    <color name="inverse_surface">@color/slate_800</color>
+    <color name="inverse_on_surface">@color/slate_100</color>
+    <color name="inverse_primary">@color/emerald_400</color>
+    <color name="scrim">#FF000000</color>
+
+    <!-- ==================== Legacy aliases (kept so existing layouts resolve) ==
+         @color/primary is now emerald; the old blue ramp is gone. -->
+    <color name="primary_light">@color/emerald_50</color>
+    <color name="secondary_light">@color/gold_100</color>
+    <color name="green_primary">@color/emerald_500</color>
+    <color name="green_dark">@color/emerald_700</color>
+    <color name="green_light">@color/emerald_50</color>
+    <color name="gold_primary">@color/gold_500</color>
+    <color name="blue_gray">@color/slate_500</color>
+    <color name="grey_dark">@color/slate_600</color>
+    <color name="grey_light">@color/slate_100</color>
+    <color name="card_stroke">@color/slate_200</color>
+    <color name="divider">@color/slate_200</color>
+
+    <!-- ==================== Canonical parcel-status palette ====================
+         Mirrors ybt_get_status_badge_color() and the web status tokens. -->
+    <color name="status_not_received">#FF64748B</color>
+    <color name="status_received">#FF0EA5E9</color>
+    <color name="status_packing">#FFF59E0B</color>
+    <color name="status_packed">#FF10B981</color>
+    <color name="status_completed">#FF047857</color>
+
+    <!-- ==================== Misc ==================== -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <!-- Launcher icon background: white canvas for the navy YBT logo mark
+         (see mipmap-anydpi-v26/ic_launcher.xml + drawable-nodpi/ic_launcher_foreground.png). -->
+    <color name="ybt_icon_bg">#FFFFFFFF</color>
+    <color name="ic_launcher_background">@color/emerald_500</color>
+    <color name="glass_white_20">#33FFFFFF</color>
     <color name="glass_white_40">#66FFFFFF</color>
-    <color name="grey_light">#F1F5F9</color>
-    <color name="divider">#E2E8F0</color>
-    <color name="card_stroke">#E2E8F0</color>
+    <color name="scanner_overlay">#CC000000</color>
+    <color name="scanner_accent">@color/gold_300</color>
+    <color name="offline_banner">@color/gold_500</color>
 
-    <!-- Status colors -->
-    <color name="status_received">#10B981</color>
-    <color name="status_packing">#F59E0B</color>
-    <color name="status_packed">#3B82F6</color>
-    <color name="status_completed">#6366F1</color>
-    <color name="status_not_received">#EF4444</color>
-
-    <!-- Scanner -->
-    <color name="scanner_overlay">#80000000</color>
-    <color name="scanner_accent">#10B981</color>
-    <color name="offline_banner">#B45309</color>
-
-    <!-- Chat -->
-    <color name="bubble_incoming">#F1F5F9</color>
-    <color name="bubble_outgoing">#10B981</color>
-
-    <!-- Bottom nav -->
-    <color name="nav_active">#10B981</color>
-    <color name="nav_inactive">#94A3B8</color>
+    <!-- ==================== Overlay colours (never theme-flipped) ====================
+         These sit on camera preview or on the fixed emerald brand banner, which keep
+         the same appearance in night mode, so their alphas must too. -->
+    <color name="overlay_text">#FFFFFFFF</color>
+    <color name="overlay_text_high">#CCFFFFFF</color>
+    <color name="overlay_text_soft">#B3FFFFFF</color>
+    <color name="overlay_text_mid">#99FFFFFF</color>
+    <color name="overlay_warn">#FFFFD166</color>
+    <color name="overlay_error">#FFFF6B6B</color>
+    <color name="overlay_pending">#FFFFB74D</color>
+    <color name="overlay_success">#FF81C784</color>
+    <color name="overlay_scrim_soft">#66000000</color>
+    <color name="glass_tint">#33FFFFFF</color>
+    <color name="glass_tint_soft">#26FFFFFF</color>
+    <color name="glass_tint_faint">#14FFFFFF</color>
+    <color name="shadow_soft">#20000000</color>
+    <color name="scrim_soft">#B3000000</color>
+    <color name="brand_tint_10">#1A10B981</color>
 </resources>

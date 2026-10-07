@@ -230,46 +230,13 @@
             const result = await response.json();
 
             if (result.success) {
-                const data = result.data || {};
-                const results = Array.isArray(data.results) ? data.results : [];
-                const byId = {};
-                results.forEach(r => { if (r && r.local_id) byId[r.local_id] = r; });
-
-                const queueNow = getQueue();
-                const okIds = [];
-                const retry = [];
-                const dropped = [];
-                queueNow.forEach(item => {
-                    const r = byId[item.local_id];
-                    if (r && r.success) {
-                        okIds.push(item.local_id);
-                    } else if (r && !r.success) {
-                        item.attempts = (item.attempts || 0) + 1;
-                        item.last_error = r.message || 'sync failed';
-                        if (item.attempts >= 3) dropped.push(item);
-                        else retry.push(item);
-                    }
-                    // No result for this item (e.g. queued mid-sync): keep untouched
-                });
-
-                const keep = retry.concat(queueNow.filter(item =>
-                    !okIds.includes(item.local_id) &&
-                    !retry.some(r => r.local_id === item.local_id) &&
-                    !dropped.some(d => d.local_id === item.local_id)
-                ));
-                saveQueue(keep);
-
-                if (dropped.length) {
-                    console.error('[YBT Sync] Dropped after 3 failed attempts:', dropped.map(d => d.type + ' ' + d.local_id + ' (' + d.last_error + ')'));
-                }
-                if (retry.length) {
-                    console.warn('[YBT Sync] Retrying failed operations:', retry.map(r => r.type + ' ' + r.local_id + ' (' + r.last_error + ')'));
-                }
-                console.log('[YBT Sync] Synced', data.processed, 'operations,', data.failed, 'failed');
+                const syncedIds = queue.map(item => item.local_id);
+                removeFromQueue(syncedIds);
+                console.log('[YBT Sync] Successfully synced', result.data.processed, 'operations');
                 if (window.ybtApp && typeof window.ybtApp.onSyncComplete === 'function') {
-                    window.ybtApp.onSyncComplete(data);
+                    window.ybtApp.onSyncComplete(result.data);
                 }
-                return { success: true, data: data };
+                return { success: true, data: result.data };
             } else {
                 console.error('[YBT Sync] Sync failed:', result.data || result.message);
                 return { success: false, reason: result.data || result.message };

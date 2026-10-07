@@ -13,3 +13,12 @@
 # Gson models
 -keep class com.packtracker.models.** { *; }
 -keepattributes *Annotation*
+
+# WorkManager
+-keep class * extends androidx.work.Worker { *; }
+-keep class * extends androidx.work.CoroutineWorker { *; }
+-keep class * extends androidx.work.ListenableWorker { *; }
+
+# Glide
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep class * extends com.bumptech.glide.module.AppGlideModule { <init>(...); }

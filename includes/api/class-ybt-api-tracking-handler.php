@@ -59,9 +59,17 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
 
         global $wpdb;
         $user = get_userdata($this->user_id);
-        // FIXED: Explicitly use 'get' method since Android app sends query parameters via GET
-        $status = $this->get_param('status', 'received', 'text', 'get');
-        $search = $this->get_param('search', '', 'text', 'get');
+        // Query-style params arrive via GET (Android @Query, links) or POST
+        // (form/admin-ajax callers) — accept both, matching the legacy
+        // ybt_mobile_tracking handler this endpoint replaced.
+        $status = $this->get_query_param('status', 'all');
+        $search = $this->get_query_param('search', '');
+
+        // Normalize invalid status values instead of silently returning nothing
+        $valid_statuses = array('all', 'not_received', 'received', 'packing_in_progress', 'packed', 'completed');
+        if ($status !== 'all' && !in_array($status, $valid_statuses, true)) {
+            $status = 'all';
+        }
 
         $where = "(user_id = %d OR username = %s)";
         $params = array($this->user_id, $user->user_login);
@@ -78,9 +86,8 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
             $params[] = $status;
         }
 
-        // FIXED: Explicitly use 'get' method for limit and offset
-        $limit = $this->get_param('limit', 25, 'int', 'get');
-        $offset = $this->get_param('offset', 0, 'int', 'get');
+        $limit = $this->get_query_param('limit', 25, 'int');
+        $offset = $this->get_query_param('offset', 0, 'int');
 
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE $where ORDER BY date_added DESC LIMIT %d OFFSET %d",
@@ -132,6 +139,7 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
 
         if (empty($tracking_number)) {
             YBT_API_Response::error('Tracking number required', 'missing_tracking');
+            return;
         }
 
         // Check if exists
@@ -155,12 +163,25 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
                     array('id' => $existing->id)
                 );
 
+                if (class_exists('YBT_Tracking_Events')) {
+                    YBT_Tracking_Events::record($existing->id, 'claimed', array(
+                        'tracking_number' => $tracking_number,
+                        'user_id'         => $this->user_id,
+                        'actor_id'        => $this->user_id,
+                        'actor_name'      => $user->display_name ?: $user->user_login,
+                        'actor_role'      => 'customer',
+                        'source'          => 'mobile',
+                    ));
+                }
+
                 if (function_exists('ybt_log_activity')) {
                     ybt_log_activity($this->user_id, 'claim_tracking', "Claimed anonymous tracking: $tracking_number");
                 }
                 YBT_API_Response::success(null, 'Tracking number claimed successfully');
+                return;
             } else {
                 YBT_API_Response::error('Tracking number already exists', 'tracking_exists');
+                return;
             }
         }
 
@@ -176,6 +197,17 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
         ));
 
         if ($result) {
+            if ($wpdb->insert_id && class_exists('YBT_Tracking_Events')) {
+                YBT_Tracking_Events::record($wpdb->insert_id, 'created', array(
+                    'tracking_number' => $tracking_number,
+                    'user_id'         => $this->user_id,
+                    'status_to'       => 'not_received',
+                    'actor_id'        => $this->user_id,
+                    'actor_name'      => $user->display_name ?: $user->user_login,
+                    'actor_role'      => 'customer',
+                    'source'          => 'mobile',
+                ));
+            }
             if (function_exists('ybt_log_activity')) {
                 ybt_log_activity($this->user_id, 'add_tracking', "Added tracking: $tracking_number");
             }
@@ -203,6 +235,7 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
 
         if (empty($tracking_number)) {
             YBT_API_Response::error('Tracking number required', 'missing_tracking');
+            return;
         }
 
         $existing = $wpdb->get_row($wpdb->prepare(
@@ -212,13 +245,16 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
 
         if (!$existing) {
             YBT_API_Response::error('Parcel not found in our records', 'not_found', 404);
+            return;
         }
 
         if (!empty($existing->user_id) && $existing->user_id != 0 && strtolower($existing->username ?? '') !== 'anonymous') {
             if ($existing->user_id == $this->user_id) {
                 YBT_API_Response::error('Parcel is already in your list', 'already_owned');
+                return;
             } else {
                 YBT_API_Response::error('Parcel is already assigned to another user', 'assigned_elsewhere');
+                return;
             }
         }
 
@@ -233,6 +269,17 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
         );
 
         if ($result !== false) {
+            if (class_exists('YBT_Tracking_Events')) {
+                YBT_Tracking_Events::record($existing->id, 'claimed', array(
+                    'tracking_number' => $tracking_number,
+                    'user_id'         => $this->user_id,
+                    'status_from'     => $existing->status,
+                    'actor_id'        => $this->user_id,
+                    'actor_name'      => $user->display_name ?: $user->user_login,
+                    'actor_role'      => 'customer',
+                    'source'          => 'mobile',
+                ));
+            }
             if (function_exists('ybt_log_activity')) {
                 ybt_log_activity($this->user_id, 'claim_parcel', "Claimed parcel: $tracking_number");
             }
@@ -259,6 +306,7 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
 
         if (empty($query)) {
             YBT_API_Response::error('Query required', 'missing_query');
+            return;
         }
 
         $items = $wpdb->get_results($wpdb->prepare(
@@ -327,10 +375,25 @@ class YBT_API_Tracking_Handler extends YBT_API_Handler_Base {
             }
         }
 
+        // Fetch user profile info
+        $user = get_userdata($this->user_id);
+        $user_profile = null;
+        if ($user) {
+            $user_profile = array(
+                'username'         => $user->user_login,
+                'display_name'     => $user->display_name,
+                'email'            => $user->user_email,
+                'custom_user_id'   => $custom_user_id,
+                'shipping_address' => get_user_meta($this->user_id, 'ybt_shipping_address', true) ?: '',
+                'shipping_phone'   => get_user_meta($this->user_id, 'ybt_shipping_phone', true) ?: ''
+            );
+        }
+
         YBT_API_Response::success(array(
-            'payment_settings' => $payment_settings,
+            'payment_settings'  => $payment_settings,
             'warehouse_address' => $warehouse_address,
-            'announcement' => $announcement
+            'announcement'      => $announcement,
+            'user_profile'      => $user_profile
         ));
     }
 }

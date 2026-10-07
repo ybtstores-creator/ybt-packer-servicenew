@@ -122,6 +122,7 @@ function ybt_get_quick_stats_handler() {
     }
 
     // Very lightweight query - cached for 15 minutes
+    global $wpdb;
     $stats = ybt_cache()->remember('ybt_quick_stats', function() use ($wpdb) {
         $table = $wpdb->prefix . 'ybt_tracking';
         return $wpdb->get_row("

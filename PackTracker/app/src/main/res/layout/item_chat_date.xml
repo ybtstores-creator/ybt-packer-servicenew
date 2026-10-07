@@ -13,6 +13,6 @@
         android:paddingHorizontal="12dp"
         android:paddingVertical="4dp"
         android:text="Today"
-        android:textColor="#FF5E5E5E"
-        android:textSize="12sp" />
+        android:textColor="@color/on_surface_variant"
+        android:textSize="@dimen/text_caption" />
 </FrameLayout>

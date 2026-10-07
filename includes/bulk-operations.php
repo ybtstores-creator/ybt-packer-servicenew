@@ -82,10 +82,17 @@ function ybt_bulk_update_status_handler() {
 
     // Execute update
     $set_clause = implode(', ', $set_parts);
-    $wpdb->query($wpdb->prepare(
+    $affected = $wpdb->query($wpdb->prepare(
         "UPDATE {$wpdb->prefix}ybt_tracking SET $set_clause WHERE id IN ($placeholders)",
         $values
     ));
+
+    // Without this check a failed UPDATE still audits, notifies and reports success.
+    if ($affected === false) {
+        error_log('YBT: bulk_update_status failed: ' . $wpdb->last_error);
+        wp_send_json_error('Bulk update failed: ' . $wpdb->last_error);
+        return;
+    }
 
     // Audit: attribute the bulk change to this admin, per tracking number.
     if (class_exists('YBT_Tracking_Audit')) {
@@ -96,6 +103,13 @@ function ybt_bulk_update_status_handler() {
                 $update_data,
                 'bulk_status'
             );
+        }
+    }
+
+    // Notify owners, from the same pre-update snapshot used for auditing.
+    foreach ($audit_before as $notify_id => $before) {
+        if ($before && $before->status !== $status) {
+            ybt_notify_status_change($before->user_id, $before->tracking_number, $status);
         }
     }
 
@@ -138,9 +152,20 @@ function ybt_bulk_delete_items_handler() {
     // Audit: capture tracking numbers + previous state before they are removed,
     // so the deletion is still attributable after the rows are gone.
     $deleted_items = $wpdb->get_results($wpdb->prepare(
-        "SELECT id, tracking_number, username FROM {$wpdb->prefix}ybt_tracking WHERE id IN ($placeholders)",
+        "SELECT id, tracking_number, username, images FROM {$wpdb->prefix}ybt_tracking WHERE id IN ($placeholders)",
         $ids
     ));
+
+    // Delete the parcels' physical image files BEFORE the rows are gone —
+    // through the unified cleanup engine (plan + execute), so freed-space
+    // accounting has exactly one implementation across preview, delete,
+    // bulk and prune flows. No field clearing here: the rows themselves
+    // are deleted below.
+    $plan = null;
+    if (class_exists('YBT_File_Handler')) {
+        $plan = YBT_File_Handler::plan_tracking_images(array('rows' => $deleted_items));
+        YBT_File_Handler::execute_data_cleanup($plan, false);
+    }
 
     $wpdb->query($wpdb->prepare(
         "DELETE FROM {$wpdb->prefix}ybt_tracking WHERE id IN ($placeholders)",
@@ -167,7 +192,8 @@ function ybt_bulk_delete_items_handler() {
 
     do_action('ybt_bulk_operation_complete');
 
-    wp_send_json_success(count($ids) . " items deleted.");
+    $freed_kb = ($plan && isset($plan['size_bytes'])) ? round($plan['size_bytes'] / 1024, 1) : 0;
+    wp_send_json_success(count($ids) . " items deleted." . ($freed_kb > 0 ? " Freed ~{$freed_kb} KB of images." : ''));
 }
 add_action('wp_ajax_ybt_bulk_delete_items', 'ybt_bulk_delete_items_handler');
 
@@ -181,7 +207,19 @@ function ybt_bulk_assign_user_handler() {
     }
 
     global $wpdb;
-    $ids = array_map('intval', explode(',', $_POST['tracking_ids'] ?? ''));
+    $tracking_ids_raw = $_POST['tracking_ids'] ?? '';
+    $max_bulk_items = 500;
+    $ids = array_map('intval', explode(',', $tracking_ids_raw));
+    $ids = array_filter($ids);
+    $ids = array_unique($ids);
+
+    if (count($ids) > $max_bulk_items) {
+        wp_send_json_error('Too many items. Maximum ' . $max_bulk_items . ' items per bulk operation.');
+    }
+    if (empty($ids)) {
+        wp_send_json_error('No items selected');
+    }
+
     $username = sanitize_text_field($_POST['username'] ?? '');
 
     $user = get_user_by('login', $username);

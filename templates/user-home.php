@@ -14,174 +14,334 @@ add_action('wp_head', function() {
 }, 2);
 ?>
 
-<div class="ybt-theme-root animate-fade-in-up">
-    <div class="container py-5">
-        
-        <!-- Hero Section -->
-        <div class="row justify-content-center mb-5">
-            <div class="col-lg-11">
-                <div class="glass-card glass-card-green p-4 p-lg-5">
-                    <div class="row align-items-center g-4">
-                        <div class="col-lg-6 text-center text-lg-start">
-                            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-success bg-opacity-10 text-success fw-bold small mb-3 border border-success border-opacity-25">
-                                <span class="ybt-pulse-ring"></span> Premium Parcel Consolidation
-                            </div>
-                            <h1 class="display-4 fw-extrabold text-dark mb-3" style="line-height: 1.15;">
-                                We Pack & Forward Your Parcels Worldwide
-                            </h1>
-                            <p class="lead text-secondary mb-4 fs-5" style="line-height: 1.6;">
-                                Receive goods from any store in China. We store, inspect, consolidate, and prep your shipments for global dispatch.
-                            </p>
-                            
-                            <?php if (!is_user_logged_in()): ?>
-                            <div class="d-flex gap-3 justify-content-center justify-content-lg-start flex-wrap">
-                                <a href="<?php echo home_url('/register/'); ?>" class="btn btn-premium-primary btn-lg shadow-sm">
-                                    <i class="fas fa-rocket me-2"></i>Get Started Free
-                                </a>
-                                <a href="<?php echo home_url('/login/'); ?>" class="btn btn-premium-gold btn-lg shadow-sm">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                                </a>
-                            </div>
-                            <?php else: ?>
-                            <a href="<?php echo home_url('/dashboard/'); ?>" class="btn btn-premium-primary btn-lg shadow-sm">
-                                <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
-                            </a>
-                            <?php endif; ?>
-                        </div>
+<style>
+/* ================================================================
+   PUBLIC LANDING — "The Consignment Hall" (page-specific layer)
+   Shared tokens & atoms come from assets/css/ybt-consignment.css.
+   Scope root: .ybt-homepage
+   ================================================================ */
+.ybt-homepage{
+	margin:clamp(14px,3vw,36px) auto;
+	max-width:1120px;
+}
+/* ── hero: the waybill ─────────────────────────────────────── */
+.ybt-homepage .ybh-hero{
+	display:grid;
+	grid-template-columns:1.05fr .95fr;
+	gap:clamp(20px,4vw,40px);
+	align-items:center;
+	padding:clamp(20px,4vw,40px);
+}
+.ybt-homepage .ybh-hero-copy h1{
+	font-family:var(--display);
+	font-weight:400;
+	font-size:clamp(1.7rem,4.4vw,2.7rem);
+	line-height:1.14;
+	margin:0 0 14px;
+}
+.ybt-homepage .ybh-hero-copy h1 em{ font-style:normal; color:var(--emerald-deep); }
+.ybt-homepage .ybh-hero-copy .ybh-lede{
+	margin:0 0 22px;
+	color:#3d4a42;
+	font-size:clamp(15px,1.6vw,17px);
+	max-width:46ch;
+}
+.ybt-homepage .ybh-heroactions{ display:flex; gap:12px; flex-wrap:wrap; }
+.ybt-homepage .ybh-heroshot{ position:relative; }
+.ybt-homepage .ybh-heroshot img{
+	width:100%;
+	height:320px;
+	object-fit:cover;
+	display:block;
+	border:1.5px solid var(--ink);
+	border-radius:10px;
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+}
+.ybt-homepage .ybh-heroshot .ybh-prooftag{
+	position:absolute;
+	left:14px;bottom:14px;
+	display:inline-flex;align-items:center;gap:9px;
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:8px;
+	padding:8px 12px;
+	box-shadow:3px 3px 0 rgba(15,31,23,.15);
+}
+.ybt-homepage .ybh-heroshot .ybh-prooftag i{
+	width:28px;height:28px;
+	display:flex;align-items:center;justify-content:center;
+	border-radius:50%;
+	background:var(--emerald);
+	color:#fff;
+	font-size:12px;
+}
+.ybt-homepage .ybh-heroshot .ybh-prooftag strong{ display:block; font-size:12.5px; color:var(--ink); }
+.ybt-homepage .ybh-heroshot .ybh-prooftag span{ display:block; font-family:var(--mono); font-size:10.5px; color:#5c5543; }
+/* ── rate banner ───────────────────────────────────────────── */
+.ybt-homepage .ybh-rate{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:18px;
+	flex-wrap:wrap;
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:10px;
+	box-shadow:5px 5px 0 rgba(15,31,23,.1);
+	margin-top:clamp(18px,3vw,28px);
+	padding:clamp(18px,3vw,26px) clamp(18px,3vw,30px);
+}
+.ybt-homepage .ybh-rate .ybh-ratecopy h3{
+	font-family:var(--display);
+	font-weight:400;
+	font-size:clamp(1.05rem,2vw,1.3rem);
+	margin:8px 0 4px;
+}
+.ybt-homepage .ybh-rate .ybh-ratecopy p{ margin:0; color:#3d4a42; font-size:14px; }
+.ybt-homepage .ybh-ratetag{
+	font-family:var(--mono);
+	font-size:26px;font-weight:600;
+	color:var(--emerald-deep);
+	background:var(--paper);
+	border:1.5px solid var(--emerald);
+	border-radius:10px;
+	padding:12px 18px;
+	white-space:nowrap;
+	box-shadow:3px 3px 0 rgba(4,120,87,.2);
+}
+.ybt-homepage .ybh-ratetag small{
+	display:block;
+	font-size:10px;font-weight:600;
+	letter-spacing:.1em;text-transform:uppercase;
+	color:#5c5543;
+	margin-top:2px;
+}
+/* ── services: four cargo tiles ────────────────────────────── */
+.ybt-homepage .ybh-sectionhead{ text-align:center; margin:clamp(26px,4vw,40px) 0 18px; }
+.ybt-homepage .ybh-sectionhead h2{
+	font-family:var(--display);
+	font-weight:400;
+	font-size:clamp(1.2rem,2.6vw,1.55rem);
+	margin:0 0 4px;
+}
+.ybt-homepage .ybh-sectionhead p{ margin:0; color:#5a6a61; font-size:14px; }
+.ybt-homepage .ybh-tiles{
+	display:grid;
+	grid-template-columns:repeat(4,1fr);
+	gap:16px;
+}
+.ybt-homepage .ybh-tile{
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:10px;
+	box-shadow:5px 5px 0 rgba(15,31,23,.1);
+	padding:20px 18px;
+}
+.ybt-homepage .ybh-tile .ybh-tilestep{
+	font-family:var(--mono);
+	font-size:10.5px;font-weight:600;
+	letter-spacing:.14em;text-transform:uppercase;
+	color:var(--gold-deep);
+	display:block;
+	margin-bottom:8px;
+}
+.ybt-homepage .ybh-tile .ybh-tileicon{
+	width:46px;height:46px;
+	display:flex;align-items:center;justify-content:center;
+	border-radius:10px;
+	background:var(--emerald-tint);
+	border:1.5px solid var(--emerald);
+	color:var(--emerald-deep);
+	font-size:19px;
+	margin-bottom:10px;
+}
+.ybt-homepage .ybh-tile.gold .ybh-tileicon{ background:var(--gold-tint); border-color:var(--gold); color:var(--gold-deep); }
+.ybt-homepage .ybh-tile h3{
+	font-family:var(--sans);
+	font-weight:700;
+	font-size:15px;
+	margin:0 0 6px;
+	color:var(--ink);
+}
+.ybt-homepage .ybh-tile p{ margin:0; color:#5a6a61; font-size:13.5px; }
+/* ── how it works: three steps ─────────────────────────────── */
+.ybt-homepage .ybh-steps{
+	display:grid;
+	grid-template-columns:repeat(3,1fr);
+	gap:16px;
+	margin-top:18px;
+}
+.ybt-homepage .ybh-step{
+	background:var(--paper);
+	border:1.5px solid var(--kraft-line);
+	border-radius:10px;
+	padding:22px 18px;
+	text-align:center;
+	position:relative;
+}
+.ybt-homepage .ybh-step .ybh-stepno{
+	width:42px;height:42px;
+	margin:0 auto 12px;
+	display:flex;align-items:center;justify-content:center;
+	border-radius:50%;
+	font-family:var(--mono);
+	font-weight:600;
+	font-size:16px;
+	background:var(--emerald-tint);
+	border:1.5px solid var(--emerald);
+	color:var(--emerald-deep);
+}
+.ybt-homepage .ybh-step.gold .ybh-stepno{ background:var(--gold-tint); border-color:var(--gold); color:var(--gold-deep); }
+.ybt-homepage .ybh-step h3{
+	font-family:var(--sans);
+	font-weight:700;
+	font-size:15px;
+	margin:0 0 6px;
+	color:var(--ink);
+}
+.ybt-homepage .ybh-step p{ margin:0; color:#5a6a61; font-size:13.5px; }
+/* ── guest CTA ─────────────────────────────────────────────── */
+.ybt-homepage .ybh-cta{
+	text-align:center;
+	margin-top:clamp(26px,4vw,40px);
+	padding:clamp(24px,4vw,38px);
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:12px;
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+}
+.ybt-homepage .ybh-cta h3{
+	font-family:var(--display);
+	font-weight:400;
+	font-size:clamp(1.15rem,2.4vw,1.45rem);
+	margin:0 0 6px;
+}
+.ybt-homepage .ybh-cta p{ margin:0 auto 18px; color:#5a6a61; font-size:14.5px; max-width:52ch; }
+.ybt-homepage .ybh-cta .ybh-ctarow{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+/* ── responsive ────────────────────────────────────────────── */
+@media (max-width:920px){
+	.ybt-homepage .ybh-hero{ grid-template-columns:1fr; }
+	.ybt-homepage .ybh-tiles{ grid-template-columns:repeat(2,1fr); }
+	.ybt-homepage .ybh-steps{ grid-template-columns:1fr; }
+}
+@media (max-width:560px){
+	.ybt-homepage .ybh-tiles{ grid-template-columns:1fr; }
+	.ybt-homepage .ybh-heroshot img{ height:230px; }
+}
+</style>
 
-                        <div class="col-lg-6">
-                            <div class="position-relative">
-                                <img src="<?php echo plugin_dir_url(dirname(__FILE__)); ?>assets/images/repacking-process.webp" alt="Package Repacking Process" class="img-fluid rounded-4 shadow-lg w-100" style="height: 320px; object-fit: cover; border: 3px solid rgba(255,255,255,0.8);" loading="eager" fetchpriority="high" decoding="async">
-                                <div class="position-absolute bottom-0 start-0 translate-middle-y ms-3 p-3 glass-card rounded-3 d-flex align-items-center gap-3 shadow-lg" style="background: #ffffff; max-width: 260px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);">
-                                    <div class="rounded-circle bg-success text-white p-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                                        <i class="fas fa-check fa-lg"></i>
-                                    </div>
-                                    <div>
-                                        <strong class="d-block text-dark small">Verified Inspection</strong>
-                                        <span class="text-muted small">HD Photo Proof Available</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="ybt-homepage">
 
-        <!-- Live Rate Highlight Banner -->
-        <div class="row justify-content-center mb-5">
-            <div class="col-lg-8">
-                <div class="glass-card glass-card-gold p-4 text-center text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #047857 0%, #10b981 70%, #059669 100%) !important;">
-                    <div class="row align-items-center py-2">
-                        <div class="col-md-7 text-md-start mb-3 mb-md-0">
-                            <span class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2">OFFICIAL SHIPPING RATE</span>
-                            <h3 class="fw-bold mb-1 text-white">Transparent Freight Pricing</h3>
-                            <p class="text-white-50 mb-0 small">No hidden service fees. Pay per weight with full packing photos.</p>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <div class="d-inline-block bg-white bg-opacity-20 rounded-4 px-4 py-2 text-center" style="">
-                                <div class="display-5 fw-extrabold text-warning mb-0" style="letter-spacing: -1px;">
-                                    <?php echo esc_html($rate_per_kg); ?> <span class="fs-5 text-white">Yuan/kg</span>
-                                </div>
-                                <span class="text-white-50 small">Standard Consolidation</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+	<!-- hero: the waybill -->
+	<section class="ybh-hero">
+		<div class="ybh-hero-copy">
+			<p class="yb-eyebrow">YBT Packing Service &middot; China warehouse &rarr; worldwide</p>
+			<h1>We pack &amp; forward your parcels, <em>worldwide</em></h1>
+			<p class="ybh-lede">Receive goods from any store in China. We store, inspect, consolidate, and prep your shipments for global dispatch.</p>
+			<div class="ybh-heroactions">
+				<?php if (!is_user_logged_in()): ?>
+				<a href="<?php echo home_url('/register/'); ?>" class="yb-btn yb-btn-gold"><i class="fas fa-rocket"></i>Get started free</a>
+				<a href="<?php echo home_url('/login/'); ?>" class="yb-btn yb-btn-emerald"><i class="fas fa-sign-in-alt"></i>Sign in</a>
+				<?php else: ?>
+				<a href="<?php echo home_url('/dashboard/'); ?>" class="yb-btn yb-btn-gold"><i class="fas fa-tachometer-alt"></i>Go to dashboard</a>
+				<?php endif; ?>
+			</div>
+		</div>
+		<div class="ybh-heroshot">
+			<img src="<?php echo plugin_dir_url(dirname(__FILE__)); ?>assets/images/repacking-process.webp" alt="Package Repacking Process" loading="eager" fetchpriority="high" decoding="async">
+			<div class="ybh-prooftag">
+				<i class="fas fa-check"></i>
+				<div>
+					<strong>Verified inspection</strong>
+					<span>HD photo proof available</span>
+				</div>
+			</div>
+		</div>
+	</section>
 
-        <!-- Services Matrix -->
-        <div class="mb-5">
-            <div class="text-center max-w-2xl mx-auto mb-4">
-                <h2 class="fw-bold text-dark mb-2">What We Do</h2>
-                <p class="text-muted">End-to-end handling from supplier delivery to international forwarder</p>
-            </div>
-            
-            <div class="row g-4">
-                <div class="col-md-6 col-lg-3">
-                    <div class="glass-card glass-card-interactive h-100 text-center p-4">
-                        <div class="mb-3 mx-auto rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff;">
-                            <i class="fas fa-boxes fa-xl"></i>
-                        </div>
-                        <h5 class="fw-bold mb-2">1. Parcel Receiving</h5>
-                        <p class="text-muted small mb-0">We accept parcels from Taobao, 1688, Pinduoduo, or private vendors into our secure warehouse.</p>
-                    </div>
-                </div>
+	<!-- rate banner -->
+	<section class="ybh-rate">
+		<div class="ybh-ratecopy">
+			<p class="yb-eyebrow" style="margin-bottom:0;">Official shipping rate</p>
+			<h3>Transparent freight pricing</h3>
+			<p>No hidden service fees. Pay per weight with full packing photos.</p>
+		</div>
+		<div class="ybh-ratetag">
+			<?php echo esc_html($rate_per_kg); ?> Yuan/kg
+			<small>Standard consolidation</small>
+		</div>
+	</section>
 
-                <div class="col-md-6 col-lg-3">
-                    <div class="glass-card glass-card-interactive h-100 text-center p-4">
-                        <div class="mb-3 mx-auto rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #d4af37 0%, #b59021 100%); color: #fff;">
-                            <i class="fas fa-layer-group fa-xl"></i>
-                        </div>
-                        <h5 class="fw-bold mb-2">2. Consolidation</h5>
-                        <p class="text-muted small mb-0">Combine multiple individual packages into compact, reinforced export cartons to save on volumetric weight.</p>
-                    </div>
-                </div>
+	<!-- services: four cargo tiles -->
+	<section>
+		<div class="ybh-sectionhead">
+			<p class="yb-eyebrow">The route</p>
+			<h2>What we do</h2>
+			<p>End-to-end handling from supplier delivery to international forwarder.</p>
+		</div>
+		<div class="ybh-tiles">
+			<div class="ybh-tile">
+				<span class="ybh-tilestep">Stop 1</span>
+				<div class="ybh-tileicon"><i class="fas fa-boxes"></i></div>
+				<h3>Parcel receiving</h3>
+				<p>We accept parcels from Taobao, 1688, Pinduoduo, or private vendors into our secure warehouse.</p>
+			</div>
+			<div class="ybh-tile gold">
+				<span class="ybh-tilestep">Stop 2</span>
+				<div class="ybh-tileicon"><i class="fas fa-layer-group"></i></div>
+				<h3>Consolidation</h3>
+				<p>Combine multiple packages into compact, reinforced export cartons to save on volumetric weight.</p>
+			</div>
+			<div class="ybh-tile">
+				<span class="ybh-tilestep">Stop 3</span>
+				<div class="ybh-tileicon"><i class="fas fa-shipping-fast"></i></div>
+				<h3>Forwarding</h3>
+				<p>Hand over sealed cartons directly to your preferred logistics line (DHL, Aramex, sea/air cargo).</p>
+			</div>
+			<div class="ybh-tile gold">
+				<span class="ybh-tilestep">Stop 4</span>
+				<div class="ybh-tileicon"><i class="fas fa-shield-alt"></i></div>
+				<h3>Quality protection</h3>
+				<p>Bubble wrap, waterproof taping, corner guards, and photo confirmation before final dispatch.</p>
+			</div>
+		</div>
+	</section>
 
-                <div class="col-md-6 col-lg-3">
-                    <div class="glass-card glass-card-interactive h-100 text-center p-4">
-                        <div class="mb-3 mx-auto rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff;">
-                            <i class="fas fa-shipping-fast fa-xl"></i>
-                        </div>
-                        <h5 class="fw-bold mb-2">3. Forwarding</h5>
-                        <p class="text-muted small mb-0">Hand over sealed cartons directly to your preferred logistics line (DHL, Aramex, sea/air cargo).</p>
-                    </div>
-                </div>
+	<!-- how it works: three steps -->
+	<section>
+		<div class="ybh-sectionhead">
+			<p class="yb-eyebrow">Shipper's instructions</p>
+			<h2>Simple 3-step process</h2>
+		</div>
+		<div class="ybh-steps">
+			<div class="ybh-step">
+				<div class="ybh-stepno">1</div>
+				<h3>Register &amp; add tracking</h3>
+				<p>Create an account to get your unique YBT ID. Submit your supplier tracking numbers as you order.</p>
+			</div>
+			<div class="ybh-step gold">
+				<div class="ybh-stepno">2</div>
+				<h3>Select &amp; request packing</h3>
+				<p>When your items arrive in warehouse status, select them and submit your shipping company address.</p>
+			</div>
+			<div class="ybh-step">
+				<div class="ybh-stepno">3</div>
+				<h3>Pay &amp; dispatch</h3>
+				<p>Review packed carton photos, weight summary, and upload payment evidence for instant release.</p>
+			</div>
+		</div>
+	</section>
 
-                <div class="col-md-6 col-lg-3">
-                    <div class="glass-card glass-card-interactive h-100 text-center p-4">
-                        <div class="mb-3 mx-auto rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); color: #fff;">
-                            <i class="fas fa-shield-alt fa-xl"></i>
-                        </div>
-                        <h5 class="fw-bold mb-2">4. Quality Protection</h5>
-                        <p class="text-muted small mb-0">Bubble wrap, waterproof taping, corner guards, and photo confirmation before final dispatch.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+	<!-- guest CTA -->
+	<?php if (!is_user_logged_in()): ?>
+	<section class="ybh-cta">
+		<h3>Ready to start shipping?</h3>
+		<p>Create your account in 30 seconds and get your warehouse receiving address immediately.</p>
+		<div class="ybh-ctarow">
+			<a href="<?php echo home_url('/register/'); ?>" class="yb-btn yb-btn-gold"><i class="fas fa-user-plus"></i>Create free account</a>
+			<a href="<?php echo home_url('/anonymous/'); ?>" class="yb-btn yb-btn-emerald"><i class="fas fa-user-secret"></i>Continue as guest</a>
+		</div>
+	</section>
+	<?php endif; ?>
 
-        <!-- How It Works Section -->
-        <div class="row justify-content-center mb-5">
-            <div class="col-lg-10">
-                <div class="glass-card p-4 p-lg-5">
-                    <h3 class="fw-bold text-dark text-center mb-4"><i class="fas fa-list-ol text-success me-2"></i>Simple 3-Step Process</h3>
-                    <div class="row g-4">
-                        <div class="col-md-4 text-center">
-                            <div class="rounded-circle bg-success text-white fw-bold d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">1</div>
-                            <h5 class="fw-bold">Register & Add Tracking</h5>
-                            <p class="text-muted small mb-0">Create an account to get your unique YBT ID. Submit your supplier tracking numbers as you order.</p>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">2</div>
-                            <h5 class="fw-bold">Select & Request Packing</h5>
-                            <p class="text-muted small mb-0">When your items arrive in warehouse status, select them and submit your shipping company address.</p>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <div class="rounded-circle bg-success text-white fw-bold d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">3</div>
-                            <h5 class="fw-bold">Pay & Dispatch</h5>
-                            <p class="text-muted small mb-0">Review packed carton photos, weight summary, and upload payment evidence for instant release.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Guest Callout CTA -->
-        <?php if (!is_user_logged_in()): ?>
-        <div class="glass-card p-4 p-lg-5 text-center bg-white">
-            <h3 class="fw-bold text-dark mb-2">Ready to Start Shipping?</h3>
-            <p class="text-muted mb-4 max-w-xl mx-auto">Create your account in 30 seconds and get your warehouse receiving address immediately.</p>
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a href="<?php echo home_url('/register/'); ?>" class="btn btn-premium-primary btn-lg shadow-sm">
-                    <i class="fas fa-user-plus me-2"></i>Create Free Account
-                </a>
-                <a href="<?php echo home_url('/anonymous/'); ?>" class="btn btn-outline-secondary btn-lg">
-                    <i class="fas fa-user-secret me-2"></i>Continue as Guest
-                </a>
-            </div>
-        </div>
-        <?php endif; ?>
-
-    </div>
 </div>

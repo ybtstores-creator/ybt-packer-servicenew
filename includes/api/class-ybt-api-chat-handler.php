@@ -182,7 +182,13 @@ class YBT_API_Chat_Handler extends YBT_API_Handler_Base {
         $this->require_admin();
 
         $target_user_id = $this->get_param('target_user_id', 0, 'int', 'get');
-        if (!$target_user_id) YBT_API_Response::error('Target user ID required', 'missing_id');
+        if (!$target_user_id) {
+            $target_user_id = $this->get_param('user_id', 0, 'int', 'get');
+        }
+        if (!$target_user_id) {
+            YBT_API_Response::error('Target user ID required', 'missing_id');
+            return;
+        }
 
         global $wpdb;
         // Messages the user sent (is_admin = 0) are read when admin opens the chat.
@@ -204,16 +210,23 @@ class YBT_API_Chat_Handler extends YBT_API_Handler_Base {
         $this->require_admin();
 
         $target_user_id = $this->get_param('target_user_id', 0, 'int');
+        if (!$target_user_id) {
+            $target_user_id = $this->get_param('user_id', 0, 'int');
+        }
         $message = $this->get_param('message', '', 'textarea');
         $attachment_url = $this->handle_attachment();
 
         if (!$target_user_id || ($message === '' && $attachment_url === '')) {
             YBT_API_Response::error('Target user and message or attachment required', 'missing_data');
+            return;
         }
 
         global $wpdb;
         $user_info = get_userdata($target_user_id);
-        if (!$user_info) YBT_API_Response::error('User not found', 'not_found', 404);
+        if (!$user_info) {
+            YBT_API_Response::error('User not found', 'not_found', 404);
+            return;
+        }
 
         $result = $wpdb->insert($wpdb->prefix . 'ybt_chat', array(
             'user_id' => $target_user_id,
@@ -228,7 +241,23 @@ class YBT_API_Chat_Handler extends YBT_API_Handler_Base {
         if ($result) {
             if (class_exists('YBT_Notifications')) {
                 $notif_message = !empty($message) ? $message : '📷 Photo';
-                YBT_Notifications::send_tracking_update($target_user_id, 'New Message', 'Support: ' . $notif_message);
+                $chat_message_id = (int) $wpdb->insert_id;
+                $sender = wp_get_current_user();
+                // Inbox row + instant FCM push — the inbox row is what makes
+                // the app's badge/popup see chat messages. sender_id/name let
+                // the notification tap deep-link into this conversation.
+                YBT_Notifications::notify(
+                    $target_user_id,
+                    'New message',
+                    'Support: ' . $notif_message,
+                    array(
+                        'type' => 'chat_message',
+                        'chat_message_id' => $chat_message_id,
+                        'sender_id' => $sender->ID,
+                        'sender_name' => $sender->display_name ?: $sender->user_login,
+                    ),
+                    array('type' => 'chat_message')
+                );
             }
             YBT_API_Response::success(null, 'Message sent');
         } else {
@@ -243,7 +272,10 @@ class YBT_API_Chat_Handler extends YBT_API_Handler_Base {
         $this->require_admin();
 
         $message_id = $this->get_param('message_id', 0, 'int');
-        if (!$message_id) YBT_API_Response::error('Message ID required', 'missing_id');
+        if (!$message_id) {
+            YBT_API_Response::error('Message ID required', 'missing_id');
+            return;
+        }
 
         global $wpdb;
         $deleted = $wpdb->delete("{$wpdb->prefix}ybt_chat", array('id' => $message_id));

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PackTracker</string>
+    <string name="app_name">YBT Packing Service</string>
 
     <!-- Dashboard -->
     <string name="loading">Loading…</string>
@@ -22,4 +22,14 @@
 
     <!-- Search -->
     <string name="search_hint">Search tracking number, description or user</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">New notifications</string>
+    <string name="notif_channel_desc">Alerts when you receive a new message or parcel update</string>
+    <string name="notif_fallback_title">New notification</string>
+    <plurals name="notif_new_messages">
+        <item quantity="one">You have %d new message</item>
+        <item quantity="other">You have %d new messages</item>
+    </plurals>
+    <string name="notif_more_line">+%d more…</string>
 </resources>

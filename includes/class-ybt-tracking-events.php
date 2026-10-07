@@ -390,7 +390,7 @@ class YBT_Tracking_Events {
      *
      * @return array { items: array, has_more: bool }
      */
-    public static function get_timeline($tracking_id, $limit = 25, $offset = 0) {
+    public static function get_timeline($tracking_id, $limit = 25, $offset = 0, $owner_id = null) {
         global $wpdb;
 
         if (!self::ready()) {
@@ -402,7 +402,7 @@ class YBT_Tracking_Events {
 
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT id, event_type, title, message, status_from, status_to,
-                    actor_name, actor_role, source, occurred_at, recorded_at
+                    actor_id, actor_name, actor_role, source, occurred_at, recorded_at
                FROM {$wpdb->prefix}ybt_tracking_events
               WHERE tracking_id = %d
               ORDER BY occurred_at DESC, id DESC
@@ -419,6 +419,16 @@ class YBT_Tracking_Events {
         }
         if (!$rows) {
             $rows = array();
+        }
+
+        // A reassigned parcel must not show the previous owner's name: callers
+        // pass the viewing customer's id; admins pass null and see everything.
+        if ($owner_id !== null) {
+            foreach ($rows as $row) {
+                if ($row->actor_role === 'customer' && (int) $row->actor_id !== (int) $owner_id) {
+                    $row->actor_name = null;
+                }
+            }
         }
 
         return array('items' => $rows, 'has_more' => $has_more);
@@ -457,6 +467,16 @@ class YBT_Tracking_Events {
         $events  = $wpdb->prefix . 'ybt_tracking_events';
         $tracking = $wpdb->prefix . 'ybt_tracking';
 
+        // The pass is SELECT-then-INSERT with no unique index behind it, and admin
+        // requests run concurrently (a dashboard fires several AJAX calls at once),
+        // so two processes used to read the same cursor and write the same events
+        // twice. Only one pass may run at a time; others retry on a later request.
+        $lock = $wpdb->get_var("SELECT GET_LOCK('ybt_tracking_events_backfill', 0)");
+        if ($lock !== null && (int) $lock !== 1) {
+            return true;
+        }
+        $locked = ($lock !== null);
+
         $ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM {$tracking} WHERE id > %d ORDER BY id ASC LIMIT %d",
             $cursor,
@@ -464,6 +484,9 @@ class YBT_Tracking_Events {
         ));
 
         if (empty($ids)) {
+            if ($locked) {
+                $wpdb->query("SELECT RELEASE_LOCK('ybt_tracking_events_backfill')");
+            }
             return false;
         }
 
@@ -536,6 +559,10 @@ class YBT_Tracking_Events {
         }
 
         update_option(self::OPTION_BACKFILL_CURSOR, $cursor, false);
+
+        if ($locked) {
+            $wpdb->query("SELECT RELEASE_LOCK('ybt_tracking_events_backfill')");
+        }
 
         // True if there may be more rows than this batch covered.
         return count($ids) >= self::BACKFILL_BATCH;

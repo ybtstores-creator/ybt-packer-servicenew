@@ -12,7 +12,6 @@ if (!current_user_can('manage_options')) {
     wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'ybt-packer'));
 }
 
-wp_enqueue_style('ybt-admin-dashboard-enhanced', YBT_PLUGIN_URL . 'assets/css/admin-dashboard-enhanced.css', array(), YBT_VERSION);
 ?>
 
 <div class="wrap ybt-admin-wrapper">

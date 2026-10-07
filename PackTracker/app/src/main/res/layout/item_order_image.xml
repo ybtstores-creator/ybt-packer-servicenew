@@ -19,5 +19,5 @@
         android:layout_marginTop="2dp"
         android:text="Image"
         android:textColor="@color/on_surface_variant"
-        android:textSize="10sp" />
+        android:textSize="@dimen/text_micro" />
 </LinearLayout>

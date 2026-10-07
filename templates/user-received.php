@@ -12,7 +12,7 @@ add_action('wp_head', function() {
         body.admin-bar { margin-top: 0 !important; padding-top: 0 !important; }
         html { margin-top: 0 !important; }
     </style>';
-    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src \'self\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;">';
+    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src \'self\' data: blob: https:; connect-src \'self\' https:;">';
 }, 1);
 
 // Load modern navbar
@@ -29,192 +29,172 @@ $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ybt_tra
 
 $total_items = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE (user_id = %d OR username = %s) AND status = 'received'", get_current_user_id(), $current_user->user_login));
 $total_pages = ceil($total_items / $per_page);
+
+require YBT_PLUGIN_PATH . 'templates/components/status-page-styles.php';
 ?>
 
-<div class="ybt-dashboard-wrapper animate-fade-in-up">
-    <div class="container py-4">
+<div class="ybd-page">
 
-        <!-- Page Title & Counter -->
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-            <div>
-                <h2 class="mb-1 fw-bold text-dark d-flex align-items-center gap-2" style="font-family: var(--ybt-font-heading);">
-                    <i class="fas fa-warehouse" style="color: #10b981;"></i> In Warehouse
-                </h2>
-                <p class="text-muted small mb-0">Parcels received at China warehouse ready for packing & consolidation</p>
-            </div>
-            <div class="badge bg-success bg-opacity-10 text-success rounded-pill px-4 py-2 fs-6" style="border: 1px solid rgba(16, 185, 129, 0.25);">
-                <i class="fas fa-boxes me-2"></i>Total Received: <?php echo intval($total_items); ?>
+    <!-- Page header -->
+    <div class="ybd-pagehead">
+        <div>
+            <p class="ybd-eyebrow">Stage 3 of 5 &middot; Warehouse register</p>
+            <h2>In warehouse</h2>
+            <p class="ybd-sub">Parcels received and inspected — select the ones to pack together.</p>
+        </div>
+        <span class="ybd-count">Total received: <?php echo intval($total_items); ?></span>
+    </div>
+
+    <form id="packing-request-form">
+        <!-- Floating Selection Badge (JS toggles it) -->
+        <div id="selection-badge" style="position:fixed; top:85px; right:24px; z-index:1050; display:none;">
+            <div class="ybd-selbadge">
+                <i class="fas fa-check-double"></i>
+                <span class="fw-bold">0</span>
+                <span>items selected</span>
             </div>
         </div>
 
-        <form id="packing-request-form">
-            <!-- Floating Selection Badge (Brand Green Gradient) -->
-            <div id="selection-badge" class="position-fixed" style="top: 85px; right: 24px; z-index: 1050; display: none;">
-                <div class="text-white rounded-pill px-4 py-2.5 shadow-lg d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 1.5px solid rgba(255,255,255,0.4);">
-                    <i class="fas fa-check-circle text-warning fs-5"></i>
-                    <span class="fw-bold fs-6">0</span>
-                    <span class="small opacity-90">items selected</span>
-                </div>
+        <div class="ybd-panel">
+            <div class="ybd-panelhead">
+                <span class="ybd-hint"><i class="fas fa-check-double"></i>Select items to pack together</span>
+                <button type="button" id="btn-request-packing" class="ybd-btn ybd-btn-gold">
+                    <i class="fas fa-box-open"></i>Request packing
+                </button>
             </div>
-            
-            <div class="glass-card glass-card-green">
-                <div class="info-card-header bg-white border-bottom p-3.5 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <span class="fw-bold text-secondary"><i class="fas fa-check-double me-2" style="color: #d4af37;"></i>Select items to pack together</span>
-                    <button type="button" id="btn-request-packing" class="btn btn-premium-primary rounded-pill shadow-sm px-4">
-                        <i class="fas fa-box-open me-2"></i>Request Packing
-                    </button>
-                </div>
-                <div class="info-card-body p-0">
-                    <?php if ($items): ?>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle">
-                                <thead class="bg-light text-secondary small text-uppercase" style="letter-spacing: 0.5px;">
-                                    <tr>
-                                        <th class="ps-4 py-3" style="width:50px;"><input type="checkbox" id="select-all" class="form-check-input"></th>
-                                        <th class="py-3">Tracking Details</th>
-                                        <th class="py-3">Contents</th>
-                                        <th class="py-3">Received Photos</th>
-                                        <th class="text-end pe-4 py-3">Received Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                <?php foreach ($items as $item): ?>
-                                    <tr>
-                                        <td class="ps-4"><input type="checkbox" name="tracking_ids[]" class="item-checkbox form-check-input" value="<?php echo $item->id; ?>"></td>
-                                        <td>
-                                            <div class="fw-bold fs-6" style="color: #047857; font-family: monospace; letter-spacing: 0.5px;"><?php echo esc_html($item->tracking_number); ?></div>
-                                            <div class="text-muted small"><?php echo esc_html($item->description ?: 'No description'); ?></div>
-                                        </td>
-                                        <td>
-                                            <span class="status-pill status-pill-warehouse">
-                                                <i class="fas fa-cubes me-1"></i><?php echo esc_html($item->item_count); ?> pcs
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($item->images):
-                                                $images = explode(',', $item->images);
-                                                $images = array_filter(array_map('trim', $images));
-                                            ?>
-                                                <div class="d-flex gap-2">
-                                                    <?php foreach (array_slice($images, 0, 3) as $image): ?>
-                                                        <div class="position-relative" style="width: 48px; height: 48px;">
-                                                            <img src="<?php echo esc_url($image); ?>" class="rounded-3 shadow-sm border border-success border-opacity-25" style="width:100%; height:100%; object-fit:cover; cursor:pointer; transition: transform 0.2s;" onclick="openImageFullscreen('<?php echo esc_js($image); ?>')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                    <?php if(count($images) > 3): ?>
-                                                        <button type="button" class="btn btn-sm btn-light rounded-circle border d-flex align-items-center justify-content-center view-images fw-bold text-success" style="width: 48px; height: 48px;" data-images="<?php echo esc_attr($item->images); ?>">+<?php echo count($images)-3; ?></button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-muted small opacity-50">-</span>
+            <?php if ($items): ?>
+                <div class="ybd-tablewrap">
+                    <table class="ybd-manifest">
+                        <thead>
+                            <tr>
+                                <th style="width:46px;"><input type="checkbox" id="select-all" class="ybd-check" aria-label="Select all"></th>
+                                <th>Tracking details</th>
+                                <th>Contents</th>
+                                <th>Received photos</th>
+                                <th style="text-align:right;">Received date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($items as $item): ?>
+                            <tr>
+                                <td><input type="checkbox" name="tracking_ids[]" class="item-checkbox ybd-check" value="<?php echo $item->id; ?>" aria-label="Select <?php echo esc_attr($item->tracking_number); ?>"></td>
+                                <td>
+                                    <span class="ybd-trackno"><?php echo esc_html($item->tracking_number); ?></span>
+                                    <span class="ybd-desc"><?php echo esc_html($item->description ?: 'No description'); ?></span>
+                                </td>
+                                <td>
+                                    <span class="ybd-pcs"><i class="fas fa-cubes"></i><?php echo esc_html($item->item_count); ?> pcs</span>
+                                </td>
+                                <td>
+                                    <?php if ($item->images):
+                                        $images = explode(',', $item->images);
+                                        $images = array_filter(array_map('trim', $images));
+                                    ?>
+                                        <div class="ybd-thumbs">
+                                            <?php foreach (array_slice($images, 0, 3) as $image): ?>
+                                                <img src="<?php echo esc_url($image); ?>" alt="Received parcel photo" class="ybd-thumb" loading="lazy" decoding="async"
+                                                     onclick="openImageFullscreen('<?php echo esc_js($image); ?>')">
+                                            <?php endforeach; ?>
+                                            <?php if(count($images) > 3): ?>
+                                                <button type="button" class="ybd-morethumb view-images" data-images="<?php echo esc_attr($item->images); ?>" aria-label="View all photos">+<?php echo count($images)-3; ?></button>
                                             <?php endif; ?>
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <div class="text-dark fw-semibold"><?php echo date('M j, Y', strtotime($item->date_received)); ?></div>
-                                            <div class="text-muted small"><?php echo date('h:i A', strtotime($item->date_received)); ?></div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="p-5 text-center text-muted">
-                            <div class="rounded-circle bg-success bg-opacity-10 text-success p-4 d-inline-flex mb-3">
-                                <i class="fas fa-warehouse fa-3x"></i>
-                            </div>
-                            <h4 class="fw-bold text-dark mb-2">No Items Currently in Warehouse</h4>
-                            <p class="text-muted max-w-md mx-auto">Once your vendor parcels arrive and are inspected by warehouse staff, they will appear here ready for repacking.</p>
-                            <a href="<?php echo home_url('/add-tracking/'); ?>" class="btn btn-premium-primary rounded-pill mt-2">
-                                <i class="fas fa-plus-circle me-2"></i>Register Tracking Numbers
-                            </a>
-                        </div>
-                    <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="ybd-none">&ndash;</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="ybd-date">
+                                    <strong><?php echo date('M j, Y', strtotime($item->date_received)); ?></strong>
+                                    <small><?php echo date('h:i A', strtotime($item->date_received)); ?></small>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </form>
+            <?php else: ?>
+                <div class="ybd-empty">
+                    <div class="ybd-emptyicon"><i class="fas fa-warehouse"></i></div>
+                    <h4>Nothing in the warehouse yet</h4>
+                    <p>Once your vendor parcels arrive and are inspected by warehouse staff, they will appear here ready for repacking.</p>
+                    <a href="<?php echo home_url('/add-tracking/'); ?>" class="ybd-btn ybd-btn-emerald"><i class="fas fa-plus-circle"></i>Register tracking numbers</a>
+                </div>
+            <?php endif; ?>
+        </div>
+    </form>
 
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
-        <nav class="mt-5 d-flex justify-content-center">
-            <?php
-            echo paginate_links(array(
-                'base'      => str_replace(999999999, '%#%', esc_url(get_pagenum_link(999999999))),
-                'format'    => 'page/%#%/',
-                'current'   => $current_page,
-                'total'     => $total_pages,
-                'prev_text' => '<i class="fas fa-chevron-left"></i>',
-                'next_text' => '<i class="fas fa-chevron-right"></i>',
-                'type'      => 'list',
-                'end_size'  => 1,
-                'mid_size'  => 1
-            ));
-            ?>
-        </nav>
-        <?php endif; ?>
+    <!-- Pagination -->
+    <?php if ($total_pages > 1): ?>
+    <nav class="ybd-pagenav">
+        <?php
+        echo paginate_links(array(
+            'base'      => str_replace(999999999, '%#%', esc_url(get_pagenum_link(999999999))),
+            'format'    => 'page/%#%/',
+            'current'   => $current_page,
+            'total'     => $total_pages,
+            'prev_text' => '<i class="fas fa-chevron-left"></i>',
+            'next_text' => '<i class="fas fa-chevron-right"></i>',
+            'type'      => 'list',
+            'end_size'  => 1,
+            'mid_size'  => 1
+        ));
+        ?>
+    </nav>
+    <?php endif; ?>
+</div>
+
+<!-- Image Viewer Modal -->
+<div id="image-viewer-modal" class="ybd-modal ybd-modal-wide" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999;">
+    <div style="max-width:800px;">
+        <div class="ybd-modalhead">
+            <h5><i class="fas fa-images"></i> Parcel verification photos</h5>
+            <button type="button" class="ybd-modalclose" onclick="jQuery('#image-viewer-modal').hide()" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="image-gallery" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center;"></div>
     </div>
 </div>
 
-<!-- Image Viewer Modal (Glassmorphism) -->
-<div id="image-viewer-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.75); z-index:9999; align-items:center; justify-content:center;">
-    <div class="glass-card" style="padding:24px; max-width:90%; max-height:90%; overflow-y:auto; width:800px; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);">
-        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-            <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-images me-2" style="color: #10b981;"></i>Parcel Verification Photos</h5>
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" onclick="jQuery('#image-viewer-modal').hide()"><i class="fas fa-times"></i></button>
+<!-- Packing Modal -->
+<div id="packing-modal" class="ybd-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999;">
+    <div>
+        <div class="ybd-modalhead">
+            <h5><i class="fas fa-box-open"></i> Confirm packing request</h5>
+            <button type="button" class="ybd-modalclose" onclick="jQuery('#packing-modal').hide()" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
-        <div id="image-gallery" class="text-center d-flex flex-wrap justify-content-center gap-3"></div>
-    </div>
-</div>
-
-<!-- Packing Modal (Glassmorphism Brand Theme) -->
-<div id="packing-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.75); z-index:9999; align-items:center; justify-content:center;">
-    <div class="glass-card p-4 p-md-5 mx-3" style="width: 100%; max-width: 580px; background: #ffffff; position: relative; border-radius: 24px; border-top: 4px solid #10b981;">
-        <button type="button" class="btn-close position-absolute" style="top: 20px; right: 20px;" onclick="jQuery('#packing-modal').hide()" aria-label="Close"></button>
-        <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 68px; height: 68px; font-size: 28px;">
-                <i class="fas fa-box-open"></i>
-            </div>
-            <h4 class="fw-bold text-dark">Confirm Packing Request</h4>
-            <p class="text-muted small">You are requesting to pack <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 fs-6" id="selected-count">0</span> selected parcels together.</p>
-        </div>
+        <p style="margin:0 0 6px; color:#3d4a42; font-size:14px;">
+            You are requesting to pack <span class="ybd-pcs" id="selected-count">0</span> selected parcels together.
+        </p>
 
         <form id="confirm-packing-form">
             <input type="hidden" name="action" value="ybt_request_packing">
             <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('ybt_nonce'); ?>">
             <input type="hidden" name="tracking_ids" id="modal-tracking-ids">
 
-            <div class="row g-3">
-                <div class="col-12">
-                    <label class="form-label fw-semibold text-secondary small">RECEIVER NAME / COMPANY</label>
-                    <input type="text" name="shipping_company_name" class="form-control form-control-premium" required placeholder="e.g. John Doe Imports">
-                </div>
+            <label class="ybd-formlabel" for="pf-company">Receiver name / company</label>
+            <input type="text" name="shipping_company_name" id="pf-company" class="ybd-input" required placeholder="e.g. John Doe Imports">
 
-                 <div class="col-12">
-                     <label class="form-label fw-semibold text-secondary small">DELIVERY ADDRESS</label>
-                     <textarea name="shipping_company_address" class="form-control form-control-premium" required rows="2" placeholder="Full delivery destination address"></textarea>
-                </div>
+            <label class="ybd-formlabel" for="pf-address">Delivery address</label>
+            <textarea name="shipping_company_address" id="pf-address" class="ybd-textarea" required rows="2" placeholder="Full delivery destination address"></textarea>
 
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold text-secondary small">PHONE NUMBER</label>
-                    <input type="text" name="shipping_company_phone" class="form-control form-control-premium" required placeholder="Receiver phone number">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 14px;">
+                <div>
+                    <label class="ybd-formlabel" for="pf-phone">Phone number</label>
+                    <input type="text" name="shipping_company_phone" id="pf-phone" class="ybd-input" required placeholder="Receiver phone number">
                 </div>
-
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold text-secondary small">SHIPPING MARK</label>
-                    <input type="text" name="shipping_mark" class="form-control form-control-premium" required placeholder="e.g. YBT-001">
-                </div>
-
-                 <div class="col-12">
-                     <label class="form-label fw-semibold text-secondary small">SPECIAL INSTRUCTIONS (OPTIONAL)</label>
-                     <textarea name="instructions" class="form-control form-control-premium" rows="2" placeholder="e.g. Fragile padding, Remove shoe boxes..."></textarea>
+                <div>
+                    <label class="ybd-formlabel" for="pf-mark">Shipping mark</label>
+                    <input type="text" name="shipping_mark" id="pf-mark" class="ybd-input" required placeholder="e.g. YBT-001">
                 </div>
             </div>
 
-            <div class="d-grid gap-2 mt-4 pt-2">
-                <button type="submit" class="btn btn-premium-primary btn-lg shadow-sm fw-bold py-3">
-                    <i class="fas fa-paper-plane me-2"></i>Submit Packing Request
+            <label class="ybd-formlabel" for="pf-instructions">Special instructions (optional)</label>
+            <textarea name="instructions" id="pf-instructions" class="ybd-textarea" rows="2" placeholder="e.g. Fragile padding, remove shoe boxes"></textarea>
+
+            <div style="display:grid; gap:10px; margin-top:20px;">
+                <button type="submit" class="ybd-btn ybd-btn-gold" style="width:100%; padding:14px 20px;">
+                    <i class="fas fa-paper-plane"></i>Submit packing request
                 </button>
-                <button type="button" class="btn btn-light btn-sm text-muted rounded-pill" onclick="jQuery('#packing-modal').hide()">Cancel</button>
+                <button type="button" class="ybd-btn ybd-btn-emerald" style="width:100%;" onclick="jQuery('#packing-modal').hide()">Cancel</button>
             </div>
         </form>
     </div>
@@ -229,7 +209,7 @@ if (typeof ybt_ajax === 'undefined') {
     };
 }
 
-const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[s])) : '';
+const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])) : '';
 
 jQuery(document).ready(function($) {
     const SELECTION_KEY = 'ybt_received_selections';

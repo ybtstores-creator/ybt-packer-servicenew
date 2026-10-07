@@ -6,37 +6,55 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.packtracker.R
+import com.packtracker.api.ApiClient
+import com.packtracker.models.ApiResponse
+import com.packtracker.models.TimelineData
+import com.packtracker.models.TimelineEvent
 import com.packtracker.models.TrackingItem
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 /**
  * Bottom sheet showing full details for one tracking number:
  * added / received / packed / completed dates, item count, weight,
- * shipping method and the parcel's content images.
+ * shipping method, the server-side event history and content images.
  */
 class ParcelDetailSheet : BottomSheetDialogFragment() {
 
     companion object {
-        fun newInstance(item: TrackingItem): ParcelDetailSheet {
-            val sheet = ParcelDetailSheet()
-            sheet.item = item
-            return sheet
-        }
+        private const val ARG_ITEM = "item"
+
+        fun newInstance(item: TrackingItem): ParcelDetailSheet =
+            ParcelDetailSheet().apply {
+                // Arguments are persisted by the FragmentManager, so the sheet
+                // survives process death (a plain field assignment would not).
+                arguments = Bundle().apply { putSerializable(ARG_ITEM, item) }
+            }
     }
 
-    private lateinit var item: TrackingItem
+    private var item: TrackingItem? = null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
         // Show the content fully expanded rather than half-screen.
         dialog.behavior.peekHeight = (resources.displayMetrics.heightPixels * 0.62).toInt()
         return dialog
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        item = arguments?.getSerializable(ARG_ITEM) as? TrackingItem
+        if (item == null) dismissAllowingStateLoss()
     }
 
     override fun onCreateView(
@@ -50,9 +68,8 @@ class ParcelDetailSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // `item` is passed via field, so it is lost when the system recreates
-        // this fragment after process death — close instead of crashing.
-        if (!::item.isInitialized) {
+        val parcel = item
+        if (parcel == null) {
             dismissAllowingStateLoss()
             return
         }
@@ -60,40 +77,48 @@ class ParcelDetailSheet : BottomSheetDialogFragment() {
         view.findViewById<ImageButton>(R.id.btnCloseSheet).setOnClickListener { dismiss() }
 
         view.findViewById<TextView>(R.id.tvSheetTrackingNumber).text =
-            item.tracking_number ?: "—"
+            parcel.tracking_number ?: "—"
 
-        val statusRaw = item.status ?: "not_received"
+        val statusRaw = parcel.status ?: "not_received"
         val statusLabel = statusRaw.replace('_', ' ')
             .replaceFirstChar { it.uppercase() }
-        view.findViewById<TextView>(R.id.tvSheetStatus).text = statusLabel
-        view.findViewById<TextView>(R.id.tvSheetStatus).setTextColor(
-            when (statusRaw) {
-                "received" -> 0xFF0E7490.toInt()
-                "packing_in_progress" -> 0xFFB45309.toInt()
-                "packed" -> 0xFF047857.toInt()
-                "completed" -> 0xFF15803D.toInt()
-                else -> 0xFF6B7280.toInt()
-            }
-        )
+        view.findViewById<TextView>(R.id.tvSheetStatus).apply {
+            text = statusLabel
+            com.packtracker.utils.StatusChipStyle.bind(this, statusRaw)
+        }
 
         view.findViewById<TextView>(R.id.tvSheetDescription).text =
-            item.description?.ifBlank { null } ?: "No description"
+            parcel.description?.ifBlank { null } ?: "No description"
 
         view.findViewById<TextView>(R.id.tvSheetItemCount).text =
-            (item.item_count ?: 0).toString()
+            (parcel.item_count ?: 0).toString()
 
         view.findViewById<TextView>(R.id.tvSheetWeight).text =
-            item.weight_kg?.let { String.format("%.1f", it) } ?: "—"
+            parcel.weight_kg?.let { String.format("%.1f", it) } ?: "—"
 
         view.findViewById<TextView>(R.id.tvSheetMethod).text =
-            item.shipping_method?.replaceFirstChar { it.uppercase() } ?: "—"
+            parcel.shipping_method?.replaceFirstChar { it.uppercase() } ?: "—"
 
-        view.findViewById<TextView>(R.id.tvSheetDateAdded).text = fmtDate(item.date_added)
-        view.findViewById<TextView>(R.id.tvSheetDateReceived).text = fmtDate(item.date_received)
-        view.findViewById<TextView>(R.id.tvSheetDatePacked).text = fmtDate(item.date_packed)
-        view.findViewById<TextView>(R.id.tvSheetDateCompleted).text = fmtDate(item.date_completed)
+        view.findViewById<TextView>(R.id.tvSheetDateAdded).text = fmtDate(parcel.date_added)
+        view.findViewById<TextView>(R.id.tvSheetDateReceived).text = fmtDate(parcel.date_received)
+        view.findViewById<TextView>(R.id.tvSheetDatePacked).text = fmtDate(parcel.date_packed)
+        view.findViewById<TextView>(R.id.tvSheetDateCompleted).text = fmtDate(parcel.date_completed)
 
-        setupImages(view)
+        setupTimeline(view, parcel.id)
+        setupImages(view, parcel)
+    }
+
+    /** Canonical YBT status palette (mirrors ybt_get_status_badge_color()); resolved
+        from resources so the hues lift with the night colour set. */
+    private fun statusColor(status: String?): Int {
+        val id = when (status) {
+            "received" -> R.color.status_received
+            "packing_in_progress" -> R.color.status_packing
+            "packed" -> R.color.status_packed
+            "completed" -> R.color.status_completed
+            else -> R.color.status_not_received
+        }
+        return requireContext().getColor(id)
     }
 
     private fun fmtDate(raw: String?): String {
@@ -114,13 +139,102 @@ class ParcelDetailSheet : BottomSheetDialogFragment() {
         } catch (_: Exception) { raw }
     }
 
-    private fun setupImages(view: View) {
+    private fun setupTimeline(view: View, trackingId: Int?) {
+        val recycler = view.findViewById<RecyclerView>(R.id.recyclerSheetTimeline)
+        val tvNone = view.findViewById<TextView>(R.id.tvSheetNoTimeline)
+
+        fun showEmpty() {
+            recycler.visibility = View.GONE
+            tvNone.visibility = View.VISIBLE
+        }
+
+        if (trackingId == null || trackingId <= 0) {
+            showEmpty()
+            return
+        }
+
+        recycler.layoutManager = LinearLayoutManager(requireContext())
+        ApiClient.getService(requireContext())
+            .getParcelTimeline(trackingId = trackingId, limit = 20)
+            .enqueue(object : Callback<ApiResponse<TimelineData>> {
+                override fun onResponse(
+                    call: Call<ApiResponse<TimelineData>>,
+                    response: Response<ApiResponse<TimelineData>>
+                ) {
+                    if (!isAdded) return
+                    val body = response.body()
+                    val events =
+                        if (response.isSuccessful && body?.success == true) body.data?.items.orEmpty()
+                        else emptyList()
+                    if (events.isEmpty()) {
+                        showEmpty()
+                    } else {
+                        tvNone.visibility = View.GONE
+                        recycler.visibility = View.VISIBLE
+                        recycler.adapter = TimelineAdapter(events)
+                    }
+                }
+
+                override fun onFailure(call: Call<ApiResponse<TimelineData>>, t: Throwable) {
+                    if (isAdded) showEmpty()
+                }
+            })
+    }
+
+    /** Vertical adapter for the parcel's server-side event history. */
+    private inner class TimelineAdapter(private val events: List<TimelineEvent>) :
+        RecyclerView.Adapter<TimelineAdapter.EventVH>() {
+
+        inner class EventVH(v: View) : RecyclerView.ViewHolder(v) {
+            val dot: ImageView = v.findViewById(R.id.ivTimelineDot)
+            val title: TextView = v.findViewById(R.id.tvTimelineTitle)
+            val message: TextView = v.findViewById(R.id.tvTimelineMessage)
+            val meta: TextView = v.findViewById(R.id.tvTimelineMeta)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EventVH =
+            EventVH(
+                LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_timeline_row, parent, false)
+            )
+
+        override fun onBindViewHolder(holder: EventVH, position: Int) {
+            val event = events[position]
+
+            holder.dot.setColorFilter(statusColor(event.status_to))
+
+            holder.title.text = event.title?.ifBlank { null }
+                ?: (event.event_type ?: "Update").replace('_', ' ')
+                    .replaceFirstChar { it.uppercase() }
+
+            if (event.message.isNullOrBlank()) {
+                holder.message.visibility = View.GONE
+            } else {
+                holder.message.visibility = View.VISIBLE
+                holder.message.text = event.message
+            }
+
+            val metaBits = mutableListOf<String>()
+            fmtDate(event.occurred_at).takeIf { it != "—" }?.let { metaBits.add(it) }
+            event.actor_name?.ifBlank { null }?.let { metaBits.add("by $it") }
+            if (metaBits.isEmpty()) {
+                holder.meta.visibility = View.GONE
+            } else {
+                holder.meta.visibility = View.VISIBLE
+                holder.meta.text = metaBits.joinToString(" · ")
+            }
+        }
+
+        override fun getItemCount() = events.size
+    }
+
+    private fun setupImages(view: View, parcel: TrackingItem) {
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerSheetImages)
         val tvNo = view.findViewById<TextView>(R.id.tvSheetNoImages)
 
         val urls = mutableListOf<String>()
-        item.images?.split(",")?.forEach { if (it.isNotBlank()) urls.add(it.trim()) }
-        item.carton_images?.split(",")?.forEach {
+        parcel.images?.split(",")?.forEach { if (it.isNotBlank()) urls.add(it.trim()) }
+        parcel.carton_images?.split(",")?.forEach {
             if (it.isNotBlank() && !urls.contains(it.trim())) urls.add(it.trim())
         }
 

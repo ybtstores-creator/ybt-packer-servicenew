@@ -41,6 +41,7 @@ $query = "
         MAX(t.status) as status,
         MAX(COALESCE(t.date_packed, t.date_packing_requested, t.date_added)) as date_created,
         (SELECT payment_evidence FROM {$wpdb->prefix}ybt_tracking WHERE batch_id = t.batch_id AND payment_evidence IS NOT NULL AND payment_evidence != '' LIMIT 1) as payment_evidence,
+        (SELECT c.carton_image FROM {$wpdb->prefix}ybt_cartons c WHERE c.batch_id = t.batch_id AND c.carton_image IS NOT NULL AND c.carton_image != '' LIMIT 1) as carton_image,
         GROUP_CONCAT(DISTINCT t.tracking_number ORDER BY t.tracking_number SEPARATOR ', ') as tracking_numbers
     FROM {$wpdb->prefix}ybt_tracking t
     WHERE t.batch_id IS NOT NULL AND t.batch_id != ''
@@ -63,62 +64,68 @@ if ($search) {
 $total_pages = ceil($total_items / $per_page);
 ?>
 
-<div class="wrap">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 m-0 text-dark"><i class="fas fa-box-open me-2 text-primary"></i> Manage Cartons / Batches</h1>
+<div class="wrap ybt-ledger">
+    <div class="ybt-ledgerhead">
+        <div>
+            <span class="ybd-eyebrow">Depot ledger · Carton register</span>
+            <h1>Manage cartons / batches</h1>
+            <p>Every packing batch with its cartons, weights, and payment evidence.</p>
+        </div>
+        <span class="ybd-count"><?php echo (int) $total_items; ?> in register</span>
     </div>
 
-    <!-- SEARCH / FILTER CARD -->
-    <div class="bg-white p-4 border rounded shadow-sm mb-4" style="border-color: #ccd0d4 !important;">
-        <h2 class="h5 mb-3 text-secondary"><i class="fas fa-search me-2"></i>Search Batches</h2>
-        <form method="get" class="row g-3 align-items-end">
-            <input type="hidden" name="page" value="ybt-manage-cartons" />
+    <!-- SEARCH / FILTER PANEL -->
+    <div class="ybd-panel ybd-panel-gold" style="margin-bottom:18px;">
+        <div class="ybd-panelhead">
+            <span class="ybd-hint"><i class="fas fa-search"></i>Search batches</span>
+        </div>
+        <div class="ybd-panelbody">
+            <form method="get" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
+                <input type="hidden" name="page" value="ybt-manage-cartons" />
 
-            <div class="col-md-9">
-                <label class="form-label fw-bold small text-dark mb-1">Batch ID or Username</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
-                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="Enter Batch ID or Username..." class="form-control">
+                <div>
+                    <label class="ybd-formlabel">Batch ID or username</label>
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="Enter batch ID or username…" class="ybd-input">
                 </div>
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="button button-primary w-100" style="height: 38px;"><i class="fas fa-filter me-1"></i> Filter Results</button>
-            </div>
-        </form>
+                <div>
+                    <button type="submit" class="ybd-btn ybd-btn-gold"><i class="fas fa-filter"></i>Filter results</button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- BATCHES TABLE CARD -->
-    <div class="bg-white border rounded shadow-sm" style="border-color: #ccd0d4 !important; overflow: hidden;">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="bg-light text-muted uppercase small fw-bold">
+    <!-- BATCHES TABLE -->
+    <div class="ybd-panel" style="padding:0; overflow:hidden;">
+        <div class="ybd-tablewrap">
+            <table class="ybd-manifest">
+                <thead>
                     <tr>
-                        <th class="ps-3 py-3">Date Info</th>
-                        <th class="py-3">Batch ID</th>
-                        <th class="py-3">User</th>
-                        <th class="py-3">Items</th>
-                        <th class="py-3">Carton Details</th>
-                        <th class="py-3">Payment</th>
-                        <th class="py-3">Evidence</th>
-                        <th class="py-3">Status</th>
-                        <th class="py-3">Weight Img</th>
-                        <th class="pe-3 py-3 text-end">Actions</th>
+                        <th style="padding-left:16px;">Date</th>
+                        <th>Batch ID</th>
+                        <th>User</th>
+                        <th>Items</th>
+                        <th>Cartons</th>
+                        <th>Payment</th>
+                        <th>Evidence</th>
+                        <th>Status</th>
+                        <th>Weight img</th>
+                        <th style="text-align:right; padding-right:16px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ($cartons): ?>
                         <?php foreach ($cartons as $carton): ?>
                             <tr>
-                                <td class="ps-3">
-                                    <div class="fw-bold text-dark"><?php echo $carton->date_created ? date('M j, Y', strtotime($carton->date_created)) : 'N/A'; ?></div>
-                                    <small class="text-muted"><?php echo $carton->date_created ? date('g:i a', strtotime($carton->date_created)) : ''; ?></small>
+                                <td class="ybd-date">
+                                    <div class="fw-bold" style="color:var(--ink);"><?php echo $carton->date_created ? date('M j, Y', strtotime($carton->date_created)) : 'N/A'; ?></div>
+                                    <small style="color:#3d4a42;"><?php echo $carton->date_created ? date('g:i a', strtotime($carton->date_created)) : ''; ?></small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark border"><?php echo esc_html($carton->batch_id); ?></span>
+                                    <span class="ybd-batch"><?php echo esc_html($carton->batch_id); ?></span>
                                 </td>
                                 <td>
-                                    <a href="<?php echo admin_url('user-edit.php?user_id=' . $carton->user_id); ?>" class="text-decoration-none fw-bold text-primary">
-                                        <i class="fas fa-user-circle me-1"></i><?php echo esc_html($carton->username); ?>
+                                    <a href="<?php echo admin_url('user-edit.php?user_id=' . $carton->user_id); ?>" style="font-weight:700; color:var(--emerald-deep); text-decoration:none;">
+                                        <i class="fas fa-user-circle"></i> <?php echo esc_html($carton->username); ?>
                                     </a>
                                 </td>
                                 <td>
@@ -126,7 +133,7 @@ $total_pages = ceil($total_items / $per_page);
                                         <button class="button button-white button-small dropdown-toggle w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#items-<?php echo $carton->batch_id; ?>">
                                             <?php echo $carton->item_count; ?> Items <i class="fas fa-chevron-down float-end mt-1"></i>
                                         </button>
-                                        <div class="collapse mt-1 p-2 bg-light border rounded small" id="items-<?php echo $carton->batch_id; ?>" style="max-height: 150px; overflow-y: auto;">
+                                        <div class="collapse p-2 small" id="items-<?php echo $carton->batch_id; ?>" style="max-height: 150px; overflow-y: auto; background:var(--kraft); border:1px solid var(--kraft-line); border-radius:8px; font-family:var(--mono); font-size:12px;">
                                             <?php
                                             if (!empty($carton->tracking_numbers)) {
                                                 $numbers = explode(', ', $carton->tracking_numbers);
@@ -146,50 +153,49 @@ $total_pages = ceil($total_items / $per_page);
                                 </td>
                                 <td>
                                     <?php if ($carton->payment_amount > 0): ?>
-                                        <span class="badge bg-success-subtle text-success border border-success">
+                                        <span class="ybd-chip ybd-chip-completed">
                                             <?php echo number_format($carton->payment_amount, 2) . ' ' . ($carton->payment_currency ?: 'USD'); ?>
                                         </span>
                                     <?php else: ?>
-                                        <span class="text-muted small">Not Set</span>
+                                        <span class="small" style="color:#3d4a42;">Not set</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if ($carton->payment_evidence): ?>
-                                        <button class="button button-white button-small view-payment-evidence" data-images="<?php echo esc_attr($carton->payment_evidence); ?>">
-                                            <i class="fas fa-receipt me-1 text-success"></i> View
+                                        <button class="ybd-btn view-payment-evidence" style="padding:5px 11px; font-size:12px;">
+                                            <i class="fas fa-receipt"></i>View
                                         </button>
                                         <?php if ($carton->status !== 'completed'): ?>
                                             <div class="mt-1">
-                                                <button class="button button-small confirm-carton-payment w-100" data-batch="<?php echo esc_attr($carton->batch_id); ?>" style="background: #f0ad4e; color: white; border: none; font-size: 10px;">
+                                                <button class="ybd-btn ybd-btn-gold confirm-carton-payment w-100" data-batch="<?php echo esc_attr($carton->batch_id); ?>" style="font-size:11px; padding:4px 10px;">
                                                     Confirm
                                                 </button>
                                             </div>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <span class="text-muted small">-</span>
+                                        <span class="small" style="color:#3d4a42;">–</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php
-                                    $status_map = [
-                                        'packed' => ['bg' => 'bg-info-subtle', 'text' => 'text-info-emphasis'],
-                                        'completed' => ['bg' => 'bg-success-subtle', 'text' => 'text-success-emphasis'],
-                                        'packing_in_progress' => ['bg' => 'bg-warning-subtle', 'text' => 'text-warning-emphasis'],
+                                    $chip_cls = [
+                                        'packed' => 'ybd-chip ybd-chip-packed',
+                                        'completed' => 'ybd-chip ybd-chip-completed',
+                                        'packing_in_progress' => 'ybd-chip ybd-chip-packing_in_progress',
                                     ];
-                                    $style = $status_map[$carton->status] ?? ['bg' => 'bg-light', 'text' => 'text-muted'];
+                                    $chip = $chip_cls[$carton->status] ?? 'ybd-chip ybd-chip-not_received';
                                     ?>
-                                    <span class="badge <?php echo $style['bg'] . ' ' . $style['text']; ?> border">
+                                    <span class="<?php echo $chip; ?>">
                                         <?php echo ucwords(str_replace('_', ' ', $carton->status)); ?>
                                     </span>
                                 </td>
                                 <td>
                                     <?php
-                                    // Inline DB call kept from original
-                                    $weight_image = $wpdb->get_var($wpdb->prepare(
-                                        "SELECT weight_image FROM {$wpdb->prefix}ybt_tracking WHERE batch_id = %s AND weight_image IS NOT NULL LIMIT 1",
-                                        $carton->batch_id
-                                    ));
-                                    if ($weight_image):
+                                    // carton_image holds a comma-separated list of the photos the
+                                    // packer uploaded with this batch's weights.
+                                    $weight_images = array_values(array_filter(array_map('trim', explode(',', (string) $carton->carton_image))));
+                                    if (!empty($weight_images)):
+                                        $weight_image = $weight_images[0];
                                     ?>
                                         <a href="#" onclick="openImageFullscreen('<?php echo esc_js($weight_image); ?>'); return false;">
                                             <img src="<?php echo esc_url($weight_image); ?>" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
@@ -198,15 +204,15 @@ $total_pages = ceil($total_items / $per_page);
                                         <span class="text-muted text-center d-block">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="pe-3 text-end">
-                                    <button type="button" class="button button-white button-small view-batch-details" data-batch-id="<?php echo esc_attr($carton->batch_id); ?>">
-                                        Details <i class="fas fa-arrow-right ms-1"></i>
+                                <td style="text-align:right; padding-right:16px;">
+                                    <button type="button" class="ybd-btn ybd-btn-emerald view-batch-details" data-batch-id="<?php echo esc_attr($carton->batch_id); ?>" style="padding:6px 13px; font-size:12.5px;">
+                                        Details <i class="fas fa-arrow-right"></i>
                                     </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="10" class="text-center p-5 text-muted">No cartons or batches found matching your criteria.</td></tr>
+                        <tr><td colspan="10" class="text-center p-5 ybd-empty"><i class="fas fa-box-open"></i><h3>No batches found</h3><p>No cartons or batches found matching your criteria.</p></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -221,8 +227,8 @@ $total_pages = ceil($total_items / $per_page);
             echo '<div class="pagination-wrapper">' . paginate_links(array(
                 'base' => add_query_arg('paged', '%#%'),
                 'format' => '',
-                'prev_text' => '<span class="button button-white">&laquo; Prev</span>',
-                'next_text' => '<span class="button button-white">Next &raquo;</span>',
+                'prev_text' => '<span class="ybd-btn" style="padding:6px 12px; font-size:12.5px;">&laquo; Prev</span>',
+                'next_text' => '<span class="ybd-btn" style="padding:6px 12px; font-size:12.5px;">Next &raquo;</span>',
                 'total' => $total_pages,
                 'current' => $current_page
             )) . '</div>';
@@ -236,11 +242,11 @@ $total_pages = ceil($total_items / $per_page);
 <div class="modal fade" id="paymentEvidenceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-white border-bottom">
-        <h5 class="modal-title"><i class="fas fa-receipt me-2 text-success"></i>Payment Evidence</h5>
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title"><i class="fas fa-receipt"></i> Payment Evidence</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body bg-light text-center" id="payment-evidence-gallery">
+      <div class="modal-body text-center" id="payment-evidence-gallery">
         <!-- Content -->
       </div>
       <div class="modal-footer bg-white border-top">
@@ -254,11 +260,11 @@ $total_pages = ceil($total_items / $per_page);
 <div class="modal fade" id="cartonDetailsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-white border-bottom">
-        <h5 class="modal-title"><i class="fas fa-box me-2 text-primary"></i>Batch Details</h5>
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title"><i class="fas fa-box"></i> Batch Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body bg-light" id="cartons-container">
+      <div class="modal-body" id="cartons-container">
         <!-- Content -->
       </div>
       <div class="modal-footer bg-white border-top">
@@ -282,26 +288,33 @@ if (typeof ybt_admin === 'undefined') {
     };
 }
 
-// YBT Utility functions
-window.YBT = {
-    escapeHtml: function(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-    escapeHtmlAttr: function(text) {
-        if (!text) return '';
-        return String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-    }
-};
+// YBT Utility functions. ybt-components.js defines window.YBT and loads after
+// this inline block in production (wp_footer scripts), overwriting it — so the
+// helpers are (re)attached on ready, just before any modal can open.
+function ybt_cartons_helpers() {
+    window.YBT = Object.assign(window.YBT || {}, {
+        escapeHtml: function(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+        escapeHtmlAttr: function(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+    });
+}
+ybt_cartons_helpers();
 
 jQuery(document).ready(function($) {
+    ybt_cartons_helpers();
+
     // Image Fullscreen
     // Image Fullscreen
     window.openImageFullscreen = function(src) {

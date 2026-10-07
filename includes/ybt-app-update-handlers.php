@@ -39,18 +39,35 @@ function ybt_save_app_update_handler() {
             wp_send_json_error('Only APK files are allowed');
         }
         
-        // Verify MIME type
+        // Verify MIME type.
+        //
+        // wp_check_filetype_and_ext()'s 3rd arg is an *allow-list array* of
+        // ext => mime (null = get_allowed_mime_types()), NOT the client's claimed
+        // MIME string. Passing $apk_file['type'] fed a string into
+        // wp_check_filetype(), which iterated a non-array and rejected every APK.
+        //
+        // A valid APK is a ZIP and the apk MIME type is not in WordPress' default
+        // allowed list, so whitelist it for the duration of the check + upload —
+        // otherwise the "mime must be allowed" step inside
+        // wp_check_filetype_and_ext() (and again in wp_handle_upload) rejects it.
         $allowed_apk_mimes = array(
             'apk' => 'application/vnd.android.package-archive'
         );
-        $check = wp_check_filetype_and_ext($apk_file['tmp_name'], $apk_file['name'], $apk_file['type']);
+        $apk_mime_whitelist = function ($mimes) use ($allowed_apk_mimes) {
+            return array_merge($mimes, $allowed_apk_mimes);
+        };
+        add_filter('upload_mimes', $apk_mime_whitelist);
+
+        $check = wp_check_filetype_and_ext($apk_file['tmp_name'], $apk_file['name'], $allowed_apk_mimes);
         if (!$check['ext'] || $check['type'] !== 'application/vnd.android.package-archive') {
+            remove_filter('upload_mimes', $apk_mime_whitelist);
             wp_send_json_error('Invalid APK file type. File must be a valid Android package.');
         }
         
         // Check file size (max 100MB for APK)
         $max_apk_size = 100 * 1024 * 1024; // 100MB
         if ($apk_file['size'] > $max_apk_size) {
+            remove_filter('upload_mimes', $apk_mime_whitelist);
             wp_send_json_error('APK file must be under 100MB');
         }
         
@@ -63,9 +80,10 @@ function ybt_save_app_update_handler() {
         add_filter('upload_dir', 'ybt_apk_upload_dir');
         $uploaded = wp_handle_upload($apk_file, array(
             'test_form' => false,
-            'mimes'     => array('apk' => 'application/vnd.android.package-archive'),
+            'mimes'     => $allowed_apk_mimes,
         ));
         remove_filter('upload_dir', 'ybt_apk_upload_dir');
+        remove_filter('upload_mimes', $apk_mime_whitelist);
 
         if (isset($uploaded['error'])) {
             wp_send_json_error('APK upload failed: ' . $uploaded['error']);

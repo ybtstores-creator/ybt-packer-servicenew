@@ -1,0 +1,20 @@
+# Android build artifacts
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Firebase app config — identifiers only (not a secret), but every device's
+# copy differs per project; keep it out of VCS and distribute manually.
+# See FCM-SETUP.md Part 1.
+app/google-services.json
+
+# NEVER commit: the SERVER credential that actually sends pushes.
+# (This one lives outside the repo, e.g. secure-config/ — listed here as a tripwire.)
+firebase-service-account.json

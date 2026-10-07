@@ -143,7 +143,7 @@ class YBT_Memory_Manager {
                 if ($usage_percentage > 70) {
                     add_action('admin_notices', function() use ($usage_percentage) {
                         echo '<div class="notice notice-warning is-dismissible">';
-                        echo '<p><strong>YBT Packer Service:</strong> Memory usage is high (' . round($usage_percentage) . '%). Consider increasing PHP memory limit if you experience issues.</p>';
+                        echo '<p><strong>YBT Packing Service:</strong> Memory usage is high (' . round($usage_percentage) . '%). Consider increasing PHP memory limit if you experience issues.</p>';
                         echo '</div>';
                     });
                 }

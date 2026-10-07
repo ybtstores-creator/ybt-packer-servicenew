@@ -1,7 +1,7 @@
 <?php
 /**
  * File: includes/class-ybt-activator.php
- * Description: Handles plugin activation and deactivation tasks.
+ * Description: Handles plugin activation, deactivation, and uninstallation tasks.
  *              - Creates necessary pages with associated shortcodes.
  *              - Sets up required database tables.
  *              - Manages rewrite rules flushing.
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class YBT_Activator
  *
- * Fires during plugin activation and deactivation.
+ * Fires during plugin activation, deactivation, and uninstallation.
  */
 class YBT_Activator {
 
@@ -46,6 +46,23 @@ class YBT_Activator {
         // Flush rewrite rules if necessary
         // Typically, flushing is not required on deactivation unless you've made changes that need immediate effect
         flush_rewrite_rules();
+    }
+
+    /**
+     * Fired during plugin uninstallation.
+     *
+     * - Flushes rewrite rules.
+     *   Consider adding necessary cleanup tasks such as removing options, database tables, etc.
+     */
+    public static function uninstall() {
+        // Flush rewrite rules if necessary
+        flush_rewrite_rules();
+
+        // TODO: Implement additional uninstallation cleanup tasks
+        // For example:
+        // - Delete plugin options: delete_option( 'ybt_some_option' );
+        // - Drop custom database tables: global $wpdb; $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ybt_custom_table" );
+        // Ensure to handle data deletion carefully and optionally back up data before deletion.
     }
 
     /**
@@ -206,7 +223,7 @@ class YBT_Activator {
         // Check if the YBT_Database class exists
         if ( class_exists( 'YBT_Database' ) ) {
             try {
-                YBT_Database::create_tables();
+                YBT_Database::create_tables(true);
                 // Optionally, log successful table creation
                 // error_log( 'YBT: Database tables created successfully.' );
             } catch ( Exception $e ) {

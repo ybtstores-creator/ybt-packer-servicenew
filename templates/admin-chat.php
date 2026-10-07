@@ -55,18 +55,25 @@ if (!current_user_can('manage_options')) {
 </div>
 
 <script>
-// DOM Safety: Check for ybt_admin object
-if (typeof ybt_admin === 'undefined') {
-    window.ybt_admin = {
-        nonce: '<?php echo esc_js(wp_create_nonce("ybt_admin_nonce")); ?>',
-        user_nonce: '<?php echo esc_js(wp_create_nonce("ybt_nonce")); ?>',
-        ajax_url: '<?php echo admin_url("admin-ajax.php"); ?>'
-    };
-}
+// DOM Safety: merge our nonces into the localized ybt_admin object (or create it
+// if it was never localized). The guarded `typeof` fallback alone left user_nonce
+// undefined whenever ybt_admin was already localized, breaking chat calls.
+window.ybt_admin = window.ybt_admin || {};
+window.ybt_admin.nonce      = window.ybt_admin.nonce      || '<?php echo esc_js(wp_create_nonce("ybt_admin_nonce")); ?>';
+window.ybt_admin.user_nonce = window.ybt_admin.user_nonce || '<?php echo esc_js(wp_create_nonce("ybt_nonce")); ?>';
+window.ybt_admin.ajax_url   = window.ybt_admin.ajax_url   || '<?php echo admin_url("admin-ajax.php"); ?>';
 
 const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[s])) : '';
 
 jQuery(document).ready(function($) {
+    // Merge our nonces into ybt_admin at DOM-ready — after any footer-localized
+    // `var ybt_admin = {...}` has run (it overwrites earlier merges, which is how
+    // user_nonce was being lost even when the top-of-page fallback existed).
+    window.ybt_admin = window.ybt_admin || {};
+    ybt_admin.nonce      = ybt_admin.nonce      || '<?php echo esc_js(wp_create_nonce("ybt_admin_nonce")); ?>';
+    ybt_admin.user_nonce = ybt_admin.user_nonce || '<?php echo esc_js(wp_create_nonce("ybt_nonce")); ?>';
+    ybt_admin.ajax_url   = ybt_admin.ajax_url   || '<?php echo admin_url("admin-ajax.php"); ?>';
+
     let selectedUserId = null;
     let lastChatMessageCount = 0;
     let sending = false;

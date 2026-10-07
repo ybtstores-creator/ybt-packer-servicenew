@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Packing Requests"
-        android:textSize="20sp"
+        android:textSize="@dimen/text_headline"
         android:fontFamily="sans-serif-black"
         android:textColor="@color/on_surface"
         android:paddingHorizontal="16dp"
@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:inputType="text"
             android:maxLines="1"
-            android:textSize="14sp" />
+            android:textSize="@dimen/text_body" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Batch list -->
@@ -59,6 +59,6 @@
         android:gravity="center"
         android:text="No packing requests found"
         android:textColor="@color/on_surface_variant"
-        android:textSize="16sp"
+        android:textSize="@dimen/text_title"
         android:visibility="gone" />
 </LinearLayout>

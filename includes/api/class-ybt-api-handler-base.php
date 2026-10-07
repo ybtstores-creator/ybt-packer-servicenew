@@ -47,6 +47,18 @@ abstract class YBT_API_Handler_Base {
     }
 
     /**
+     * Query-style parameter: read GET first, fall back to POST, then default.
+     * Mirrors the legacy procedural handlers so both callers that pass these
+     * params as query strings (Android @Query) and as form fields keep working.
+     */
+    protected function get_query_param($key, $default = '', $type = 'text') {
+        if (isset($_GET[$key])) {
+            return YBT_API_Helper::get_input($key, $default, $type, 'get');
+        }
+        return YBT_API_Helper::get_input($key, $default, $type, 'post');
+    }
+
+    /**
      * Log helper
      */
     protected function log($message, $level = 'info', $context = array()) {

@@ -15,12 +15,18 @@ function ybt_reset_data_handler() {
     if (!current_user_can('manage_options')) {
         wp_send_json_error('Unauthorized');
     }
+
+    $confirm = isset($_POST['confirm_truncate']) ? sanitize_text_field($_POST['confirm_truncate']) : '';
+    if ($confirm !== 'YES_I_AM_SURE') {
+        wp_send_json_error('Confirmation token required to reset system data');
+    }
+
     global $wpdb;
 
     $tables = array(
         'ybt_tracking', 'ybt_admin_messages', 'ybt_chat', 'ybt_cartons',
         'ybt_payment_settings', 'ybt_warehouse_settings',
-        'ybt_activity_log'
+        'ybt_notifications', 'ybt_activity_log'
     );
 
     foreach ($tables as $table) {
@@ -44,7 +50,7 @@ function ybt_recreate_tables_handler() {
     }
 
     if (class_exists('YBT_Database')) {
-        YBT_Database::create_tables();
+        YBT_Database::create_tables(true);
         wp_send_json_success('Tables recreated.');
     } else {
         wp_send_json_error('YBT_Database class not found.');
@@ -145,7 +151,7 @@ function ybt_optimize_existing_images_handler() {
     $cleaned = 0;
 
     foreach ($items as $item) {
-        $images = explode(',', $item->images);
+        $images = explode(',', (string) $item->images);
         $valid_images = array();
         foreach ($images as $img) {
             $img = trim($img);
@@ -225,6 +231,8 @@ function ybt_site_import_handler() {
     $imported_tables = 0;
     $imported_rows = 0;
     $table_details = array();
+    // Cache of real column names per table (column whitelist).
+    $table_columns = array();
 
     foreach ($data as $table => $rows) {
         // Validate table name against whitelist
@@ -232,13 +240,46 @@ function ybt_site_import_handler() {
         if (!in_array($clean_table, $allowed_tables, true)) {
             continue; // Skip unknown tables
         }
+        if (!is_array($rows)) {
+            continue; // Rows must be an array of objects.
+        }
         $full_table = $wpdb->prefix . $clean_table;
+
+        // SECURITY FIX: whitelist column names against the target table's real schema so a
+        // crafted JSON key can never reach $wpdb->replace(). Without this, arbitrary column
+        // names flow straight into the generated SQL (identifier/quoting injection), since
+        // wpdb only backtick-wraps field names without escaping embedded backticks.
+        if (!isset($table_columns[$clean_table])) {
+            $table_columns[$clean_table] = ybt_site_import_table_columns($full_table);
+        }
+        $allowed_columns = $table_columns[$clean_table];
+        if (empty($allowed_columns)) {
+            continue; // Unknown/unreadable table schema.
+        }
+
         $row_count = 0;
         foreach ($rows as $row) {
-             $result = $wpdb->replace($full_table, (array)$row);
-             if ($result !== false) {
-                 $row_count++;
-             }
+            if (!is_array($row)) {
+                continue;
+            }
+            // Keep only safe, real column names.
+            $clean_row = array();
+            foreach ($row as $column => $value) {
+                $column = (string) $column;
+                if (!preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+                    continue; // Reject any non-identifier key.
+                }
+                if (in_array($column, $allowed_columns, true)) {
+                    $clean_row[$column] = $value;
+                }
+            }
+            if (empty($clean_row)) {
+                continue;
+            }
+            $result = $wpdb->replace($full_table, $clean_row);
+            if ($result !== false) {
+                $row_count++;
+            }
         }
         if ($row_count > 0) {
             $imported_tables++;
@@ -261,6 +302,22 @@ function ybt_site_import_handler() {
     wp_send_json_success($message);
 }
 add_action('wp_ajax_ybt_site_import', 'ybt_site_import_handler');
+
+/**
+ * Return the real column names for an import target table.
+ *
+ * The table name is always composed as `$wpdb->prefix . <whitelisted name>` upstream, so
+ * interpolating it here is safe; it is still backtick-quoted for defense in depth.
+ *
+ * @param string $full_table Fully-prefixed table name.
+ * @return string[] Column names, or an empty array if the schema cannot be read.
+ */
+function ybt_site_import_table_columns($full_table) {
+    global $wpdb;
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is whitelisted + prefixed.
+    $columns = $wpdb->get_col("SHOW COLUMNS FROM `{$full_table}`");
+    return is_array($columns) ? $columns : array();
+}
 
 /**
  * Handle saving warehouse settings

@@ -198,7 +198,7 @@ class ScanSyncWorker(
                 ApiClient.getService(applicationContext).addAdminTrackingBulk(
                     targetUserId = scan.targetUserId,
                     trackingNumbers = scan.trackingNumber,
-                    description = null,
+                    description = scan.description,
                     itemCount = 1,
                     shippingMethod = null
                 ).enqueue(object : Callback<ApiResponse<String>> {
@@ -221,7 +221,7 @@ class ScanSyncWorker(
             } else if (!scan.isAdmin) {
                 ApiClient.getService(applicationContext).addTracking(
                     trackingNumber = scan.trackingNumber,
-                    description = null
+                    description = scan.description
                 ).enqueue(object : Callback<ApiResponse<String>> {
                     override fun onResponse(
                         call: Call<ApiResponse<String>>,

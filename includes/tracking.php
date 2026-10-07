@@ -79,7 +79,21 @@ function ybt_claim_parcel_handler() {
         array('id' => $existing->id)
     );
 
-    do_action('ybt_tracking_updated', $existing->id);
+    if (class_exists('YBT_Tracking_Events')) {
+        $current_user = wp_get_current_user();
+        YBT_Tracking_Events::record($existing->id, 'claimed', array(
+            'tracking_number' => $tracking_num,
+            'user_id'         => $user_id,
+            'status_from'     => $existing->status,
+            'status_to'       => 'received',
+            'actor_id'        => $user_id,
+            'actor_name'      => $current_user->display_name ?: $current_user->user_login,
+            'actor_role'      => 'customer',
+            'source'          => 'web',
+        ));
+    }
+
+    do_action('ybt_tracking_updated', $existing->id, 'received');
 
     // Log successful claim
     ybt_log_security_event('PARCEL_CLAIMED', array(
@@ -114,6 +128,7 @@ function ybt_user_add_tracking_handler() {
     $username = wp_get_current_user()->user_login;
     $count = 0;
     $timestamp = current_time('mysql');
+    $created_ids = array();
 
     foreach ($tracking_numbers as $index => $num) {
         $num = strtoupper(trim(sanitize_text_field($num)));
@@ -142,6 +157,18 @@ function ybt_user_add_tracking_handler() {
                     'item_count' => $item_count,
                     'date_added' => $timestamp
                 ], ['id' => $existing->id]);
+                if (class_exists('YBT_Tracking_Events')) {
+                    YBT_Tracking_Events::record($existing->id, 'claimed', [
+                        'tracking_number' => $num,
+                        'user_id'         => $user_id,
+                        'status_from'     => $existing->status,
+                        'status_to'       => $existing->status,
+                        'actor_id'        => $user_id,
+                        'actor_name'      => $username,
+                        'actor_role'      => 'customer',
+                        'source'          => 'web',
+                    ]);
+                }
                 $count++;
             } elseif ($is_owner) {
                 // Already owned by this user - update description and item count only
@@ -149,6 +176,17 @@ function ybt_user_add_tracking_handler() {
                     'description' => $description,
                     'item_count' => $item_count
                 ], ['id' => $existing->id]);
+                if (class_exists('YBT_Tracking_Events')) {
+                    YBT_Tracking_Events::record($existing->id, 'details_updated', [
+                        'tracking_number' => $num,
+                        'user_id'         => $user_id,
+                        'actor_id'        => $user_id,
+                        'actor_name'      => $username,
+                        'actor_role'      => 'customer',
+                        'source'          => 'web',
+                        'dedupe'          => true,
+                    ]);
+                }
                 $count++;
             }
             // Skip parcels owned by other users
@@ -166,12 +204,24 @@ function ybt_user_add_tracking_handler() {
             'date_added' => $timestamp
         ]);
         if ($wpdb->insert_id) {
+            $created_ids[] = (int) $wpdb->insert_id;
+            if (class_exists('YBT_Tracking_Events')) {
+                YBT_Tracking_Events::record($wpdb->insert_id, 'created', [
+                    'tracking_number' => $num,
+                    'user_id'         => $user_id,
+                    'status_to'       => 'not_received',
+                    'actor_id'        => $user_id,
+                    'actor_name'      => $username,
+                    'actor_role'      => 'customer',
+                    'source'          => 'web',
+                ]);
+            }
             $count++;
         }
     }
 
-    if ($count > 0) {
-        do_action('ybt_tracking_created');
+    foreach ($created_ids as $new_id) {
+        do_action('ybt_tracking_created', $new_id, 'not_received');
     }
 
     wp_send_json_success("$count items added.");
@@ -227,17 +277,19 @@ function ybt_get_tracking_data_handler() {
     $where = ["1=1"];
     $params = [];
 
-    if (!empty($status)) {
+    // 'all' is the no-filter sentinel used by every other tracking route (admin REST,
+    // mobile); matching it against the status ENUM here would return zero rows.
+    if (!empty($status) && $status !== 'all') {
         $where[] = "status = %s";
         $params[] = $status;
     }
 
-    if (!empty($shipping_method)) {
+    if (!empty($shipping_method) && $shipping_method !== 'all') {
         $where[] = "shipping_method = %s";
         $params[] = $shipping_method;
     }
 
-    if (!empty($user_filter)) {
+    if (!empty($user_filter) && $user_filter !== 'all') {
         $where[] = "(username LIKE %s OR user_id = %d)";
         $params[] = '%' . $wpdb->esc_like($user_filter) . '%';
         $params[] = intval($user_filter);
@@ -310,6 +362,9 @@ function ybt_update_status_handler() {
         return;
     }
 
+    // Snapshot first: reused by the audit and by the notification guard below.
+    $before = YBT_Tracking_Audit::snapshot($id);
+
     $data = ['status' => $status];
 
     // Automatically set timestamps based on status
@@ -322,9 +377,13 @@ function ybt_update_status_handler() {
     }
 
     // Audit: records which admin changed the status, and from what.
-    YBT_Tracking_Audit::apply_update($id, $data, 'status_change');
+    $updated = YBT_Tracking_Audit::apply_update($id, $data, 'status_change', ['before' => $before]);
 
     do_action('ybt_tracking_updated', $id, $status);
+
+    if ($updated !== false && $before && $before->status !== $status) {
+        ybt_notify_status_change($before->user_id, $before->tracking_number, $status);
+    }
 
     wp_send_json_success('Status updated');
 }
@@ -502,6 +561,8 @@ function ybt_scan_barcode_handler() {
             // Refresh local object
             $item->status = 'received';
             $item->date_received = current_time('mysql');
+
+            ybt_notify_status_change($item->user_id, $item->tracking_number, 'received');
         }
         wp_send_json_success($item);
     } else {
@@ -658,7 +719,7 @@ function ybt_add_tracking_handler() {
             return;
         }
 
-        do_action('ybt_tracking_updated', $tracking_id);
+        do_action('ybt_tracking_updated', $tracking_id, $edit_item->status);
         wp_send_json_success('Shipment updated successfully');
         return;
     }
@@ -692,7 +753,9 @@ function ybt_add_tracking_handler() {
                 wp_send_json_error('Failed to update tracking: ' . $wpdb->last_error);
                 return;
             }
-            do_action('ybt_tracking_updated', $existing->id);
+            do_action('ybt_tracking_updated', $existing->id, 'received');
+            // The row was anonymous, so notify the customer it was just assigned to.
+            ybt_notify_status_change($user_id, $existing->tracking_number, 'received');
             wp_send_json_success('Anonymous shipment claimed and assigned to ' . $username);
             return;
         }
@@ -710,7 +773,10 @@ function ybt_add_tracking_handler() {
             return;
         }
 
-        do_action('ybt_tracking_updated', $existing->id);
+        do_action('ybt_tracking_updated', $existing->id, 'received');
+        if ($existing->status !== 'received') {
+            ybt_notify_status_change($existing->user_id, $existing->tracking_number, 'received');
+        }
         wp_send_json_success('Shipment already existed and has been marked as RECEIVED');
         return;
     }
@@ -739,7 +805,7 @@ function ybt_add_tracking_handler() {
             'summary'         => 'Tracking number created',
             'tracking_number' => $tracking_number,
         ));
-        do_action('ybt_tracking_created', $wpdb->insert_id);
+        do_action('ybt_tracking_created', $wpdb->insert_id, $is_anonymous ? 'received' : 'not_received');
         wp_send_json_success('Shipment registered successfully');
     } else {
         wp_send_json_error('Failed to register shipment');
@@ -807,9 +873,11 @@ function ybt_add_multiple_tracking_handler() {
     $anonymous_ids = array();
     $non_anonymous_ids = array();
     $existing_tracking_numbers = array();
+    $tracking_number_by_id = array();
     
     foreach ($existing_rows as $row) {
         $existing_tracking_numbers[] = strtoupper($row->tracking_number);
+        $tracking_number_by_id[$row->id] = $row->tracking_number;
         $is_anonymous = empty($row->user_id) || $row->user_id == 0 || strtolower($row->username ?? '') === 'anonymous';
         if ($is_anonymous) {
             $anonymous_ids[] = $row->id;
@@ -838,6 +906,7 @@ function ybt_add_multiple_tracking_handler() {
             if ($result !== false) {
                 $assigned_count++;
                 do_action('ybt_tracking_updated', $id, 'received');
+                ybt_notify_status_change($user_id, $tracking_number_by_id[$id], 'received');
             }
         }
     }
@@ -867,6 +936,11 @@ function ybt_add_multiple_tracking_handler() {
                     'bulk_status'
                 );
                 do_action('ybt_tracking_updated', $id, 'received');
+
+                $before = isset($bulk_before[$id]) ? $bulk_before[$id] : null;
+                if ($before && $before->status !== 'received') {
+                    ybt_notify_status_change($before->user_id, $before->tracking_number, 'received');
+                }
             }
         }
     }
@@ -892,12 +966,14 @@ function ybt_add_multiple_tracking_handler() {
         $wpdb->query($wpdb->prepare($sql, $values));
 
         // Audit: attribute each newly created tracking number to this admin.
+        $created_ids = array();
         foreach ($to_insert as $num) {
             $new_id = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM {$wpdb->prefix}ybt_tracking WHERE UPPER(tracking_number) = %s",
                 strtoupper($num)
             ));
             if ($new_id) {
+                $created_ids[] = (int) $new_id;
                 YBT_Tracking_Audit::log_edit((int) $new_id, 'create', array(), array(
                     'summary'         => 'Tracking number created' . ($is_anonymous_entry ? ' (anonymous)' : ''),
                     'tracking_number' => $num,
@@ -905,7 +981,9 @@ function ybt_add_multiple_tracking_handler() {
             }
         }
 
-        do_action('ybt_tracking_created');
+        foreach ($created_ids as $new_id) {
+            do_action('ybt_tracking_created', $new_id, $is_anonymous_entry ? 'received' : 'not_received');
+        }
     }
 
     $message = "$inserted shipments registered successfully.";
@@ -1306,17 +1384,46 @@ function ybt_attach_cartons_to_ids_v2_handler() {
 
     // 3. Update all selected tracking records with the shared Batch ID and summary data
     $placeholders = implode(',', array_fill(0, count($tracking_ids), '%d'));
-    $wpdb->query($wpdb->prepare(
+
+    // The timeline and the customer push both need the pre-update status.
+    $packing_before = array();
+    $packing_rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$tracking_table} WHERE id IN ($placeholders)",
+        $tracking_ids
+    ));
+    foreach ($packing_rows as $row) {
+        $packing_before[$row->id] = $row;
+    }
+
+    $packing_now = current_time('mysql');
+    $updated = $wpdb->query($wpdb->prepare(
         "UPDATE {$tracking_table} 
          SET batch_id = %s, 
              status = 'packing_in_progress',
+             date_packing_requested = %s,
              cartons = %d,
              weight_kg = %f,
              payment_amount = %f,
              payment_currency = %s
          WHERE id IN ($placeholders)",
-        array_merge([$shared_batch_id, $total_cartons, $total_weight, $total_amount, $currency], $tracking_ids)
+        array_merge([$shared_batch_id, $packing_now, $total_cartons, $total_weight, $total_amount, $currency], $tracking_ids)
     ));
+
+    if ($updated !== false) {
+        $packing_change = array(
+            'status' => 'packing_in_progress',
+            'batch_id' => $shared_batch_id,
+            'cartons' => $total_cartons,
+            'date_packing_requested' => $packing_now,
+        );
+        foreach ($tracking_ids as $packing_id) {
+            $before = isset($packing_before[$packing_id]) ? $packing_before[$packing_id] : null;
+            YBT_Tracking_Audit::log_after_raw_update($packing_id, $before, $packing_change, 'packing');
+            if ($before && $before->status !== 'packing_in_progress') {
+                ybt_notify_status_change($before->user_id, $before->tracking_number, 'packing_in_progress');
+            }
+        }
+    }
 
     // 4. Handle file uploads and insert/update cartons for this batch
     if (!function_exists('wp_handle_upload')) {
@@ -1367,7 +1474,10 @@ function ybt_attach_cartons_to_ids_v2_handler() {
             }
         }
 
-        $images_str = !empty($image_urls) ? implode(',', $image_urls) : ($carton['images'] ?? '');
+        $requested_images = isset($carton['images']) && $carton['images'] !== ''
+            ? implode(',', array_map('esc_url_raw', explode(',', $carton['images'])))
+            : '';
+        $images_str = !empty($image_urls) ? implode(',', $image_urls) : $requested_images;
 
         $wpdb->insert($cartons_table, array(
             'batch_id' => $shared_batch_id,
@@ -1462,9 +1572,12 @@ function ybt_request_packing_handler() {
     if (empty($shipping_method)) $shipping_method = 'sea';
 
     // Check if user already has an active packing request with the same shipping method (sea or air)
+    // Wrap batch assignment in a transaction to prevent race conditions during concurrent packing requests
+    $wpdb->query('START TRANSACTION');
+
     // If so, merge the new items into the existing batch instead of creating a separate one
     $existing_batch = $wpdb->get_var($wpdb->prepare(
-        "SELECT batch_id FROM {$wpdb->prefix}ybt_tracking WHERE user_id = %d AND shipping_method = %s AND status = 'packing_in_progress' AND batch_id IS NOT NULL AND batch_id != '' LIMIT 1",
+        "SELECT batch_id FROM {$wpdb->prefix}ybt_tracking WHERE user_id = %d AND shipping_method = %s AND status = 'packing_in_progress' AND batch_id IS NOT NULL AND batch_id != '' LIMIT 1 FOR UPDATE",
         $user_id,
         $shipping_method
     ));
@@ -1473,8 +1586,8 @@ function ybt_request_packing_handler() {
         // Merge into existing batch
         $batch_id = $existing_batch;
     } else {
-        // Generate new Batch ID
-        $batch_id = 'BATCH_' . date('Ymd_His') . '_' . wp_generate_password(6, false);
+        // Generate new collision-resistant Batch ID with microsecond timestamp and random hex
+        $batch_id = 'BATCH_' . date('Ymd_His') . '_' . sprintf('%06d', (int)((microtime(true) - floor(microtime(true))) * 1000000)) . '_' . wp_generate_password(8, false);
     }
     
     // Format full shipping info (merge address and instructions for easier display)
@@ -1508,10 +1621,23 @@ function ybt_request_packing_handler() {
         );
         if ($result !== false) {
             $updated_count++;
+            if (class_exists('YBT_Tracking_Events')) {
+                YBT_Tracking_Events::record($tracking_id, 'packing_requested', array(
+                    'user_id'    => $user_id,
+                    'status_to'  => 'packing_in_progress',
+                    'actor_id'   => $user_id,
+                    'actor_name' => wp_get_current_user()->display_name,
+                    'actor_role' => 'customer',
+                    'source'     => 'web',
+                    'meta'       => array('batch_id' => $batch_id),
+                    'dedupe'     => true,
+                ));
+            }
         }
     }
 
     if ($updated_count > 0) {
+        $wpdb->query('COMMIT');
         // Log the activity
         if (function_exists('ybt_log_activity')) {
             ybt_log_activity($user_id, 'request_packing', array(
@@ -1530,7 +1656,67 @@ function ybt_request_packing_handler() {
             'message' => 'Packing request submitted successfully. You can track your batch status in the dashboard.'
         ));
     } else {
+        // Nothing was updated — roll back so the transaction isn't left open
+        // (an open transaction would keep the FOR UPDATE row locks held until
+        // the request ends).
+        $wpdb->query('ROLLBACK');
         wp_send_json_error('Failed to update tracking items. Please try again.');
     }
 }
 add_action('wp_ajax_ybt_request_packing', 'ybt_request_packing_handler');
+
+/**
+ * AJAX: Return the rendered item rows for one user group on the Process Packing
+ * page. The page renders only group headers (cheap COUNT query); this supplies
+ * the rows the first time a group is expanded.
+ *
+ * POST: user (group username), search (optional mirror of the page filter)
+ * Returns: { html, shown, total, truncated }
+ */
+function ybt_get_packing_group_rows_handler() {
+    check_ajax_referer('ybt_admin_nonce', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized');
+        return;
+    }
+
+    $username = isset($_POST['user']) ? sanitize_text_field(wp_unslash($_POST['user'])) : '';
+    $search   = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
+
+    if ($username === '') {
+        wp_send_json_error('Missing user');
+        return;
+    }
+
+    $limit = max(1, (int) apply_filters('ybt_packing_group_rows_limit', 200));
+
+    $result = YBT_Packing::get_filtered_requests($username, $search, $limit);
+    $items  = $result['items'];
+
+    if (empty($items)) {
+        wp_send_json_success(array(
+            'html'      => '<tr><td colspan="10" class="text-center text-muted p-4">' . esc_html__('No packing requests found for this user.', 'ybt-packer') . '</td></tr>',
+            'shown'     => 0,
+            'total'     => 0,
+            'truncated' => false,
+        ));
+        return;
+    }
+
+    $warehouse_cache = YBT_Packing::get_warehouse_cache();
+
+    ob_start();
+    // Reuses templates/components/admin-packing-item-rows.php so AJAX-served
+    // rows always match the canonical row markup.
+    include YBT_PLUGIN_PATH . 'templates/components/admin-packing-item-rows.php';
+    $html = ob_get_clean();
+
+    wp_send_json_success(array(
+        'html'      => $html,
+        'shown'     => count($items),
+        'total'     => (int) $result['total'],
+        'truncated' => (bool) $result['truncated'],
+    ));
+}
+add_action('wp_ajax_ybt_get_packing_group_rows', 'ybt_get_packing_group_rows_handler');

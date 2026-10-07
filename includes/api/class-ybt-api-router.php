@@ -14,6 +14,7 @@ class YBT_API_Router {
     private $packing_handler;
     private $chat_handler;
     private $admin_handler;
+    private $notifications_handler;
 
     public function __construct() {
         $this->auth_handler = new YBT_API_Auth_Handler();
@@ -21,6 +22,7 @@ class YBT_API_Router {
         $this->packing_handler = new YBT_API_Packing_Handler();
         $this->chat_handler = new YBT_API_Chat_Handler();
         $this->admin_handler = new YBT_API_Admin_Handler();
+        $this->notifications_handler = new YBT_API_Notifications_Handler();
     }
 
     /**
@@ -72,7 +74,21 @@ class YBT_API_Router {
             'ybt_mobile_admin_get_messages' => array($this->chat_handler, 'admin_get_messages'),
             'ybt_mobile_admin_send_chat'    => array($this->chat_handler, 'admin_send_message'),
             'ybt_mobile_admin_delete_chat'  => array($this->chat_handler, 'admin_delete_chat'),
-            'ybt_mobile_notifications_v2'   => array($this, 'get_notifications'),
+
+            // Notifications (inbox + badge poll + parcel timeline). These were
+            // previously stubbed to an empty response — the real handler existed
+            // but was never wired in, so the app's Alerts tab/badge always saw 0.
+            'ybt_mobile_notifications_v2'     => array($this->notifications_handler, 'get_notifications'),
+            'ybt_mobile_notifications_unread' => array($this->notifications_handler, 'get_unread'),
+            'ybt_mobile_notifications_read'   => array($this->notifications_handler, 'mark_read'),
+            'ybt_mobile_parcel_timeline'      => array($this->notifications_handler, 'get_parcel_timeline'),
+
+            // Admin announcements: unread list popped as a dialog at login
+            // and the per-id acknowledge call. Rows live in the same inbox as
+            // the entries above (type 'announcement'), so they also show in
+            // the Alerts tab / bell until dismissed.
+            'ybt_mobile_announcements_unread'  => array($this->notifications_handler, 'get_announcements'),
+            'ybt_mobile_announcements_dismiss' => array($this->notifications_handler, 'dismiss_announcement'),
 
             'ybt_mobile_admin_packing_requests' => array($this->packing_handler, 'admin_get_packing_requests'),
             'ybt_mobile_admin_batch_details'    => array($this->packing_handler, 'admin_get_batch_details'),
@@ -92,13 +108,6 @@ class YBT_API_Router {
             add_action('wp_ajax_' . $action, $callback);
             add_action('wp_ajax_nopriv_' . $action, $callback);
         }
-    }
-
-    /**
-     * Notifications endpoint stub
-     */
-    public function get_notifications() {
-        YBT_API_Response::success(array(), 'No notifications');
     }
 
     /**

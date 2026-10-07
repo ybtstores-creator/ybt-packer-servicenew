@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Night overrides - "midnight emerald" theme.
+
+  Dark surfaces carry a deep ink-GREEN cast (echoing the brand's emerald/kraft
+  identity) instead of neutral navy slate; text tones are green-tinted greys;
+  emerald/gold accents stay bright per M3 dark conventions. Brand ramps stay
+  literal in values/colors.xml; the day theme is untouched.
+-->
+<resources>
+    <color name="primary">@color/emerald_300</color>
+    <color name="on_primary">@color/emerald_900</color>
+    <color name="primary_container">@color/emerald_800</color>
+    <color name="on_primary_container">@color/emerald_100</color>
+
+    <color name="secondary">@color/gold_400</color>
+    <color name="on_secondary">#FF3A2C00</color>
+    <color name="secondary_container">@color/gold_700</color>
+    <color name="on_secondary_container">@color/gold_100</color>
+
+    <color name="tertiary">@color/emerald_400</color>
+    <color name="on_tertiary">@color/emerald_900</color>
+    <color name="tertiary_container">#FF0F2A20</color>
+    <color name="on_tertiary_container">@color/emerald_200</color>
+
+    <color name="error">#FFFFB4AB</color>
+    <color name="on_error">#FF601A1A</color>
+    <color name="error_container">#FF8C1D18</color>
+    <color name="on_error_container">#FFFDE7E9</color>
+
+    <!-- Deep ink-green canvas + "dark kraft" paper (was navy slate). -->
+    <color name="background">#FF0B1511</color>
+    <color name="kraft">#FF14251D</color>
+    <color name="kraft_line">#FF2E463A</color>
+    <color name="kraft_deep">#FF3C5A4B</color>
+    <color name="ink">#FFE7F2EA</color>
+    <color name="header_subtitle">#FF9DB8A8</color>
+    <color name="on_background">#FFD5E4DA</color>
+    <color name="surface">#FF14251D</color>
+    <color name="on_surface">#FFF2F8F4</color>
+    <color name="surface_variant">#FF1B3026</color>
+    <color name="on_surface_variant">#FFB7C9BE</color>
+
+    <color name="surface_container_lowest">#FF0A130F</color>
+    <color name="surface_container_low">#FF0F1D17</color>
+    <color name="surface_container">#FF14251D</color>
+    <color name="surface_container_high">#FF1B3026</color>
+    <color name="surface_container_highest">#FF223A2E</color>
+    <color name="surface_bright">#FF1B3026</color>
+    <color name="surface_dim">#FF0A130F</color>
+
+    <color name="outline">#FF7FA08E</color>
+    <color name="outline_variant">#FF2E463A</color>
+    <color name="inverse_surface">#FFD5E4DA</color>
+    <color name="inverse_on_surface">#FF14251D</color>
+    <color name="inverse_primary">@color/emerald_600</color>
+
+    <color name="primary_light">#FF0F2A20</color>
+    <color name="secondary_light">#FF3A2C00</color>
+    <color name="green_primary">@color/emerald_400</color>
+    <color name="green_dark">@color/emerald_200</color>
+    <color name="green_light">#FF0F2A20</color>
+    <color name="gold_primary">@color/gold_400</color>
+    <color name="blue_gray">#FF9DB8A8</color>
+    <color name="grey_dark">#FFB7C9BE</color>
+    <color name="grey_light">#FF14251D</color>
+    <color name="card_stroke">#FF2E463A</color>
+    <color name="divider">#FF2E463A</color>
+
+    <!-- Hues stay canonical; tones lift so they read on dark surfaces. -->
+    <color name="status_not_received">#FF9DB0A4</color>
+    <color name="status_received">#FF38BDF8</color>
+    <color name="status_packing">#FFFBBF24</color>
+    <color name="status_packed">@color/emerald_400</color>
+    <color name="status_completed">@color/emerald_300</color>
+
+    <color name="offline_banner">@color/gold_700</color>
+    <color name="scanner_accent">@color/gold_400</color>
+</resources>

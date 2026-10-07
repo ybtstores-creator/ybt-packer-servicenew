@@ -35,7 +35,7 @@ $api_url = get_option('ybt_sms_api_url', '');
                                 <label for="sender_id">Sender ID</label>
                             </th>
                             <td>
-                                <input type="text" id="sender_id" name="sender_id" value="<?php echo esc_attr($sender_id); ?>" class="regular-text" placeholder="YBT-PACKER">
+                                <input type="text" id="sender_id" name="sender_id" value="<?php echo esc_attr($sender_id); ?>" class="regular-text" placeholder="YBT-PACKING">
                                 <p class="description">Sender ID that will appear in SMS messages</p>
                             </td>
                         </tr>

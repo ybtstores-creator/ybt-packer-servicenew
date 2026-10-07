@@ -273,6 +273,7 @@ class ChatFragment : Fragment() {
             val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", file)
             val intent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).apply {
                 putExtra(android.provider.MediaStore.EXTRA_OUTPUT, uri)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             cameraLauncher.launch(intent)
         } catch (e: Exception) {

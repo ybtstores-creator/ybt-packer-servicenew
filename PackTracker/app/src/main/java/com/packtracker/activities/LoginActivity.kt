@@ -14,6 +14,7 @@ import com.packtracker.R
 import com.packtracker.api.ApiClient
 import com.packtracker.models.ApiResponse
 import com.packtracker.models.User
+import com.packtracker.utils.Session
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -28,14 +29,12 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val prefs = getSharedPreferences("auth", Context.MODE_PRIVATE)
-        val storedToken = prefs.getString("token", null)
-        if (storedToken == "demo_token" || storedToken == "guest_session") {
-            prefs.edit().clear().apply()
-        } else if (storedToken != null) {
+        if (Session.isLoggedIn(this)) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
+        } else {
+            Session.clear(this)
         }
 
         setContentView(R.layout.activity_login)
@@ -88,6 +87,12 @@ class LoginActivity : AppCompatActivity() {
                                 .apply()
                         }
                         Toast.makeText(this@LoginActivity, "Login successful!", Toast.LENGTH_SHORT).show()
+                        // Register this device for FCM pushes under the new session.
+                        com.packtracker.utils.FcmTokenManager.fetchAndStore(applicationContext) { token ->
+                            if (token != null) {
+                                com.packtracker.utils.FcmTokenManager.syncToServer(applicationContext)
+                            }
+                        }
                         startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                         finish()
                     } else {

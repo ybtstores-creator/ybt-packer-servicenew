@@ -12,13 +12,29 @@ if (!defined('ABSPATH')) exit;
 class YBT_Packing {
 
     /**
-     * Fetch tracking requests based on filters
+     * Default cap on packing requests rendered per page load.
+     *
+     * The legacy admin packing interface fetched every packing_in_progress row
+     * with SELECT * and no LIMIT, which made the page grow unbounded with table
+     * size. A hard cap keeps HTML/DOM size bounded no matter how large the
+     * table gets; the companion count lets the UI disclose truncation.
+     */
+    const PACKING_REQUESTS_LIMIT = 200;
+
+    /**
+     * Fetch tracking requests based on filters, bounded and column-pruned.
      *
      * @param string $user_filter Filter by username
      * @param string $search      Search by tracking number
-     * @return array List of tracking items
+     * @param int    $item_limit  Row cap; 0 = metadata only (no item fetch)
+     * @return array {
+     *     @type array $items     Tracking items (most recent first)
+     *     @type int   $total     Total matching rows (before LIMIT)
+     *     @type int   $limit     Applied row cap (0 when metadata-only)
+     *     @type bool  $truncated True when $total exceeds $limit
+     * }
      */
-    public static function get_filtered_requests($user_filter = '', $search = '') {
+    public static function get_filtered_requests($user_filter = '', $search = '', $item_limit = self::PACKING_REQUESTS_LIMIT) {
         global $wpdb;
         $where_conditions = array("status = %s");
         $where_values = array('packing_in_progress');
@@ -37,9 +53,90 @@ class YBT_Packing {
         }
 
         $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
-        $query = "SELECT * FROM {$wpdb->prefix}ybt_tracking $where_clause ORDER BY date_packing_requested DESC, username ASC";
 
-        return (array) $wpdb->get_results($wpdb->prepare($query, $where_values));
+        // Companion count so the UI can disclose when results were cut.
+        $total = (int) $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking $where_clause", $where_values)
+        );
+
+        $limit = (int) apply_filters('ybt_packing_requests_limit', $item_limit);
+        $limit = max(0, $limit);
+
+        // Explicit column list: skip heavy unused columns (shipping_address,
+        // admin_notes, payment fields, phone numbers, audit columns) so each
+        // row transferred from MySQL to PHP stays small.
+        $columns = "id, tracking_number, user_id, username, description, images, batch_id,
+                    item_count, is_complete, shipping_method, date_added, date_packing_requested";
+
+        // $limit === 0 means "metadata only": skip the item fetch entirely.
+        // The Process Packing page uses this to render group headers cheaply
+        // (per-group counts via get_group_counts) and loads each group's rows
+        // on demand through the AJAX handler below.
+        if ($limit === 0) {
+            return array(
+                'items'     => array(),
+                'total'     => $total,
+                'limit'     => 0,
+                'truncated' => false,
+            );
+        }
+
+        $query = $wpdb->prepare(
+            "SELECT $columns
+             FROM {$wpdb->prefix}ybt_tracking $where_clause
+             ORDER BY date_packing_requested DESC, username ASC
+             LIMIT %d",
+            array_merge($where_values, array($limit))
+        );
+
+        return array(
+            'items'     => (array) $wpdb->get_results($query),
+            'total'     => $total,
+            'limit'     => $limit,
+            'truncated' => $total > $limit,
+        );
+    }
+
+    /**
+     * Per-user item counts for the packing queue, honoring the same filters
+     * as get_filtered_requests(). Cheap (GROUP BY on an indexed status), so
+     * the page can render every group header without fetching any items.
+     *
+     * @param string $user_filter Filter by username
+     * @param string $search      Search by tracking number
+     * @return array [username => item_count]
+     */
+    public static function get_group_counts($user_filter = '', $search = '') {
+        global $wpdb;
+        $where_conditions = array("status = %s");
+        $where_values = array('packing_in_progress');
+        $where_conditions[] = "(user_id IS NOT NULL AND user_id > 0 AND username IS NOT NULL AND username != '' AND username != 'Anonymous')";
+
+        if ($user_filter) {
+            $where_conditions[] = "username = %s";
+            $where_values[] = $user_filter;
+        }
+
+        if ($search) {
+            $where_conditions[] = "tracking_number LIKE %s";
+            $where_values[] = '%' . $wpdb->esc_like($search) . '%';
+        }
+
+        $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT username, COUNT(*) AS item_count
+             FROM {$wpdb->prefix}ybt_tracking $where_clause
+             GROUP BY username
+             ORDER BY username ASC",
+            $where_values
+        ));
+
+        $counts = array();
+        foreach ($rows as $row) {
+            $counts[$row->username] = (int) $row->item_count;
+        }
+        return $counts;
     }
 
     /**

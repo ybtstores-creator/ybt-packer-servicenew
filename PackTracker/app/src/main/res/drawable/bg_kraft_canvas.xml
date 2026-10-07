@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Site kraft-paper canvas: subtle vertical hairline texture over kraft
+     (ybt-consignment.css "kraft paper surface"). Night variant in
+     drawable-night keeps the dark canvas. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/bg_kraft_tile"
+    android:tileModeX="repeat"
+    android:tileModeY="repeat" />

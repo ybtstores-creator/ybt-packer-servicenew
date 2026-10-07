@@ -10,7 +10,7 @@
         android:layout_gravity="center_horizontal" android:background="@drawable/drag_handle" />
 
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="User Details" android:textSize="18sp" android:textStyle="bold"
+        android:text="User Details" android:textSize="@dimen/text_subtitle" android:textStyle="bold"
         android:textColor="@color/on_surface" android:padding="16dp" />
 
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
@@ -19,30 +19,30 @@
         android:orientation="vertical" android:padding="16dp">
 
         <TextView android:id="@+id/tvUsername" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textSize="18sp" android:textStyle="bold" android:textColor="@color/on_surface" />
+            android:textSize="@dimen/text_subtitle" android:textStyle="bold" android:textColor="@color/on_surface" />
 
         <TextView android:id="@+id/tvEmail" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textSize="14sp" android:textColor="@color/on_surface_variant" android:layout_marginTop="4dp" />
+            android:textSize="@dimen/text_body" android:textColor="@color/on_surface_variant" android:layout_marginTop="4dp" />
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:layout_marginTop="12dp">
 
             <TextView android:id="@+id/tvRole" android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:textSize="13sp" android:textColor="@color/primary" />
+                android:layout_weight="1" android:textSize="@dimen/text_body_sm" android:textColor="@color/primary" />
 
             <TextView android:id="@+id/tvUserId" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:textSize="13sp" android:textColor="@color/on_surface_variant" />
+                android:textSize="@dimen/text_body_sm" android:textColor="@color/on_surface_variant" />
         </LinearLayout>
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:layout_marginTop="8dp">
 
             <TextView android:id="@+id/tvTrackingCount" android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:textSize="14sp" android:textColor="@color/on_surface"
+                android:layout_weight="1" android:textSize="@dimen/text_body" android:textColor="@color/on_surface"
                 android:text="Tracking: 0" />
 
             <TextView android:id="@+id/tvPackingCount" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:textSize="14sp" android:textColor="@color/on_surface"
+                android:textSize="@dimen/text_body" android:textColor="@color/on_surface"
                 android:text="Packing: 0" />
         </LinearLayout>
     </LinearLayout>
@@ -54,7 +54,7 @@
         android:orientation="vertical" android:padding="16dp">
 
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="RESET PASSWORD" android:textSize="12sp" android:textStyle="bold"
+            android:text="RESET PASSWORD" android:textSize="@dimen/text_caption" android:textStyle="bold"
             android:textColor="@color/on_surface_variant" android:letterSpacing="0.1" />
 
         <EditText android:id="@+id/etNewPassword" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -64,6 +64,6 @@
         <com.google.android.material.button.MaterialButton android:id="@+id/btnResetPassword"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:text="RESET PASSWORD" android:layout_marginTop="8dp"
-            android:backgroundTint="#EF4444" />
+            android:backgroundTint="@color/error" />
     </LinearLayout>
 </LinearLayout>

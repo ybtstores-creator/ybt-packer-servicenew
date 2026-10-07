@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 
     <div class="card">
         <h2>Import Site Data</h2>
-        <p>Import YBT Packer Service data from a previously exported JSON file.</p>
+        <p>Import YBT Packing Service data from a previously exported JSON file.</p>
 
         <form id="import-form" enctype="multipart/form-data">
             <table class="form-table">
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
                     </th>
                     <td>
                         <input type="file" id="import_file" name="import_file" accept=".json" required>
-                        <p class="description">Select a JSON export file from YBT Packer Service</p>
+                        <p class="description">Select a JSON export file from YBT Packing Service</p>
                     </td>
                 </tr>
             </table>

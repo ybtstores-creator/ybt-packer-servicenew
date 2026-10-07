@@ -1,29 +1,55 @@
 <?php
 if (!defined('ABSPATH')) exit;
 if (!current_user_can('manage_options')) wp_die('Unauthorized');
+/**
+ * Barcode Scanner — "Scan window"
+ * Consignment-note design system (ledger scope). JS contract preserved:
+ * #scanner-container, #scanner-video, #start-scan, #stop-scan,
+ * #manual-tracking, #manual-search, #scan-results, ybt_scan_barcode.
+ */
 ?>
 
-<div class="wrap">
-    <h1>📷 Barcode Scanner</h1>
+<div class="wrap ybt-ledger">
+    <div class="ybt-ledgerhead">
+        <div>
+            <span class="ybd-eyebrow">Depot ledger · Scan window</span>
+            <h1>Barcode scanner</h1>
+            <p>Scan a consignment label — the register opens the matching parcel, creating it if the code is new.</p>
+        </div>
+        <span class="ybd-count"><i class="fas fa-video"></i> Camera</span>
+    </div>
 
-    <div class="card" style="padding: 20px;">
-        <div id="scanner-container" style="width: 100%; max-width: 640px; margin: 0 auto;">
-            <video id="scanner-video" style="width: 100%; border: 2px solid #ccc;"></video>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:18px; align-items:start;">
+        <div class="ybd-panel">
+            <div class="ybd-panelhead">
+                <span class="ybd-hint"><i class="fas fa-camera"></i>Live scanner</span>
+            </div>
+            <div class="ybd-panelbody">
+                <div id="scanner-container" style="width:100%; border:1.5px dashed var(--kraft-deep); border-radius:10px; overflow:hidden; background:var(--kraft);">
+                    <video id="scanner-video" style="width:100%; display:block;"></video>
+                </div>
+
+                <div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">
+                    <button id="start-scan" class="ybd-btn ybd-btn-emerald"><i class="fas fa-play"></i>Start scanner</button>
+                    <button id="stop-scan" class="ybd-btn ybd-btn-dark"><i class="fas fa-stop"></i>Stop scanner</button>
+                </div>
+            </div>
         </div>
 
-        <div style="text-align: center; margin-top: 20px;">
-            <button id="start-scan" class="button button-primary">Start Scanner</button>
-            <button id="stop-scan" class="button">Stop Scanner</button>
-        </div>
-
-        <div style="margin-top: 20px;">
-            <label>Or enter manually:</label>
-            <input type="text" id="manual-tracking" class="form-control" placeholder="Enter tracking number">
-            <button id="manual-search" class="button button-primary" style="margin-top: 10px;">Search</button>
+        <div class="ybd-panel">
+            <div class="ybd-panelhead">
+                <span class="ybd-hint"><i class="fas fa-keyboard"></i>Manual entry</span>
+            </div>
+            <div class="ybd-panelbody">
+                <label class="ybd-formlabel">Or enter the code by hand</label>
+                <input type="text" id="manual-tracking" class="ybd-input" placeholder="Enter tracking number">
+                <button id="manual-search" class="ybd-btn ybd-btn-gold" style="width:100%; margin-top:14px;"><i class="fas fa-search"></i>Search</button>
+                <p style="margin:10px 0 0; font-size:12.5px; color:#3d4a42;">Unknown codes are registered as anonymous parcels, ready to be claimed.</p>
+            </div>
         </div>
     </div>
 
-    <div id="scan-results" style="margin-top: 20px;"></div>
+    <div id="scan-results" style="margin-top:18px;"></div>
 </div>
 
 <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
@@ -47,7 +73,7 @@ if (typeof ybt_admin === 'undefined') {
     console.log('[YBT Scanner] Global ybt_admin found.');
 }
 
-const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[s])) : '';
+const escapeHtml = (u) => u ? String(u).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])) : '';
 
 jQuery(document).ready(function($) {
     let codeReader = null;
@@ -147,8 +173,8 @@ jQuery(document).ready(function($) {
         let isNew = item.old_status === 'new';
         let status = item.new_status || item.status;
 
-        let html = '<div class="card" style="padding: 15px; border-left: 4px solid ' + (isNew ? '#00a0d2' : '#46b450') + '; margin-bottom: 10px;">';
-        html += '<h3 style="margin-top:0;">' + (isNew ? '🆕 Added' : '✅ Updated') + ': ' + escapeHtml(item.tracking_number) + '</h3>';
+        let html = '<div class="card" style="padding:15px 18px; border-left:4px solid ' + (isNew ? '#047857' : '#10b981') + '; margin-bottom:10px;">';
+        html += '<h3 style="margin-top:0; font-family:var(--display); font-weight:400;">' + (isNew ? '🆕 Added' : '✅ Updated') + ': <span style="font-family:var(--mono);">' + escapeHtml(item.tracking_number) + '</span></h3>';
         html += '<p><strong>User:</strong> ' + escapeHtml(item.username || 'Anonymous') + '</p>';
         html += '<p><strong>Status:</strong> ' + escapeHtml(status.replace(/_/g, ' ')) + '</p>';
         if (item.message) {

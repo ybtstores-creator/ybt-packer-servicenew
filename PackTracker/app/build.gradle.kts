@@ -3,6 +3,14 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// FCM: apply the google-services plugin only when google-services.json is
+// present, so the project still builds before Firebase is configured.
+val googleServicesFile = file("google-services.json")
+val hasGoogleServices = googleServicesFile.exists()
+if (hasGoogleServices) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.packtracker"
     compileSdk = 34
@@ -11,13 +19,18 @@ android {
         applicationId = "com.packtracker"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.1"
+        versionCode = 7
+        versionName = "2.4"
+        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2/wordpress/\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2/wordpress/\"")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "BASE_URL", "\"https://your-production-domain.com/\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -27,6 +40,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     compileOptions {
@@ -68,6 +82,10 @@ dependencies {
 
     // WorkManager (offline scan sync)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Firebase Cloud Messaging (instant message push). BOM pins versions.
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-messaging")
 
     // Coroutines (transitive of WorkManager/lifecycle; pinned so offline resolution succeeds)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

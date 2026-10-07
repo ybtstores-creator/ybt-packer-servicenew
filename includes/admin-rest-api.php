@@ -415,7 +415,7 @@ class YBT_Admin_REST_API {
             return true;
         }
 
-        // Try JWT via shared token extractor (Authorization header or POST body, never GET)
+        // Try JWT via shared token extractor (Authorization header, POST, or GET)
         $token = ybt_get_request_token();
         if (!empty($token)) {
             $token_data = ybt_validate_mobile_token($token);
@@ -788,7 +788,11 @@ class YBT_Admin_REST_API {
     public function add_tracking_bulk($request) {
         global $wpdb;
         $params = $request->get_json_params();
-        $tracking_numbers = isset($params['tracking_numbers']) ? array_map('trim', explode(',', $params['tracking_numbers'])) : array();
+        $raw_numbers = isset($params['tracking_numbers']) ? $params['tracking_numbers'] : array();
+        // Accept a JSON array or a single string with one number per line / comma.
+        $tracking_numbers = class_exists('YBT_API_Admin_Handler')
+            ? YBT_API_Admin_Handler::normalize_tracking_numbers($raw_numbers)
+            : array_values(array_filter(array_map('trim', is_array($raw_numbers) ? $raw_numbers : preg_split('/[\r\n,;|]+/', (string) $raw_numbers))));
         $target_user_id = isset($params['target_user_id']) ? (int) $params['target_user_id'] : 0;
         $description = sanitize_text_field($params['description'] ?? '');
         $item_count = (int) ($params['item_count'] ?? 1);
@@ -946,7 +950,7 @@ class YBT_Admin_REST_API {
             return new WP_Error('not_found', 'No images found', array('status' => 404));
         }
 
-        $images = explode(',', $item->images);
+        $images = explode(',', (string) $item->images);
         $new_images = array_filter($images, function($url) use ($image_url) {
             return trim($url) !== trim($image_url);
         });
@@ -957,12 +961,10 @@ class YBT_Admin_REST_API {
             array('id' => $tracking_id)
         );
 
-        // Physically delete file if it's on our server
-        $upload_dir = wp_upload_dir();
-        $base_dir = $upload_dir['basedir'];
-        $file_path = $base_dir . '/' . basename(wp_parse_url($image_url, PHP_URL_PATH));
-        if (strpos(realpath($file_path), realpath($base_dir)) === 0 && file_exists($file_path)) {
-            @unlink($file_path);
+        // Physically delete file if it's on our server — shared, containment-checked
+        // helper (resolves dated subdirs correctly instead of basename-only matching).
+        if (class_exists('YBT_File_Handler')) {
+            YBT_File_Handler::delete_urls(array($image_url));
         }
 
         return rest_ensure_response(array('success' => true, 'data' => array('message' => 'Image deleted')));
@@ -1084,7 +1086,7 @@ class YBT_Admin_REST_API {
     public function get_packing_requests($request) {
         global $wpdb;
         $table = $wpdb->prefix . 'ybt_tracking';
-        $items = $wpdb->get_results("SELECT batch_id, user_id, username, COUNT(*) as item_count, SUM(weight_kg) as total_weight, MAX(date_packing_requested) as date_requested, MAX(shipping_company_name) as shipping_company_name, MAX(shipping_address) as shipping_address, MAX(shipping_mark) as shipping_mark FROM $table WHERE batch_id IS NOT NULL AND batch_id != '' AND status = 'packing_in_progress' GROUP BY batch_id ORDER BY date_requested DESC LIMIT 50", ARRAY_A);
+        $items = $wpdb->get_results("SELECT batch_id, user_id, username, COUNT(*) as item_count, SUM(weight_kg) as total_weight, MAX(date_packing_requested) as date_requested, MAX(shipping_company_name) as shipping_company_name, MAX(shipping_address) as shipping_address, MAX(shipping_mark) as shipping_mark FROM $table WHERE batch_id IS NOT NULL AND batch_id != '' AND status = 'packing_in_progress' GROUP BY batch_id, user_id, username ORDER BY date_requested DESC LIMIT 50", ARRAY_A);
         return rest_ensure_response(array('success' => true, 'data' => array('requests' => $items)));
     }
 
@@ -1218,6 +1220,8 @@ class YBT_Admin_REST_API {
             'ybt_admin_messages'  => 'Admin Messages',
             'ybt_invoices'        => 'Invoices',
             'packing_requests'    => 'Packing Requests',
+            'ybt_notifications'   => 'Notifications Inbox',
+            'ybt_tracking_edits'  => 'Tracking Edit History',
         );
 
         $result = array();
@@ -1239,34 +1243,38 @@ class YBT_Admin_REST_API {
             );
         }
 
-        // Uploads directory size
-        $uploads = wp_upload_dir();
-        $upload_size = 0;
-        if (is_dir($uploads['basedir'])) {
-            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads['basedir'])) as $file) {
-                if ($file->isFile()) $upload_size += $file->getSize();
+        // Uploads directory size — cached in transient to avoid scanning gigabytes on every page load
+        $force_refresh = !empty($request->get_param('refresh'));
+        $cached_size   = get_transient('ybt_disk_uploads_size_kb');
+        if ($cached_size !== false && !$force_refresh) {
+            $uploads_kb = (float)$cached_size;
+        } else {
+            $uploads = wp_upload_dir();
+            $upload_size = 0;
+            if (is_dir($uploads['basedir'])) {
+                foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads['basedir'], FilesystemIterator::SKIP_DOTS)) as $file) {
+                    if ($file->isFile()) $upload_size += $file->getSize();
+                }
             }
+            $uploads_kb = round($upload_size / 1024, 1);
+            set_transient('ybt_disk_uploads_size_kb', $uploads_kb, 6 * HOUR_IN_SECONDS);
         }
 
         // Chat attachments count
         $chat_attach = (int)$wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_chat WHERE attachment IS NOT NULL AND attachment != ''"
-            )
+            "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_chat WHERE attachment IS NOT NULL AND attachment != ''"
         );
 
         // Tracking images count (stored as JSON in 'images' column)
         $tracking_with_images = (int)$wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE images IS NOT NULL AND images != '' AND images != '[]'"
-            )
+            "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE images IS NOT NULL AND images != '' AND images != '[]'"
         );
 
         return rest_ensure_response(array(
             'success' => true,
             'data'    => array(
                 'tables'             => $result,
-                'uploads_kb'         => round($upload_size / 1024, 1),
+                'uploads_kb'         => $uploads_kb,
                 'chat_attachments'   => $chat_attach,
                 'tracking_with_images' => $tracking_with_images,
             )
@@ -1288,7 +1296,7 @@ class YBT_Admin_REST_API {
         $where = '1=1';
         $p = array();
         if ($days > 0) {
-            $where .= ' AND date_added < DATE_SUB(NOW(), INTERVAL %d DAY)';
+            $where .= ' AND COALESCE(date_completed, date_packed, date_received, date_added) < DATE_SUB(NOW(), INTERVAL %d DAY)';
             $p[] = $days;
         }
         if ($status) {
@@ -1302,13 +1310,19 @@ class YBT_Admin_REST_API {
 
         switch ($type) {
             case 'tracking':
-                $count = (int)$wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE $where", $p
-                ));
-                $sample = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id, tracking_number, status, user_id, date_added FROM {$wpdb->prefix}ybt_tracking WHERE $where ORDER BY date_added DESC LIMIT 10", $p
-                ), ARRAY_A);
-                return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => $sample)));
+                $sql_count = "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE $where";
+                $count = (int)(!empty($p) ? $wpdb->get_var($wpdb->prepare($sql_count, $p)) : $wpdb->get_var($sql_count));
+
+                $sql_sample = "SELECT id, tracking_number, status, user_id, COALESCE(date_completed, date_packed, date_received, date_added) AS last_active FROM {$wpdb->prefix}ybt_tracking WHERE $where ORDER BY last_active DESC LIMIT 10";
+                $sample = !empty($p) ? $wpdb->get_results($wpdb->prepare($sql_sample, $p), ARRAY_A) : $wpdb->get_results($sql_sample, ARRAY_A);
+
+                $files = class_exists('YBT_File_Handler')
+                    ? YBT_File_Handler::plan_data_cleanup('tracking', array('older_than_days' => $days, 'status' => $status, 'user_id' => $user_id))
+                    : array('count' => 0, 'size_bytes' => 0);
+                return rest_ensure_response(array('success' => true, 'data' => array(
+                    'count' => $count, 'sample' => $sample,
+                    'file_count' => $files['count'], 'size_kb' => round($files['size_bytes'] / 1024, 1)
+                )));
 
             case 'chat':
                 $where_chat = '1=1';
@@ -1321,13 +1335,19 @@ class YBT_Admin_REST_API {
                     $where_chat .= ' AND user_id = %d';
                     $pc[] = $user_id;
                 }
-                $count = (int)$wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_chat WHERE $where_chat", $pc
-                ));
-                $sample = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id, username, LEFT(message, 60) AS message, is_admin, date_created FROM {$wpdb->prefix}ybt_chat WHERE $where_chat ORDER BY date_created DESC LIMIT 10", $pc
-                ), ARRAY_A);
-                return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => $sample)));
+                $sql_chat_count = "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_chat WHERE $where_chat";
+                $count = (int)(!empty($pc) ? $wpdb->get_var($wpdb->prepare($sql_chat_count, $pc)) : $wpdb->get_var($sql_chat_count));
+
+                $sql_chat_sample = "SELECT id, username, LEFT(message, 60) AS message, is_admin, date_created FROM {$wpdb->prefix}ybt_chat WHERE $where_chat ORDER BY date_created DESC LIMIT 10";
+                $sample = !empty($pc) ? $wpdb->get_results($wpdb->prepare($sql_chat_sample, $pc), ARRAY_A) : $wpdb->get_results($sql_chat_sample, ARRAY_A);
+
+                $files = class_exists('YBT_File_Handler')
+                    ? YBT_File_Handler::plan_data_cleanup('chat', array('older_than_days' => $days, 'user_id' => $user_id))
+                    : array('count' => 0, 'size_bytes' => 0);
+                return rest_ensure_response(array('success' => true, 'data' => array(
+                    'count' => $count, 'sample' => $sample,
+                    'file_count' => $files['count'], 'size_kb' => round($files['size_bytes'] / 1024, 1)
+                )));
 
             case 'activity_log':
                 $where_act = '1=1';
@@ -1336,12 +1356,11 @@ class YBT_Admin_REST_API {
                     $where_act .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)';
                     $pa[] = $days;
                 }
-                $count = (int)$wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_activity_log WHERE $where_act", $pa
-                ));
-                $sample = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id, action, LEFT(details, 60) AS details, date_created FROM {$wpdb->prefix}ybt_activity_log WHERE $where_act ORDER BY date_created DESC LIMIT 10", $pa
-                ), ARRAY_A);
+                $sql_act_count = "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_activity_log WHERE $where_act";
+                $count = (int)(!empty($pa) ? $wpdb->get_var($wpdb->prepare($sql_act_count, $pa)) : $wpdb->get_var($sql_act_count));
+
+                $sql_act_sample = "SELECT id, action, LEFT(details, 60) AS details, date_created FROM {$wpdb->prefix}ybt_activity_log WHERE $where_act ORDER BY date_created DESC LIMIT 10";
+                $sample = !empty($pa) ? $wpdb->get_results($wpdb->prepare($sql_act_sample, $pa), ARRAY_A) : $wpdb->get_results($sql_act_sample, ARRAY_A);
                 return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => $sample)));
 
             case 'cartons':
@@ -1351,14 +1370,38 @@ class YBT_Admin_REST_API {
                     $where_cart .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)';
                     $pk[] = $days;
                 }
-                $count = (int)$wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_cartons WHERE $where_cart", $pk
-                ));
-                return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => array())));
+                $sql_cart_count = "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_cartons WHERE $where_cart";
+                $count = (int)(!empty($pk) ? $wpdb->get_var($wpdb->prepare($sql_cart_count, $pk)) : $wpdb->get_var($sql_cart_count));
+
+                $files = class_exists('YBT_File_Handler')
+                    ? YBT_File_Handler::plan_data_cleanup('cartons', array('older_than_days' => $days))
+                    : array('count' => 0, 'size_bytes' => 0);
+                return rest_ensure_response(array('success' => true, 'data' => array(
+                    'count' => $count, 'sample' => array(),
+                    'file_count' => $files['count'], 'size_kb' => round($files['size_bytes'] / 1024, 1)
+                )));
 
             case 'fcm_tokens':
                 $count = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_fcm_tokens");
                 return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => array())));
+
+            case 'notifications':
+                $where_notif = '1=1';
+                $pn = array();
+                if ($days > 0) {
+                    $where_notif .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)';
+                    $pn[] = $days;
+                }
+                if ($user_id > 0) {
+                    $where_notif .= ' AND user_id = %d';
+                    $pn[] = $user_id;
+                }
+                $sql_notif_count = "SELECT COUNT(*) FROM {$wpdb->prefix}ybt_notifications WHERE $where_notif";
+                $count = (int)(!empty($pn) ? $wpdb->get_var($wpdb->prepare($sql_notif_count, $pn)) : $wpdb->get_var($sql_notif_count));
+
+                $sql_notif_sample = "SELECT id, user_id, title, LEFT(body, 60) AS body, date_created FROM {$wpdb->prefix}ybt_notifications WHERE $where_notif ORDER BY date_created DESC LIMIT 10";
+                $sample = !empty($pn) ? $wpdb->get_results($wpdb->prepare($sql_notif_sample, $pn), ARRAY_A) : $wpdb->get_results($sql_notif_sample, ARRAY_A);
+                return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => $sample)));
 
             case 'packing_requests':
                 $where_pr = '1=1';
@@ -1367,31 +1410,59 @@ class YBT_Admin_REST_API {
                     $where_pr .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)';
                     $ppr[] = $days;
                 }
-                $count = (int)$wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->prefix}packing_requests WHERE $where_pr", $ppr
-                ));
+                $sql_pr_count = "SELECT COUNT(*) FROM {$wpdb->prefix}packing_requests WHERE $where_pr";
+                $count = (int)(!empty($ppr) ? $wpdb->get_var($wpdb->prepare($sql_pr_count, $ppr)) : $wpdb->get_var($sql_pr_count));
                 return rest_ensure_response(array('success' => true, 'data' => array('count' => $count, 'sample' => array())));
 
-            case 'uploads':
-                $uploads = wp_upload_dir();
-                $files = array();
-                if (is_dir($uploads['basedir'])) {
-                    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads['basedir'])) as $file) {
-                        if ($file->isFile()) {
-                            if ($days > 0 && $file->getMTime() < strtotime("-{$days} days")) {
-                                $files[] = $file->getPathname();
-                            } elseif ($days == 0) {
-                                $files[] = $file->getPathname();
-                            }
-                        }
-                    }
+            case 'orphans':
+                // Files in YBT upload locations that NO YBT record references.
+                // Age filter is mandatory (same rule as delete): fresh orphans
+                // may be mid-upload or referenced by a record type the scan
+                // does not know about.
+                if ($days <= 0) {
+                    return new WP_Error('age_required',
+                        'Pass older_than_days > 0 to preview orphaned files. Only files not referenced by any YBT record are eligible.',
+                        array('status' => 400));
                 }
-                $total_size = 0;
-                foreach ($files as $f) $total_size += filesize($f);
+                if (!class_exists('YBT_File_Handler')) {
+                    return new WP_Error('helper_missing', 'File handler unavailable', array('status' => 500));
+                }
+                $orphan_plan = YBT_File_Handler::plan_orphan_cleanup(array('older_than_days' => $days));
+                $orphan_sample = array();
+                foreach (array_slice($orphan_plan['files'], 0, 10) as $orphan_file) {
+                    $orphan_sample[] = array('file' => $orphan_file['ref'], 'owner' => 'orphan', 'size_bytes' => $orphan_file['size']);
+                }
                 return rest_ensure_response(array('success' => true, 'data' => array(
-                    'count' => count($files),
-                    'size_kb' => round($total_size / 1024, 1),
-                    'sample' => array_slice(array_map(function($f) { return str_replace($uploads['basedir'] . '/', '', $f); }, $files), 0, 10)
+                    'count' => $orphan_plan['count'],
+                    'size_kb' => round($orphan_plan['size_bytes'] / 1024, 1),
+                    'scanned' => $orphan_plan['scanned'],
+                    'excluded' => $orphan_plan['excluded'],
+                    'scope' => 'Only files in YBT upload locations (uploads root + ybt-cartons) that no YBT record references. Media Library files and referenced files are never touched.',
+                    'sample' => $orphan_sample
+                )));
+
+            case 'uploads':
+                // YBT-referenced files ONLY — never the whole uploads directory.
+                // plan_data_cleanup() is the same code path /data/delete runs;
+                // these numbers cannot drift from what delete actually frees.
+                if (!class_exists('YBT_File_Handler')) {
+                    return new WP_Error('helper_missing', 'File handler unavailable', array('status' => 500));
+                }
+                if ($days <= 0) {
+                    return new WP_Error('age_required',
+                        'Refusing to preview uploads without an age filter. Pass older_than_days > 0; only files referenced by YBT records are eligible.',
+                        array('status' => 400));
+                }
+                $plan = YBT_File_Handler::plan_data_cleanup('uploads', array('older_than_days' => $days));
+                $sample = array();
+                foreach (array_slice($plan['files'], 0, 10) as $file) {
+                    $sample[] = array('file' => $file['ref'], 'owner' => $file['owner'], 'size_bytes' => $file['size']);
+                }
+                return rest_ensure_response(array('success' => true, 'data' => array(
+                    'count' => $plan['count'],
+                    'size_kb' => round($plan['size_bytes'] / 1024, 1),
+                    'scope' => 'Only files referenced by YBT records (parcels, cartons, chat, messages). The rest of wp-content/uploads is never touched.',
+                    'sample' => $sample
                 )));
 
             default:
@@ -1400,38 +1471,14 @@ class YBT_Admin_REST_API {
     }
 
     /**
-     * SECURITY: physically delete a stored file URL only when it resolves to
-     * a real file inside the uploads directory. DB values (e.g. images,
-     * attachments) may be crafted to escape via ../ — those are skipped, the
-     * owning DB row is still deleted.
-     */
-    private function delete_uploads_file($url, &$freed_kb) {
-        if (empty($url)) return;
-        $upload_dir = wp_upload_dir();
-        $base = realpath($upload_dir['basedir']);
-        if ($base === false) return;
-
-        $path = wp_make_link_relative($url);
-        $real = realpath(ABSPATH . $path);
-        if ($real === false) {
-            // Subdirectory installs: the URL path carries the site prefix
-            // (e.g. /wordpress/wp-content/uploads/...), so map it onto basedir.
-            $url_path = wp_parse_url($path, PHP_URL_PATH);
-            $base_path = wp_parse_url(trailingslashit($upload_dir['baseurl']), PHP_URL_PATH);
-            if ($url_path && $base_path && strpos($url_path, $base_path) === 0) {
-                $real = realpath($base . '/' . substr($url_path, strlen($base_path)));
-            }
-        }
-        // SECURITY: only delete files that resolve to inside the uploads dir.
-        if ($real !== false && strpos($real, $base . DIRECTORY_SEPARATOR) === 0 && is_file($real)) {
-            $freed_kb += filesize($real) / 1024;
-            @unlink($real);
-        }
-    }
-
-    /**
      * POST /data/delete — execute deletion
      * Body: { type: string, older_than_days?: int, status?: string, user_id?: int, confirm: true }
+     *
+     * File removal and freed-space accounting are delegated entirely to
+     * YBT_File_Handler::plan_data_cleanup() + execute_data_cleanup() — the
+     * same code path /data/preview reports, so the numbers cannot drift.
+     * This method only handles row deletion (SQL DELETE) for table-backed
+     * types and the age-filter safety rule for uploads.
      */
     public function data_delete($request) {
         global $wpdb;
@@ -1450,33 +1497,57 @@ class YBT_Admin_REST_API {
             require_once __DIR__ . '/ajax-helpers.php';
         }
 
-        $deleted = 0;
-        $freed_kb = 0;
+        $deleted  = 0;
+        $freed_kb = 0.0;
+        $filters  = array('older_than_days' => $days, 'status' => $status, 'user_id' => $user_id);
+
+        // Runs one unified file-cleanup plan and folds the freed space into
+        // the response accounting. Files are deleted and reference columns
+        // cleared inside YBT_File_Handler; here we only DELETE table rows.
+        $run_cleanup = function($cleanup_type, $f, $clear_fields) use (&$freed_kb) {
+            if (!class_exists('YBT_File_Handler')) {
+                return 0;
+            }
+            $plan = YBT_File_Handler::plan_data_cleanup($cleanup_type, $f);
+            $res  = YBT_File_Handler::execute_data_cleanup($plan, $clear_fields);
+            $freed_kb += $res['freed_bytes'] / 1024;
+            return (int) $res['deleted_files'];
+        };
 
         switch ($type) {
             case 'tracking':
                 $where = '1=1';
                 $p = array();
-                if ($days > 0) { $where .= ' AND date_added < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
+                if ($days > 0) { $where .= ' AND COALESCE(date_completed, date_packed, date_received, date_added) < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
                 if ($status) { $where .= ' AND status = %s'; $p[] = $status; }
                 if ($user_id > 0) { $where .= ' AND user_id = %d'; $p[] = $user_id; }
-                // Collect images for physical deletion
-                $rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id, images FROM {$wpdb->prefix}ybt_tracking WHERE $where", $p
-                ));
-                foreach ($rows as $row) {
-                    if (!empty($row->images)) {
-                        $imgs = json_decode($row->images, true);
-                        if (is_array($imgs)) {
-                            foreach ($imgs as $img_url) {
-                                $this->delete_uploads_file($img_url, $freed_kb);
-                            }
-                        }
+
+                // Fetch matching rows so we can cascade delete edit histories and notifications
+                $get_ids_sql = "SELECT id, tracking_number FROM {$wpdb->prefix}ybt_tracking WHERE $where";
+                $matched_rows = !empty($p) ? (array)$wpdb->get_results($wpdb->prepare($get_ids_sql, $p), ARRAY_A) : (array)$wpdb->get_results($get_ids_sql, ARRAY_A);
+                $matched_ids = array_filter(array_column($matched_rows, 'id'));
+                $matched_tracking_numbers = array_filter(array_column($matched_rows, 'tracking_number'));
+
+                // Rows are deleted wholesale below, so no field clearing.
+                $run_cleanup('tracking', $filters, false);
+
+                $del_sql = "DELETE FROM {$wpdb->prefix}ybt_tracking WHERE $where";
+                $deleted = !empty($p) ? $wpdb->query($wpdb->prepare($del_sql, $p)) : $wpdb->query($del_sql);
+
+                // Cascade delete orphaned tracking edits and linked notifications
+                if (!empty($matched_ids)) {
+                    foreach (array_chunk($matched_ids, 500) as $chunk) {
+                        $ph = implode(',', array_fill(0, count($chunk), '%d'));
+                        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}ybt_tracking_edits WHERE tracking_id IN ($ph)", $chunk));
+                        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}ybt_notifications WHERE tracking_id IN ($ph)", $chunk));
                     }
                 }
-                $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$wpdb->prefix}ybt_tracking WHERE $where", $p
-                ));
+                if (!empty($matched_tracking_numbers)) {
+                    foreach (array_chunk($matched_tracking_numbers, 500) as $chunk) {
+                        $ph = implode(',', array_fill(0, count($chunk), '%s'));
+                        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}ybt_notifications WHERE tracking_number IN ($ph)", $chunk));
+                    }
+                }
                 break;
 
             case 'chat':
@@ -1484,86 +1555,98 @@ class YBT_Admin_REST_API {
                 $p = array();
                 if ($days > 0) { $where .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
                 if ($user_id > 0) { $where .= ' AND user_id = %d'; $p[] = $user_id; }
-                // Collect attachments for physical deletion
-                $rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id, attachment FROM {$wpdb->prefix}ybt_chat WHERE $where", $p
-                ));
-                foreach ($rows as $row) {
-                    if (!empty($row->attachment)) {
-                        $this->delete_uploads_file($row->attachment, $freed_kb);
-                    }
-                }
-                $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$wpdb->prefix}ybt_chat WHERE $where", $p
-                ));
+                $run_cleanup('chat', $filters, false);
+                $del_sql = "DELETE FROM {$wpdb->prefix}ybt_chat WHERE $where";
+                $deleted = !empty($p) ? $wpdb->query($wpdb->prepare($del_sql, $p)) : $wpdb->query($del_sql);
                 break;
 
             case 'activity_log':
                 $where = '1=1';
                 $p = array();
                 if ($days > 0) { $where .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
-                $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$wpdb->prefix}ybt_activity_log WHERE $where", $p
-                ));
+                $del_sql = "DELETE FROM {$wpdb->prefix}ybt_activity_log WHERE $where";
+                $deleted = !empty($p) ? $wpdb->query($wpdb->prepare($del_sql, $p)) : $wpdb->query($del_sql);
                 break;
 
             case 'cartons':
                 $where = '1=1';
                 $p = array();
                 if ($days > 0) { $where .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
-                // Collect carton images
-                $rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id, carton_image FROM {$wpdb->prefix}ybt_cartons WHERE $where", $p
-                ));
-                foreach ($rows as $row) {
-                    if (!empty($row->carton_image)) {
-                        $this->delete_uploads_file($row->carton_image, $freed_kb);
-                    }
-                }
-                $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$wpdb->prefix}ybt_cartons WHERE $where", $p
-                ));
+                $run_cleanup('cartons', $filters, false);
+                $del_sql = "DELETE FROM {$wpdb->prefix}ybt_cartons WHERE $where";
+                $deleted = !empty($p) ? $wpdb->query($wpdb->prepare($del_sql, $p)) : $wpdb->query($del_sql);
                 break;
 
             case 'fcm_tokens':
                 $deleted = $wpdb->query("DELETE FROM {$wpdb->prefix}ybt_fcm_tokens");
                 break;
 
+            case 'notifications':
+                $where = '1=1';
+                $p = array();
+                if ($days > 0) { $where .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
+                if ($user_id > 0) { $where .= ' AND user_id = %d'; $p[] = $user_id; }
+                $del_sql = "DELETE FROM {$wpdb->prefix}ybt_notifications WHERE $where";
+                $deleted = !empty($p) ? $wpdb->query($wpdb->prepare($del_sql, $p)) : $wpdb->query($del_sql);
+                break;
+
             case 'packing_requests':
                 $where = '1=1';
                 $p = array();
                 if ($days > 0) { $where .= ' AND date_created < DATE_SUB(NOW(), INTERVAL %d DAY)'; $p[] = $days; }
-                $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$wpdb->prefix}packing_requests WHERE $where", $p
-                ));
+                $del_sql = "DELETE FROM {$wpdb->prefix}packing_requests WHERE $where";
+                $deleted = !empty($p) ? $wpdb->query($wpdb->prepare($del_sql, $p)) : $wpdb->query($del_sql);
+                break;
+
+            case 'orphans':
+                // SAFETY: an age filter is mandatory. Only files NOT referenced
+                // by any YBT row (and not Media-Library attachments) are
+                // eligible, and only inside the YBT scan directories.
+                if ($days <= 0) {
+                    return new WP_Error('age_required',
+                        'Refusing to purge orphaned files without an age filter. Pass older_than_days > 0.',
+                        array('status' => 400));
+                }
+                if (!class_exists('YBT_File_Handler')) {
+                    return new WP_Error('helper_missing', 'File handler unavailable', array('status' => 500));
+                }
+                $orphan_plan = YBT_File_Handler::plan_orphan_cleanup(array('older_than_days' => $days));
+                $orphan_res  = YBT_File_Handler::execute_orphan_cleanup($orphan_plan);
+                $deleted  = (int) $orphan_res['deleted_files'];
+                $freed_kb += $orphan_res['freed_bytes'] / 1024;
+                delete_transient('ybt_disk_uploads_size_kb');
                 break;
 
             case 'uploads':
-                $uploads_dir = wp_upload_dir();
-                if (is_dir($uploads_dir['basedir'])) {
-                    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads_dir['basedir'])) as $file) {
-                        if ($file->isFile()) {
-                            if ($days > 0 && $file->getMTime() < strtotime("-{$days} days")) {
-                                $freed_kb += $file->getSize() / 1024;
-                                @unlink($file->getPathname());
-                                $deleted++;
-                            } elseif ($days == 0) {
-                                $freed_kb += $file->getSize() / 1024;
-                                @unlink($file->getPathname());
-                                $deleted++;
-                            }
-                        }
-                    }
+                // SAFETY: an age filter is mandatory, and only YBT-owned files
+                // referenced by DB records are eligible. This can no longer wipe
+                // the whole uploads directory (previously days=0 did exactly that,
+                // taking the Media Library and every other plugin's files with it).
+                if ($days <= 0) {
+                    return new WP_Error('age_required',
+                        'Refusing to delete uploads without an age filter. Pass older_than_days > 0; only files referenced by YBT records are eligible.',
+                        array('status' => 400));
                 }
+                // No table rows are deleted here, so reference columns ARE
+                // cleared on rows whose files were removed.
+                $deleted = $run_cleanup('uploads', $filters, true);
+                delete_transient('ybt_disk_uploads_size_kb');
                 break;
 
             case 'all_parcels':
+                // Files first, then the rows (rows vanish below, so no clearing).
+                $run_cleanup('all_parcels', $filters, false);
                 $deleted = $wpdb->query("DELETE FROM {$wpdb->prefix}ybt_tracking");
                 $wpdb->query("DELETE FROM {$wpdb->prefix}ybt_cartons");
+                $wpdb->query("DELETE FROM {$wpdb->prefix}ybt_tracking_edits");
+                $wpdb->query("DELETE FROM {$wpdb->prefix}ybt_notifications WHERE tracking_id IS NOT NULL OR tracking_number IS NOT NULL");
+                delete_transient('ybt_disk_uploads_size_kb');
                 break;
 
             case 'all_chat':
+                $run_cleanup('all_chat', $filters, false);
                 $deleted = $wpdb->query("DELETE FROM {$wpdb->prefix}ybt_chat");
+                delete_transient('ybt_disk_uploads_size_kb');
                 break;
 
             case 'all_activity':
@@ -1572,6 +1655,10 @@ class YBT_Admin_REST_API {
 
             default:
                 return new WP_Error('invalid_type', 'Unknown data type: ' . $type, array('status' => 400));
+        }
+
+        if ($freed_kb > 0) {
+            delete_transient('ybt_disk_uploads_size_kb');
         }
 
         if (function_exists('ybt_log_activity')) {
@@ -1588,7 +1675,6 @@ class YBT_Admin_REST_API {
             )
         ));
     }
-
     // =========================================================================
     // EXPORT
     // =========================================================================
@@ -1922,7 +2008,7 @@ class YBT_Admin_REST_API {
         }
         $ai = YBT_AI_Operator::instance();
         $diag = $ai->run_full_diagnostics();
-        $report = "=== YBT PACKER OPERATIONAL REPORT (" . date('Y-m-d H:i') . ") ===\n";
+        $report = "=== YBT PACKING SERVICE OPERATIONAL REPORT (" . date('Y-m-d H:i') . ") ===\n";
         $report .= "System Health Score: " . $diag['health_score'] . "%\n";
         $report .= "Database Storage: " . $diag['db_size_mb'] . " MB\n";
         $report .= "Unclaimed Parcels: " . $diag['unclaimed_parcels'] . "\n";

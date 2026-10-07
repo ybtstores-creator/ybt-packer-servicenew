@@ -138,19 +138,19 @@ class DashboardFragment : Fragment() {
             cardAdminBatches?.visibility = View.VISIBLE
             cardAdminScanner?.visibility = View.VISIBLE
 
-            cardAdminOrders?.setOnClickListener { findNavController().navigate(R.id.adminOrdersFragment) }
-            cardAdminUsers?.setOnClickListener { findNavController().navigate(R.id.adminUsersFragment) }
-            cardAdminBatches?.setOnClickListener { findNavController().navigate(R.id.packingFragment) }
+            cardAdminOrders?.setOnClickListener { try { findNavController().navigate(R.id.adminOrdersFragment) } catch (_: Exception) {} }
+            cardAdminUsers?.setOnClickListener { try { findNavController().navigate(R.id.adminUsersFragment) } catch (_: Exception) {} }
+            cardAdminBatches?.setOnClickListener { try { findNavController().navigate(R.id.packingFragment) } catch (_: Exception) {} }
             cardAdminScanner?.setOnClickListener {
                 startActivity(Intent(requireContext(), BarcodeScannerActivity::class.java).apply {
                     putExtra(BarcodeScannerActivity.EXTRA_IS_ADMIN, true)
                 })
             }
 
-            cardNotReceived?.setOnClickListener { findNavController().navigate(R.id.adminOrdersFragment) }
-            cardReceived?.setOnClickListener { findNavController().navigate(R.id.adminOrdersFragment) }
-            cardPacked?.setOnClickListener { findNavController().navigate(R.id.adminOrdersFragment) }
-            cardCompleted?.setOnClickListener { findNavController().navigate(R.id.adminUsersFragment) }
+            cardNotReceived?.setOnClickListener { try { findNavController().navigate(R.id.adminOrdersFragment) } catch (_: Exception) {} }
+            cardReceived?.setOnClickListener { try { findNavController().navigate(R.id.adminOrdersFragment) } catch (_: Exception) {} }
+            cardPacked?.setOnClickListener { try { findNavController().navigate(R.id.adminOrdersFragment) } catch (_: Exception) {} }
+            cardCompleted?.setOnClickListener { try { findNavController().navigate(R.id.adminUsersFragment) } catch (_: Exception) {} }
         } else {
             (cardAdminOrders?.parent as? android.view.ViewGroup)?.removeView(cardAdminOrders)
             (cardAdminUsers?.parent as? android.view.ViewGroup)?.removeView(cardAdminUsers)
@@ -176,17 +176,17 @@ class DashboardFragment : Fragment() {
         loadDashboard()
     }
 
-    private fun loadDashboard() {
-        if (!isAdded) return
+    private fun loadDashboard() {        if (!isAdded) return
+        val ctx = context ?: return
         swipeRefresh.isRefreshing = true
 
-        val isAdmin = com.packtracker.utils.Session.isAdmin(requireContext())
+        val isAdmin = com.packtracker.utils.Session.isAdmin(ctx)
         if (isAdmin) {
             Log.d(TAG, "loadDashboard: calling getAdminDashboard()")
-            ApiClient.getService(requireContext()).getAdminDashboard()
+            ApiClient.getService(ctx).getAdminDashboard()
                 .enqueue(object : Callback<ApiResponse<AdminDashboardData>> {
                     override fun onResponse(call: Call<ApiResponse<AdminDashboardData>>, response: Response<ApiResponse<AdminDashboardData>>) {
-                        if (!isAdded) return
+                        if (!isAdded || context == null) return
                         swipeRefresh.isRefreshing = false
                         if (response.isSuccessful && response.body()?.data != null) {
                             response.body()?.data?.let { data ->
@@ -200,7 +200,7 @@ class DashboardFragment : Fragment() {
                         }
                     }
                     override fun onFailure(call: Call<ApiResponse<AdminDashboardData>>, t: Throwable) {
-                        if (!isAdded) return
+                        if (!isAdded || context == null) return
                         swipeRefresh.isRefreshing = false
                         Log.e(TAG, "Admin Dashboard stats error: ${t.message}")
                         showStatsUnavailable()
@@ -209,10 +209,10 @@ class DashboardFragment : Fragment() {
             return
         } else {
             Log.d(TAG, "loadDashboard: calling getDashboard()")
-            ApiClient.getService(requireContext()).getDashboard()
+            ApiClient.getService(ctx).getDashboard()
                 .enqueue(object : Callback<ApiResponse<DashboardData>> {
                     override fun onResponse(call: Call<ApiResponse<DashboardData>>, response: Response<ApiResponse<DashboardData>>) {
-                        if (!isAdded) return
+                        if (!isAdded || context == null) return
                         Log.d(TAG, "Dashboard stats response: ${response.code()}")
                         if (response.isSuccessful && response.body()?.data != null) {
                             response.body()?.data?.let { data ->
@@ -226,7 +226,7 @@ class DashboardFragment : Fragment() {
                         }
                     }
                     override fun onFailure(call: Call<ApiResponse<DashboardData>>, t: Throwable) {
-                        if (!isAdded) return
+                        if (!isAdded || context == null) return
                         swipeRefresh.isRefreshing = false
                         Log.e(TAG, "Dashboard stats error: ${t.message}")
                         showStatsUnavailable()
@@ -235,10 +235,11 @@ class DashboardFragment : Fragment() {
         }
 
         Log.d(TAG, "loadDashboard: calling getDashboardInfo()")
-        ApiClient.getService(requireContext()).getDashboardInfo()
+        ApiClient.getService(ctx).getDashboardInfo()
             .enqueue(object : Callback<ApiResponse<DashboardInfo>> {
+
                 override fun onResponse(call: Call<ApiResponse<DashboardInfo>>, response: Response<ApiResponse<DashboardInfo>>) {
-                    if (!isAdded) return
+                    if (!isAdded || context == null) return
                     swipeRefresh.isRefreshing = false
                     Log.d(TAG, "DashboardInfo response: ${response.code()}")
                     val body = response.body()
@@ -250,7 +251,7 @@ class DashboardFragment : Fragment() {
                     }
                 }
                 override fun onFailure(call: Call<ApiResponse<DashboardInfo>>, t: Throwable) {
-                    if (!isAdded) return
+                    if (!isAdded || context == null) return
                     swipeRefresh.isRefreshing = false
                     Log.e(TAG, "DashboardInfo error: ${t.message}")
                     showInfoUnavailable()
@@ -396,41 +397,45 @@ class DashboardFragment : Fragment() {
     }
 
     private fun copyWarehouseAddress() {
+        val ctx = context ?: return
         val address = tvWarehouseAddress.text.toString()
         if (address.isEmpty() || address == "Loading..." || address == UNAVAILABLE) {
-            Toast.makeText(context, "Not loaded yet", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, "Not loaded yet", Toast.LENGTH_SHORT).show()
             return
         }
-        val prefs = requireContext().getSharedPreferences("auth", Context.MODE_PRIVATE)
+        val prefs = ctx.getSharedPreferences("auth", Context.MODE_PRIVATE)
         val username = prefs.getString("username", null)
         val sb = StringBuilder(address)
         if (!username.isNullOrEmpty() && !address.contains(username)) {
             sb.append("\n\nUsername: ").append(username)
         }
         copyToClipboard("Warehouse Address", sb.toString())
-        Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, "Address copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun copyBankDetails() {
+        val ctx = context ?: return
         val bankName = tvBankName.text.toString()
         if (bankName == "Bank Name" || bankName == UNAVAILABLE || bankName.isEmpty()) {
-            Toast.makeText(context, "Not loaded yet", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, "Not loaded yet", Toast.LENGTH_SHORT).show()
             return
         }
         val details = "Bank: $bankName\nAccount Name: ${tvAccountName.text}\nAccount: ${tvAccountNumber.text}"
         copyToClipboard("Bank Details", details)
-        Toast.makeText(context, "Bank details copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, "Bank details copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun copyText(label: String, text: String) {
+        val ctx = context ?: return
         if (text.isEmpty() || text == "Bank Name" || text == "Account Name" || text == "Account Number" || text == UNAVAILABLE) return
         copyToClipboard(label, text)
-        Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, "$label copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun copyToClipboard(label: String, text: String) {
-        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+        val ctx = context ?: return
+        val clipboard = ContextCompat.getSystemService(ctx, ClipboardManager::class.java)
+        clipboard?.setPrimaryClip(ClipData.newPlainText(label, text))
     }
 
     private fun showStatsUnavailable() {

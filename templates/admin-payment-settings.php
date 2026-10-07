@@ -7,7 +7,6 @@ $table_name = $wpdb->prefix . 'ybt_payment_settings';
 $settings = $wpdb->get_row("SELECT * FROM $table_name WHERE is_active = 1 ORDER BY date_created DESC LIMIT 1");
 
 // Enqueue Enhanced CSS
-wp_enqueue_style('ybt-admin-dashboard-enhanced', YBT_PLUGIN_URL . 'assets/css/admin-dashboard-enhanced.css', array(), YBT_VERSION);
 ?>
 <div class="wrap ybt-admin-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">

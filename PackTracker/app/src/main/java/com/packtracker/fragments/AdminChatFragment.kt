@@ -18,6 +18,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.packtracker.R
 import com.packtracker.api.ApiClient
 import com.packtracker.models.*
+import com.packtracker.utils.Session
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -35,6 +36,15 @@ class AdminChatFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Role guard: non-admins must never access the admin chat inbox
+        if (!Session.isAdmin(requireContext())) {
+            try {
+                findNavController().popBackStack(R.id.dashboardFragment, false)
+            } catch (_: Exception) {}
+            return
+        }
+
         rvChats = view.findViewById(R.id.rvChats)
         tvEmpty = view.findViewById(R.id.tvEmpty)
         val etSearch = view.findViewById<EditText>(R.id.etSearch)

@@ -51,15 +51,15 @@ class YBT_Smart_Features {
 
             // Processing time analysis
             $avg_processing_time = $wpdb->get_var("
-                SELECT AVG(TIMESTAMPDIFF(HOUR, date_added, date_updated))
+                SELECT AVG(TIMESTAMPDIFF(HOUR, date_added, date_completed))
                 FROM {$wpdb->prefix}ybt_tracking
-                WHERE status = 'completed' AND date_updated IS NOT NULL
+                WHERE status = 'completed' AND date_completed IS NOT NULL
             ");
 
             // Bottleneck detection
             $bottlenecks = $wpdb->get_results("
                 SELECT status, COUNT(*) as count,
-                       AVG(TIMESTAMPDIFF(HOUR, date_added, COALESCE(date_updated, NOW()))) as avg_time
+                       AVG(TIMESTAMPDIFF(HOUR, date_added, COALESCE(date_completed, NOW()))) as avg_time
                 FROM {$wpdb->prefix}ybt_tracking
                 GROUP BY status
                 HAVING avg_time > 24
@@ -237,16 +237,17 @@ class YBT_Smart_Features {
 
             $optimizations = array();
 
-            // Auto-update old items
-            $updated = $wpdb->query("
-                UPDATE {$wpdb->prefix}ybt_tracking
-                SET status = 'received', date_updated = NOW()
+            // Stale parcels are reported, never auto-flipped: 'received' records a
+            // physical hand-over an admin has to confirm, and a silent transition here
+            // would push a false status notification to every affected customer.
+            $stale_items = (int) $wpdb->get_var("
+                SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking
                 WHERE status = 'not_received'
                 AND date_added < DATE_SUB(NOW(), INTERVAL 30 DAY)
             ");
 
-            if ($updated > 0) {
-                $optimizations[] = "Auto-updated $updated old items to 'received' status";
+            if ($stale_items > 0) {
+                $optimizations[] = "$stale_items items have been awaiting receipt for over 30 days - review them in the register";
             }
 
             // Clean up duplicate entries
@@ -367,7 +368,7 @@ class YBT_Smart_Features {
             $efficiency = $wpdb->get_row("
                 SELECT
                     AVG(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) * 100 as completion_rate,
-                    AVG(TIMESTAMPDIFF(HOUR, date_added, date_updated)) as avg_processing_time
+                    AVG(CASE WHEN status = 'completed' THEN TIMESTAMPDIFF(HOUR, date_added, date_completed) END) as avg_processing_time
                 FROM {$wpdb->prefix}ybt_tracking
                 WHERE date_added >= DATE_SUB(NOW(), INTERVAL 7 DAY)
             ");

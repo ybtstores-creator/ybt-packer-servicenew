@@ -82,6 +82,9 @@ class YBT_Security {
         }
 
         $ip = $this->get_client_ip();
+        if (in_array($ip, array('127.0.0.1', '::1', '0.0.0.0'), true)) {
+            return array('allowed' => true, 'count' => 1, 'limit' => $max_requests);
+        }
         $transient_name = 'ybt_rate_' . $action . '_' . wp_hash($ip);
 
         $request_count = get_transient($transient_name);
@@ -364,7 +367,8 @@ class YBT_Security {
         header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 
         // HSTS for production SSL
-        if (is_ssl() && (!defined('WP_DEBUG') || !WP_DEBUG)) {
+        $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+        if ($is_https && (!defined('WP_DEBUG') || !WP_DEBUG)) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
         }
     }
@@ -412,6 +416,10 @@ class YBT_Security {
      * Block IP address
      */
     public function block_ip($ip, $duration = null, $reason = '') {
+        if (empty($ip) || in_array($ip, array('127.0.0.1', '::1', '0.0.0.0'), true)) {
+            return;
+        }
+
         if ($duration === null) {
             $duration = DAY_IN_SECONDS;
         }
@@ -433,6 +441,10 @@ class YBT_Security {
     public function is_ip_blocked($ip = null) {
         if ($ip === null) {
             $ip = $this->get_client_ip();
+        }
+
+        if (empty($ip) || in_array($ip, array('127.0.0.1', '::1', '0.0.0.0'), true)) {
+            return false;
         }
 
         if (!isset($this->blocked_ips[$ip])) {
@@ -477,11 +489,13 @@ class YBT_Security {
 
     /**
      * Get client IP address
-     * Only trusts REMOTE_ADDR to prevent IP spoofing attacks
+     * Harmonized with ybt_get_client_ip()
      */
     public function get_client_ip() {
-        // Only trust REMOTE_ADDR by default to prevent IP spoofing
-        return isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+        if (function_exists('ybt_get_client_ip')) {
+            return ybt_get_client_ip();
+        }
+        return isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '0.0.0.0';
     }
 
     /**

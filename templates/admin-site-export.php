@@ -11,7 +11,8 @@ $messages_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_admin_
 $chat_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_chat");
 $cartons_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_cartons");
 $payment_settings_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_payment_settings");
-$batch_payments_count = $wpdb->get_var("SELECT COUNT(DISTINCT batch_id) FROM {$wpdb->prefix}ybt_tracking WHERE payment_evidence IS NOT NULL AND payment_evidence != '' AND batch_id IS NOT NULL");
+// Payment proofs live on the tracking rows; there is no separate batch-payments table.
+$payment_proofs_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE payment_evidence IS NOT NULL AND payment_evidence != ''");
 $warehouse_settings_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_warehouse_settings");
 ?>
 
@@ -20,7 +21,7 @@ $warehouse_settings_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}
 
     <div class="card">
         <h2>Export Site Data</h2>
-        <p>Export all YBT Packer Service data to a JSON file for backup or migration purposes.</p>
+        <p>Export all YBT Packing Service data to a JSON file for backup or migration purposes.</p>
 
         <div class="export-summary">
             <h3>Data Summary</h3>
@@ -30,7 +31,7 @@ $warehouse_settings_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}
                 <li><strong>Chat Messages:</strong> <?php echo $chat_count; ?></li>
                 <li><strong>Cartons:</strong> <?php echo $cartons_count; ?></li>
                 <li><strong>Payment Settings:</strong> <?php echo $payment_settings_count; ?></li>
-                <li><strong>Batch Payments:</strong> <?php echo $batch_payments_count; ?></li>
+                <li><strong>Payment Proofs:</strong> <?php echo $payment_proofs_count; ?></li>
                 <li><strong>Warehouse Settings:</strong> <?php echo $warehouse_settings_count; ?></li>
             </ul>
         </div>

@@ -39,15 +39,15 @@
 }
 
 :root {
-    /* PRIMARY BRAND COLORS - LIGHT & VIBRANT GREEN & GOLD */
-    --brand-green-primary: #10b981;      /* Vibrant Emerald Green */
-    --brand-green-hover: #059669;        /* Darker Emerald */
-    --brand-green-light: #d1fae5;        /* Light Mint Green */
-    --brand-green-lighter: #ecfdf5;     /* Very Light Mint */
+    /* PRIMARY BRAND COLORS (aliases → ybt-tokens.css) */
+    --brand-green-primary: var(--ybt-emerald-500);
+    --brand-green-hover: var(--ybt-emerald-600);
+    --brand-green-light: var(--ybt-emerald-100);
+    --brand-green-lighter: var(--ybt-emerald-50);
 
-    --brand-gold-primary: #d4af37;       /* Metallic Gold */
-    --brand-gold-hover: #b59021;         /* Darker Gold */
-    --brand-gold-light: #fff8e1;        /* Pale Gold/Cream */
+    --brand-gold-primary: var(--ybt-gold-500);
+    --brand-gold-hover: var(--ybt-gold-600);
+    --brand-gold-light: var(--ybt-gold-50);
 
     /* MAP TO GENERIC NAMES */
     --primary-color: var(--brand-green-primary);
@@ -61,8 +61,8 @@
     /* BACKGROUNDS & EFFECTS */
     --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
     --glass-bg: rgba(255, 255, 255, 0.98);
-    --glass-border: 1px solid #a7f3d0;
-    --card-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+    --glass-border: 1px solid var(--ybt-emerald-200);
+    --card-shadow: 0 4px 12px rgba(var(--ybt-emerald-500-rgb), 0.12);
 
     /* TEXT COLORS */
     --text-main: #1f2937;
@@ -100,10 +100,10 @@
 
 /* ========== CARDS — Redesigned: Clean, flat, no blur ========== */
 .glass-card {
-    background: #ffffff !important;
+    background: var(--ybt-card-bg) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid var(--ybt-card-border) !important;
     border-radius: 16px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03) !important;
     transition: box-shadow 0.2s ease, transform 0.2s ease;
@@ -135,7 +135,7 @@
     align-items: center;
     gap: 1.5rem;
     border-left: 4px solid var(--brand-gold-primary);
-    background: white;
+    background: var(--ybt-card-bg);
     border-radius: 8px;
     box-shadow: var(--card-shadow);
 }
@@ -345,7 +345,7 @@
 .ybt-dashboard-wrapper table tbody tr:nth-child(odd),
 .ybt-dashboard-enhanced table tbody tr:nth-child(odd),
 .ybt-table tbody tr:nth-child(odd) {
-    background: white;
+    background: var(--ybt-card-bg);
 }
 
 .ybt-dashboard-wrapper table tbody tr:nth-child(even),
@@ -510,7 +510,7 @@
 .journey-blob {
     width: 50px;
     height: 50px;
-    background: white;
+    background: var(--ybt-card-bg);
     border: 4px solid var(--brand-gold-primary);
     border-radius: 50%;
     margin: 0 auto 10px;

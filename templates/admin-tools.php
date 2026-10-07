@@ -177,7 +177,7 @@ jQuery(document).ready(function($) {
     // 3. Reset All Data
     $('#btn-reset-all').click(function() {
         if(confirm('DANGER: Are you sure you want to delete ALL tracking data, chats, and logs? This cannot be undone.')) {
-            $.post(ajaxUrl, { action: 'ybt_reset_data', nonce: nonce }, function(r) {
+            $.post(ajaxUrl, { action: 'ybt_reset_data', nonce: nonce, confirm_truncate: 'YES_I_AM_SURE' }, function(r) {
                 alert(r.data);
                 location.reload();
             });

@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -15,6 +16,7 @@ import com.google.android.material.button.MaterialButton
 import com.packtracker.R
 import com.packtracker.api.ApiClient
 import com.packtracker.models.*
+import com.packtracker.utils.Session
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -22,11 +24,28 @@ import retrofit2.Response
 class AdminUsersFragment : Fragment() {
     companion object { private const val TAG = "PackTracker" }
 
+    private var currentSheet: com.google.android.material.bottomsheet.BottomSheetDialog? = null
+
+    override fun onDestroyView() {
+        currentSheet?.dismiss()
+        currentSheet = null
+        super.onDestroyView()
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_admin_chat, container, false) // reuse layout with search + list
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Role guard: non-admins must never access user management
+        if (!Session.isAdmin(requireContext())) {
+            try {
+                findNavController().popBackStack(R.id.dashboardFragment, false)
+            } catch (_: Exception) {}
+            return
+        }
+
         val rv = view.findViewById<RecyclerView>(R.id.rvChats)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmpty)
         rv.layoutManager = LinearLayoutManager(context)
@@ -65,8 +84,10 @@ class AdminUsersFragment : Fragment() {
 
     private fun showUserDetail(user: User) {
         val userId = user.user_id ?: user.id ?: return
+        if (!isAdded || parentFragmentManager.isStateSaved) return
         val ctx = context ?: return
         val dialog = BottomSheetDialog(ctx)
+        currentSheet = dialog
         val view = LayoutInflater.from(ctx).inflate(R.layout.dialog_user_detail, null)
 
         view.findViewById<TextView>(R.id.tvUsername).text = user.username ?: "Unknown"
@@ -88,6 +109,7 @@ class AdminUsersFragment : Fragment() {
 
         // Reset password button
         view.findViewById<MaterialButton>(R.id.btnResetPassword)?.setOnClickListener {
+            if (!isAdded) return@setOnClickListener
             val etNewPass = view.findViewById<EditText>(R.id.etNewPassword)
             val newPass = etNewPass?.text.toString().trim()
             if (newPass.length < 6) {

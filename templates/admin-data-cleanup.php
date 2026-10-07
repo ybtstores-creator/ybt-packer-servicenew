@@ -226,8 +226,8 @@ Press a button above to run diagnostics.</div>
       <div class="ybt-dc-row">
         <div class="icon" style="background:#fef2f2;color:#dc2626">🖼️</div>
         <div class="info">
-          <h4>Delete Old Uploads</h4>
-          <p>Remove uploaded files (images, receipts) from wp-content/uploads older than a set number of days</p>
+          <h4>Delete Old YBT Uploads</h4>
+          <p>Removes only files referenced by YBT records (parcel images, carton photos, chat attachments, message images) whose records are older than the selected age. Never touches the rest of wp-content/uploads (Media Library, other plugins).</p>
         </div>
         <div class="controls">
           <select id="uploads-age">
@@ -246,10 +246,69 @@ Press a button above to run diagnostics.</div>
     </div>
   </div>
 
+  <!-- Orphaned Files -->
+  <div class="ybt-dc-section">
+    <div class="ybt-dc-section-header">
+      <h3>🧹 Orphaned Files</h3>
+      <span class="badge" id="badge-orphans">—</span>
+    </div>
+    <div class="ybt-dc-section-body">
+      <div class="ybt-dc-row">
+        <div class="icon" style="background:#fffbeb;color:#d97706">🧹</div>
+        <div class="info">
+          <h4>Delete Orphaned YBT Files</h4>
+          <p>Scans the uploads root and ybt-cartons for files that NO YBT record references (leftover test uploads, deleted-row leftovers) and older than the selected age. Media Library files and every referenced file are excluded — the scan only ever sees unreferenced files.</p>
+        </div>
+        <div class="controls">
+          <select id="orphans-age">
+            <option value="30">30+ days</option>
+            <option value="60" selected>60+ days</option>
+            <option value="90">90+ days</option>
+            <option value="150">5 months (150 days)</option>
+          </select>
+          <button class="ybt-dc-btn ybt-dc-btn-preview" onclick="dcPreview('orphans')">Preview</button>
+          <button class="ybt-dc-btn ybt-dc-btn-delete" onclick="dcDelete('orphans')">Delete</button>
+        </div>
+      </div>
+      <div id="preview-orphans" class="ybt-dc-preview"></div>
+      <div id="result-orphans" class="ybt-dc-result"></div>
+    </div>
+  </div>
+
+  <!-- Notifications Inbox -->
+  <div class="ybt-dc-section">
+    <div class="ybt-dc-section-header">
+      <h3>🔔 Notifications Inbox</h3>
+      <span class="badge" id="badge-notifications">—</span>
+    </div>
+    <div class="ybt-dc-section-body">
+      <div class="ybt-dc-row">
+        <div class="icon" style="background:#eff6ff;color:#2563eb">🔔</div>
+        <div class="info">
+          <h4>Delete Old Notifications</h4>
+          <p>Remove notification inbox rows older than a set number of days (frees database space)</p>
+        </div>
+        <div class="controls">
+          <select id="notifications-age">
+            <option value="30">30+ days</option>
+            <option value="60">60+ days</option>
+            <option value="90">90+ days</option>
+            <option value="150" selected>5 months (150 days)</option>
+            <option value="180">6 months (180 days)</option>
+          </select>
+          <button class="ybt-dc-btn ybt-dc-btn-preview" onclick="dcPreview('notifications')">Preview</button>
+          <button class="ybt-dc-btn ybt-dc-btn-delete" onclick="dcDelete('notifications')">Delete</button>
+        </div>
+      </div>
+      <div id="preview-notifications" class="ybt-dc-preview"></div>
+      <div id="result-notifications" class="ybt-dc-result"></div>
+    </div>
+  </div>
+
   <!-- FCM Tokens -->
   <div class="ybt-dc-section">
     <div class="ybt-dc-section-header">
-      <h3>🔔 FCM Tokens</h3>
+      <h3>📲 FCM Tokens</h3>
       <span class="badge" id="badge-fcm">—</span>
     </div>
     <div class="ybt-dc-section-body">
@@ -323,11 +382,12 @@ Press a button above to run diagnostics.</div>
   }
 
   // ── Load stats on page load ────────────────────────────────────────
-  function loadStats(){
+  function loadStats(refresh){
     getToken(function(tok){
       if(!tok) return;
+      var url = REST + '/data/stats' + (refresh ? '?refresh=1' : '');
       jQuery.ajax({
-        url: REST + '/data/stats',
+        url: url,
         headers: { 'X-WP-Nonce': tok },
         success: function(r){
           if(!r.success) return;
@@ -340,27 +400,27 @@ Press a button above to run diagnostics.</div>
               + '<div class="sub">'+ t.data_kb + ' KB data</div>'
               + '</div>';
           });
-          html += '<div class="ybt-dc-stat"><div class="label">Uploads</div>'
+          html += '<div class="ybt-dc-stat"><div class="label">Uploads <a href="javascript:void(0)" onclick="loadStats(true)" style="font-size:11px;color:#2563eb;text-decoration:none;" title="Recalculate disk size">🔄 Refresh</a></div>'
             + '<div class="value">'+ r.data.uploads_kb + ' KB</div>'
             + '<div class="sub">'+ r.data.chat_attachments + ' chat attachments</div></div>';
           document.getElementById('dc-stats').innerHTML = html;
 
           // Update badges
           r.data.tables.forEach(function(t){
-            var el = document.getElementById('badge-' + t.table.replace('ybt_','').replace('packing_requests','pr'));
+            var key = t.table.replace('ybt_','').replace('packing_requests','pr');
+            var el = document.getElementById('badge-' + key);
+            if(!el && key === 'activity_log') el = document.getElementById('badge-activity');
+            if(!el && key === 'fcm_tokens') el = document.getElementById('badge-fcm');
+            if(!el && key === 'notifications') el = document.getElementById('badge-notifications');
             if(el) el.textContent = t.rows.toLocaleString() + ' rows';
           });
-          var fcmBadge = document.getElementById('badge-fcm');
-          if(fcmBadge){
-            var fcm = r.data.tables.find(function(t){return t.table==='ybt_fcm_tokens';});
-            if(fcm) fcmBadge.textContent = fcm.rows.toLocaleString() + ' rows';
-          }
           var upBadge = document.getElementById('badge-uploads');
           if(upBadge) upBadge.textContent = r.data.uploads_kb + ' KB';
         }
       });
     });
   }
+  window.loadStats = loadStats;
 
   // ── Preview ────────────────────────────────────────────────────────
   window.dcPreview = function(type){
@@ -381,6 +441,10 @@ Press a button above to run diagnostics.</div>
         params.older_than_days = parseInt(document.getElementById('cartons-age').value);
       } else if(type === 'uploads'){
         params.older_than_days = parseInt(document.getElementById('uploads-age').value);
+      } else if(type === 'orphans'){
+        params.older_than_days = parseInt(document.getElementById('orphans-age').value);
+      } else if(type === 'notifications'){
+        params.older_than_days = parseInt(document.getElementById('notifications-age').value);
       }
 
       var el = document.getElementById('preview-' + type.replace('tracking_status','tracking'));
@@ -434,9 +498,13 @@ Press a button above to run diagnostics.</div>
       params.older_than_days = parseInt(document.getElementById('cartons-age').value);
     } else if(type === 'uploads'){
       params.older_than_days = parseInt(document.getElementById('uploads-age').value);
+    } else if(type === 'orphans'){
+      params.older_than_days = parseInt(document.getElementById('orphans-age').value);
+    } else if(type === 'notifications'){
+      params.older_than_days = parseInt(document.getElementById('notifications-age').value);
     }
 
-    var resultType = type.replace('tracking_status','tracking');
+      var resultType = type.replace('tracking_status','tracking');
     var el = document.getElementById('result-' + resultType) || document.getElementById('result-danger');
     el.className = 'ybt-dc-result show';
     el.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Deleting...';

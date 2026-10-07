@@ -62,18 +62,75 @@ if (!function_exists('ybt_clear_rate_limit')) {
 /**
 * Get client IP securely (PHP 8.0+ compatible)
 * FIXED: Removed deprecated FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+* Proxy headers are caller-supplied, so they are only trusted when the operator
+* declares the proxy that rewrites them via YBT_TRUSTED_PROXY.
 */
 if (!function_exists('ybt_get_client_ip')) {
     function ybt_get_client_ip() {
-        // SECURITY FIX: Only trust REMOTE_ADDR to prevent IP spoofing attacks
-        // Proxy headers can be easily forged by attackers
-        if (!empty($_SERVER['REMOTE_ADDR']) && is_string($_SERVER['REMOTE_ADDR'])) {
-            $candidate = trim($_SERVER['REMOTE_ADDR']);
-            if (filter_var($candidate, FILTER_VALIDATE_IP) !== false) {
-                return sanitize_text_field($candidate);
+        $validate_ip = function ($value) {
+            $value = is_string($value) ? trim($value) : '';
+            if ($value === '') {
+                return '';
+            }
+            if (strpos($value, ',') !== false) {
+                $parts = explode(',', $value);
+                $value = trim($parts[0]);
+            }
+            return filter_var($value, FILTER_VALIDATE_IP) !== false ? $value : '';
+        };
+
+        $remote = $validate_ip(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
+        $trusted = defined('YBT_TRUSTED_PROXY') ? strtolower(trim((string) YBT_TRUSTED_PROXY)) : '';
+
+        if ($trusted === 'cloudflare') {
+            $ip = $validate_ip(isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? $_SERVER['HTTP_CF_CONNECTING_IP'] : '');
+            if ($ip !== '') {
+                return $ip;
             }
         }
-        return '0.0.0.0';
+
+        $behind_local_proxy = $remote !== '' && !filter_var($remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        if ($trusted === 'reverse' && $behind_local_proxy) {
+            $ip = $validate_ip(isset($_SERVER['HTTP_X_REAL_IP']) ? $_SERVER['HTTP_X_REAL_IP'] : '');
+            if ($ip !== '') {
+                return $ip;
+            }
+            $ip = $validate_ip(isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : '');
+            if ($ip !== '') {
+                return $ip;
+            }
+        }
+
+        return $remote !== '' ? $remote : '0.0.0.0';
+    }
+}
+
+/**
+ * Check if the current request is HTTPS, including behind reverse proxies / Cloudflare.
+ * 
+ * @return bool True if HTTPS, false otherwise.
+ */
+if (!function_exists('ybt_is_https')) {
+    function ybt_is_https() {
+        if (function_exists('is_ssl') && is_ssl()) {
+            return true;
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
+            return true;
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) === 'on') {
+            return true;
+        }
+        if (!empty($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) === 'on') {
+            return true;
+        }
+        if (!empty($_SERVER['HTTP_CF_VISITOR'])) {
+            $visitor = json_decode($_SERVER['HTTP_CF_VISITOR'], true);
+            if (is_array($visitor) && isset($visitor['scheme']) && strtolower($visitor['scheme']) === 'https') {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
@@ -82,15 +139,16 @@ if (!function_exists('ybt_get_client_ip')) {
 */
 if (!function_exists('ybt_get_jwt_secret_key')) {
     function ybt_get_jwt_secret_key() {
-        if (getenv('YBT_JWT_SECRET_KEY')) {
-            return getenv('YBT_JWT_SECRET_KEY');
+        $env_key = getenv('YBT_JWT_SECRET_KEY');
+        if (!empty($env_key)) {
+            return $env_key;
         }
-        if (defined('YBT_JWT_SECRET_KEY')) {
+        if (defined('YBT_JWT_SECRET_KEY') && !empty(YBT_JWT_SECRET_KEY)) {
             return YBT_JWT_SECRET_KEY;
         }
-        // SECURITY: use a plugin-specific key — never borrow WP core salts
-        // (AUTH_KEY), so a token leak cannot touch core sessions and one
-        // domain's keys can be rotated without breaking the other.
+        if (defined('AUTH_KEY') && AUTH_KEY !== 'put your unique phrase here' && !empty(AUTH_KEY)) {
+            return AUTH_KEY;
+        }
         $stored_key = get_option('ybt_jwt_secret_key');
         if ($stored_key) {
             return $stored_key;
@@ -282,13 +340,45 @@ if (!function_exists('ybt_log_security_event')) {
     }
 }
 
+if (!function_exists('ybt_security_event_severity')) {
+    function ybt_security_event_severity($event) {
+        $event = strtoupper((string) $event);
+        if (preg_match('/UNAUTHORIZED|BLOCKED|LOCKOUT|LOCKED|ATTACK|FORGED|REJECTED|ABUSE|TRAVERSAL|INJECTION/', $event)) {
+            return 'critical';
+        }
+        if (preg_match('/FAILED|INVALID|EXCEEDED|ROTATED|DELETED|DISABLED|SUSPICIOUS/', $event)) {
+            return 'warning';
+        }
+        return 'info';
+    }
+}
+
+/**
+ * Notify a parcel's owner that its status changed.
+ *
+ * Shared by every status write path (wp-admin single edit, bulk edit, mobile API)
+ * so a customer's inbox and bell count match the timeline regardless of who moved
+ * the parcel. Anonymous parcels (user_id 0) have nobody to tell.
+ *
+ * @param mixed  $user_id
+ * @param string $tracking_number
+ * @param string $new_status
+ * @return bool
+ */
+function ybt_notify_status_change($user_id, $tracking_number, $new_status) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0 || '' === $tracking_number || !class_exists('YBT_Notifications')) {
+        return false;
+    }
+
+    return YBT_Notifications::send_tracking_update($user_id, $tracking_number, $new_status);
+}
+
 /**
 * Clear output buffers for clean JSON
 */
 if (!function_exists('ybt_clear_output_buffers')) {
     function ybt_clear_output_buffers() {
-        // During offline-sync replay, the replay loop's capture buffer must survive.
-        if (class_exists('YBT_API_Response') && !empty(YBT_API_Response::$capturing)) return;
         while (ob_get_level()) ob_end_clean();
     }
 }
@@ -410,10 +500,12 @@ if (!function_exists('ybt_test_login_endpoint_handler')) {
         // Test the mobile login endpoint
         $login_action = 'ybt_mobile_login';
         
-        // Simulate a test login request
+        // Simulate a test login request - check both class-based API router and legacy handler
+        $has_action = has_action('wp_ajax_nopriv_' . $login_action) !== false || has_action('wp_ajax_' . $login_action) !== false;
+        $handler_exists = class_exists('YBT_API_Router') || function_exists('ybt_mobile_login_handler');
         $test_result = array(
-            'action_registered' => has_action('wp_ajax_nopriv_' . $login_action) !== false,
-            'handler_exists' => function_exists('ybt_mobile_login_handler'),
+            'action_registered' => $has_action,
+            'handler_exists' => $handler_exists,
             'endpoint' => admin_url('admin-ajax.php?action=' . $login_action)
         );
         

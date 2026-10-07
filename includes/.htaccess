@@ -1,10 +1,24 @@
 # SECURITY: Block all direct HTTP access to this directory.
 # PHP files are loaded by WordPress include(), not direct HTTP requests.
-Order deny,allow
-Deny from all
+
+# Apache 2.4
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 fallback
+<IfModule !mod_authz_core.c>
+    Order Deny,Allow
+    Deny from all
+</IfModule>
 
 # Extra: Block sensitive file types even if the above is ever weakened
 <FilesMatch "\.(json|log|sql|key|pem|bak|sh)$">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
 </FilesMatch>

@@ -28,8 +28,14 @@ function ybt_validate_file_upload($file, $allowed_types = array('jpg', 'jpeg', '
         return new WP_Error('invalid_ext', 'Invalid file extension. Allowed: ' . implode(', ', $allowed_types));
     }
     
-    // Check MIME type using WordPress function (client-provided $file['type'] must NOT be
-    // passed here — the third arg overrides the allowed $mimes map and breaks detection).
+    // Check MIME type using WordPress' real content inspection.
+    //
+    // NOTE: The 3rd argument to wp_check_filetype_and_ext() is an *allow-list*
+    // array of ext => mime (or null to use get_allowed_mime_types()) — NOT the
+    // client-supplied MIME string. Passing $file['type'] fed a string into
+    // wp_check_filetype(), which then iterated a non-array and returned
+    // ext/type = false for every file, rejecting all uploads. Omit it so
+    // WordPress uses get_allowed_mime_types() and validates the real bytes.
     $check = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
     if (!$check['ext'] || !$check['type']) {
         return new WP_Error('invalid_mime', 'Invalid file type detected');
@@ -104,47 +110,47 @@ if (class_exists('YBT_File_Handler')) {
 /**
  * Handle deleting an image
  */
-function ybt_delete_image_handler() {
-    check_ajax_referer('ybt_admin_nonce', 'nonce');
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error('Unauthorized');
-    }
-
-    $image_url = sanitize_text_field($_POST['image_url'] ?? '');
-    $tracking_id = intval($_POST['tracking_id'] ?? 0);
-
-    if (empty($image_url) || !$tracking_id) {
-        wp_send_json_error('Invalid parameters');
-    }
-
-    global $wpdb;
-    $item = $wpdb->get_row($wpdb->prepare("SELECT images FROM {$wpdb->prefix}ybt_tracking WHERE id = %d", $tracking_id));
-
-    if ($item && !empty($item->images)) {
-        $images = explode(',', $item->images);
-        $new_images = array_filter($images, function($url) use ($image_url) {
-            return trim($url) !== trim($image_url);
-        });
-
-        $wpdb->update(
-            $wpdb->prefix . 'ybt_tracking',
-            array('images' => implode(',', $new_images)),
-            array('id' => $tracking_id)
-        );
-
-        // Physically delete file if it's on our server
-        $upload_dir = wp_upload_dir();
-        $base_dir = $upload_dir['basedir'];
-        $file_path = $base_dir . '/' . basename(wp_parse_url($image_url, PHP_URL_PATH));
-
-        // Security check: Ensure the file is within the uploads directory
-        if (strpos(realpath($file_path), realpath($base_dir)) === 0 && file_exists($file_path)) {
-            unlink($file_path);
+if (!function_exists('ybt_delete_image_handler')) {
+    function ybt_delete_image_handler() {
+        check_ajax_referer('ybt_admin_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
         }
 
-        wp_send_json_success('Image deleted');
-    } else {
-        wp_send_json_error('Image not found');
+        $image_url = sanitize_text_field($_POST['image_url'] ?? '');
+        $tracking_id = intval($_POST['tracking_id'] ?? 0);
+
+        if (empty($image_url) || !$tracking_id) {
+            wp_send_json_error('Invalid parameters');
+        }
+
+        global $wpdb;
+        $item = $wpdb->get_row($wpdb->prepare("SELECT images FROM {$wpdb->prefix}ybt_tracking WHERE id = %d", $tracking_id));
+
+        if ($item && !empty($item->images)) {
+            $images = explode(',', (string) $item->images);
+            $new_images = array_filter($images, function($url) use ($image_url) {
+                return trim($url) !== trim($image_url);
+            });
+
+            $wpdb->update(
+                $wpdb->prefix . 'ybt_tracking',
+                array('images' => implode(',', $new_images)),
+                array('id' => $tracking_id)
+            );
+
+            // Physically delete file if it's on our server — shared, containment-checked
+            // helper (resolves dated subdirs correctly instead of basename-only matching).
+            if (class_exists('YBT_File_Handler')) {
+                YBT_File_Handler::delete_urls(array($image_url));
+            }
+
+            wp_send_json_success('Image deleted');
+        } else {
+            wp_send_json_error('Image not found');
+        }
     }
 }
-add_action('wp_ajax_ybt_delete_image', 'ybt_delete_image_handler');
+if (!has_action('wp_ajax_ybt_delete_image', 'ybt_delete_image_handler')) {
+    add_action('wp_ajax_ybt_delete_image', 'ybt_delete_image_handler');
+}

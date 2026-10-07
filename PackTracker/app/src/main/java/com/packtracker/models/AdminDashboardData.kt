@@ -33,7 +33,7 @@ data class OrderStats(
 )
 
 data class ActivityItem(
-    val id: Any? = null,
+    val id: Int? = null,
     val action: String? = null,
     val details: String? = null,
     val user_name: String? = null,

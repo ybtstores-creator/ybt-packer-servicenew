@@ -15,7 +15,6 @@ global $wpdb;
 /**
  * 1. ASSET ENQUEUEING
  */
-wp_enqueue_style('ybt-admin-dashboard-enhanced', YBT_PLUGIN_URL . 'assets/css/admin-dashboard-enhanced.css', array(), YBT_VERSION);
 
 /**
  * 2. USER DATA PREPARATION
@@ -146,31 +145,61 @@ $tracking_items = $wpdb->get_results($wpdb->prepare($query, $where_values));
  * 8. BATCH PROCESSING DATA
  */
 $batch_counts = array();
+$batch_ids = array();
 if ($tracking_items) {
     foreach ($tracking_items as $batch_item) {
         if (!empty($batch_item->batch_id)) {
+            $batch_ids[$batch_item->batch_id] = $batch_item->batch_id;
             $batch_counts[$batch_item->batch_id] = ($batch_counts[$batch_item->batch_id] ?? 0) + 1;
+        }
+    }
+}
+
+// Weight/carton photos for the rows on this page, in one query keyed by batch.
+$weight_images_by_batch = array();
+if ($batch_ids) {
+    $batch_list = array_values($batch_ids);
+    $batch_placeholders = implode(',', array_fill(0, count($batch_list), '%s'));
+    $photo_rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT batch_id, carton_image FROM {$wpdb->prefix}ybt_cartons
+         WHERE batch_id IN ($batch_placeholders) AND carton_image IS NOT NULL AND carton_image != ''
+         ORDER BY carton_number ASC",
+        $batch_list
+    ));
+    foreach ($photo_rows as $photo_row) {
+        if (isset($weight_images_by_batch[$photo_row->batch_id])) {
+            continue;
+        }
+        $photo_urls = array_values(array_filter(array_map('trim', explode(',', $photo_row->carton_image))));
+        if (!empty($photo_urls)) {
+            $weight_images_by_batch[$photo_row->batch_id] = $photo_urls[0];
         }
     }
 }
 ?>
 
-<div class="wrap ybt-admin-wrapper">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="wp-heading-inline" style="font-size: 2rem; color: var(--text-main);"><i class="fas fa-barcode me-2 text-primary"></i> <?php _e('Tracking Management', 'ybt-packer'); ?></h1>
-    </div>
+<div class="wrap ybt-admin-wrapper ybt-ledger">
+	<!-- ledger head -->
+	<div class="ybt-ledgerhead">
+		<div>
+			<p class="ybd-eyebrow">Depot ledger &middot; Consignment register</p>
+			<h1><?php _e('Tracking management', 'ybt-packer'); ?></h1>
+			<p class="ybd-sub">The full consignment register — filter, edit, pack, and dispatch.</p>
+		</div>
+		<span class="ybd-count"><?php echo number_format($total_items); ?> in register</span>
+	</div>
 
-    <!-- 2. SMART FILTERS SECTION -->
-    <div class="bg-white p-4 border rounded shadow-sm mb-4" style="border-color: #ccd0d4 !important;">
-        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-            <h2 class="h4 m-0 text-dark"><i class="fas fa-search me-2 text-primary"></i>Smart Filters</h2>
-            <div class="d-flex gap-2">
-                <button type="button" id="generate-pdf" class="button button-white" style="border: 1px solid #ccd0d4;"><i class="fas fa-file-pdf me-1 text-danger"></i> Generate PDF</button>
-                <button type="button" id="quick-export" class="button button-white" style="border: 1px solid #ccd0d4;"><i class="fas fa-file-csv me-1 text-success"></i> Export CSV</button>
-            </div>
-        </div>
-
-        <form method="GET" class="filter-form">
+	<!-- 2. SMART FILTERS SECTION -->
+	<div class="ybd-panel ybd-panel-gold" style="margin-bottom:20px;">
+		<div class="ybd-panelhead">
+			<span class="ybd-hint"><i class="fas fa-search"></i>Smart filters</span>
+			<div class="d-flex gap-2">
+				<button type="button" id="generate-pdf" class="ybd-btn ybd-btn-emerald" style="padding:6px 12px;font-size:12.5px;"><i class="fas fa-file-pdf"></i>PDF</button>
+				<button type="button" id="quick-export" class="ybd-btn ybd-btn-emerald" style="padding:6px 12px;font-size:12.5px;"><i class="fas fa-file-csv"></i>CSV</button>
+			</div>
+		</div>
+		<div class="ybd-panelbody">
+		<form method="GET" class="filter-form">
             <input type="hidden" name="page" value="ybt-manage-tracking">
             <input type="hidden" name="paged" value="1">
 
@@ -245,41 +274,42 @@ if ($tracking_items) {
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-4 border-top pt-3">
-                <div>
-                    <button type="submit" class="button button-primary me-2"><i class="fas fa-search me-1"></i> Filter</button>
-                    <a href="<?php echo admin_url('admin.php?page=ybt-manage-tracking'); ?>" class="button"><i class="fas fa-trash-alt me-1"></i> Clear</a>
-                </div>
-                <button type="button" id="attach-cartons-selected" class="button button-primary" style="background: #27ae60 !important; border-color: #27ae60 !important;">
-                    <i class="fas fa-box-open me-1"></i> Attach Cartons (Selected)
-                </button>
-            </div>
-        </form>
-    </div>
+			<div class="d-flex justify-content-between align-items-center mt-4 border-top pt-3">
+				<div>
+					<button type="submit" class="ybd-btn ybd-btn-gold"><i class="fas fa-search"></i>Filter</button>
+					<a href="<?php echo admin_url('admin.php?page=ybt-manage-tracking'); ?>" class="ybd-btn ybd-btn-emerald"><i class="fas fa-trash-alt"></i>Clear</a>
+				</div>
+				<button type="button" id="attach-cartons-selected" class="ybd-btn ybd-btn-dark">
+					<i class="fas fa-box-open"></i>Attach cartons (selected)
+				</button>
+			</div>
+		</form>
+		</div>
+	</div>
 
-    <!-- 3. TRACKING ITEMS TABLE -->
-    <div class="glass-card">
-        <!-- Cross-Page Selection Indicator -->
-        <div id="selection-indicator" style="display: none; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; padding: 12px 20px; border-bottom: 1px solid rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-size: 18px;">📋</span>
-                    <div>
-                        <strong style="font-size: 16px;"><span id="selection-count">0</span> Item(s) Selected</strong>
-                        <div style="font-size: 12px; opacity: 0.9;">Selections persist across pages</div>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="button button-small" id="view-selected-items" style="background: white; color: var(--primary-color);">View</button>
-                    <button class="button button-small" id="clear-all-selections" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5);">Clear</button>
-                </div>
-            </div>
-        </div>
+	<!-- 3. TRACKING ITEMS TABLE -->
+	<div class="ybd-panel">
+		<!-- Cross-Page Selection Indicator -->
+		<div id="selection-indicator" style="display: none; background: var(--ink); color: #fff; padding: 12px 20px; border-bottom: 2px dashed var(--kraft-line);">
+			<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+				<div style="display: flex; align-items: center; gap: 15px;">
+					<span style="font-size: 18px;">📋</span>
+					<div>
+						<strong style="font-size: 15px;"><span id="selection-count">0</span> item(s) selected</strong>
+						<div style="font-size: 12px; opacity: 0.85; font-family: var(--mono);">Selections persist across pages</div>
+					</div>
+				</div>
+				<div style="display: flex; gap: 8px;">
+					<button class="button button-small" id="view-selected-items" style="background: #fff; color: var(--ink); border: 1px solid #fff;">View</button>
+					<button class="button button-small" id="clear-all-selections" style="background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5);">Clear</button>
+				</div>
+			</div>
+		</div>
 
-        <div class="info-card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <span class="fw-bold"><i class="fas fa-list-alt me-2 text-muted"></i>Tracking List (<?php echo $total_items; ?>)</span>
+		<div class="ybd-panelhead">
+			<span class="ybd-hint"><i class="fas fa-list-alt"></i>Tracking list (<?php echo number_format($total_items); ?>)</span>
 
-            <div class="bulk-controls d-flex align-items-center gap-2">
+			<div class="bulk-controls d-flex align-items-center gap-2">
                 <select id="bulk-action-selector" style="max-width: 150px;">
                     <option value="">Bulk Actions</option>
                     <option value="assign_user">Assign to User</option>
@@ -302,21 +332,21 @@ if ($tracking_items) {
             </div>
         </div>
 
-        <div class="info-card-body p-0">
-            <?php if ($tracking_items): ?>
-                <table class="table admin-table mb-0" style="width: 100%; border: none;">
+		<div class="ybd-tablewrap">
+		<?php if ($tracking_items): ?>
+			<table class="ybd-manifest">
                     <thead>
                         <tr>
-                            <th width="30px" class="text-center"><input type="checkbox" id="select-all-header"></th>
-                            <th><a href="<?php echo esc_url(add_query_arg('sort', 'tracking_number')); ?>" class="text-dark text-decoration-none">Tracking Number <i class="fas fa-sort small opacity-50"></i></a></th>
-                            <th><a href="<?php echo esc_url(add_query_arg('sort', 'username')); ?>" class="text-dark text-decoration-none">User <i class="fas fa-sort small opacity-50"></i></a></th>
-                            <th><a href="<?php echo esc_url(add_query_arg('sort', 'status')); ?>" class="text-dark text-decoration-none">Status <i class="fas fa-sort small opacity-50"></i></a></th>
-                            <th>Item Count</th>
-                            <th>Payment</th>
-                            <th><a href="<?php echo esc_url(add_query_arg('sort', 'date_added')); ?>" class="text-dark text-decoration-none">Date <i class="fas fa-sort small opacity-50"></i></a></th>
-                            <th><a href="<?php echo esc_url(add_query_arg('sort', 'last_edited_at')); ?>" class="text-dark text-decoration-none" title="Administrator who last edited this tracking number">Edited By <i class="fas fa-sort small opacity-50"></i></a></th>
-                            <th>Images</th>
-                            <th class="text-end">Actions</th>
+								<th width="30px" class="text-center"><input type="checkbox" id="select-all-header" class="ybd-check"></th>
+								<th><a href="<?php echo esc_url(add_query_arg('sort', 'tracking_number')); ?>" class="ybt-sortlink">Tracking number <i class="fas fa-sort small opacity-50"></i></a></th>
+								<th><a href="<?php echo esc_url(add_query_arg('sort', 'username')); ?>" class="ybt-sortlink">User <i class="fas fa-sort small opacity-50"></i></a></th>
+								<th><a href="<?php echo esc_url(add_query_arg('sort', 'status')); ?>" class="ybt-sortlink">Status <i class="fas fa-sort small opacity-50"></i></a></th>
+								<th>Items</th>
+								<th>Payment</th>
+								<th><a href="<?php echo esc_url(add_query_arg('sort', 'date_added')); ?>" class="ybt-sortlink">Date <i class="fas fa-sort small opacity-50"></i></a></th>
+								<th><a href="<?php echo esc_url(add_query_arg('sort', 'last_edited_at')); ?>" class="ybt-sortlink" title="Administrator who last edited this tracking number">Edited by <i class="fas fa-sort small opacity-50"></i></a></th>
+								<th>Images</th>
+								<th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -324,21 +354,23 @@ if ($tracking_items) {
                             <tr data-id="<?php echo esc_attr($item->id); ?>">
                                 <td class="text-center"><input type="checkbox" class="item-checkbox" value="<?php echo esc_attr($item->id); ?>" data-user-id="<?php echo esc_attr($item->user_id); ?>"></td>
                                 <td>
-                                    <strong class="text-dark"><?php echo esc_html($item->tracking_number); ?></strong>
+                                    <span class="ybd-trackno"><?php echo esc_html($item->tracking_number); ?></span>
                                     <?php if ($item->cartons || $item->payment_amount): ?>
-                                        <br><small class="text-success fw-bold">📦
+                                        <span class="ybt-parcelmeta">📦
                                         <?php echo esc_html($item->cartons); ?> ctns |
                                         <?php echo esc_html($item->payment_amount . ' ' . $item->payment_currency); ?>
-                                        </small>
-                                        <?php if (!empty($item->weight_image)): ?>
-                                            <a href="<?php echo esc_url($item->weight_image); ?>" target="_blank" class="ms-1 text-decoration-none" title="Weight Image">📷</a>
+                                        </span>
+                                        <?php
+                                        $weight_image = !empty($item->batch_id) ? ($weight_images_by_batch[$item->batch_id] ?? '') : '';
+                                        if ($weight_image): ?>
+                                            <a href="<?php echo esc_url($weight_image); ?>" target="_blank" class="ybt-sortlink" title="Weight Image">📷</a>
                                         <?php endif; ?>
                                     <?php endif; ?>
 
                                     <?php if ($item->shipping_method === 'air'): ?>
-                                        <span class="ms-1 badge bg-info text-dark" title="Air">AIR</span>
+                                        <span class="ybt-method ybt-method-air" title="Air">AIR</span>
                                     <?php elseif ($item->shipping_method === 'sea'): ?>
-                                        <span class="ms-1 badge bg-primary text-white" title="Sea">SEA</span>
+                                        <span class="ybt-method ybt-method-sea" title="Sea">SEA</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -348,14 +380,13 @@ if ($tracking_items) {
                                 </td>
                                 <td>
                                     <?php
-                                    $s_class = 'secondary';
-                                    $s_text = 'text-dark';
-                                    if ($item->status === 'received') { $s_class = 'warning'; $s_text = 'text-dark'; }
-                                    else if ($item->status === 'packing_in_progress') { $s_class = 'info'; $s_text = 'text-dark'; }
-                                    else if ($item->status === 'packed') { $s_class = 'success'; $s_text = 'text-dark'; }
-                                    else if ($item->status === 'completed') { $s_class = 'success'; $s_text = 'text-dark'; }
+                                    // Shared chip atom: ybd-chip ybd-chip-<status>
+                                    $s_chip = 'ybd-chip';
+                                    if (in_array($item->status, array('not_received','received','packing_in_progress','packed','completed'), true)) {
+                                        $s_chip .= ' ybd-chip-' . $item->status;
+                                    }
                                     ?>
-                                    <span class="badge bg-light border <?php echo $s_text; ?>" style="font-weight: 500;">
+                                    <span class="<?php echo esc_attr($s_chip); ?>">
                                         <?php echo esc_html(ucwords(str_replace('_', ' ', $item->status))); ?>
                                     </span>
                                 </td>
@@ -374,8 +405,8 @@ if ($tracking_items) {
                                         <span class="text-muted small">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="small text-muted"><?php echo esc_html(date('M j, Y', strtotime($item->date_added))); ?></td>
-                                <td class="small" style="min-width: 150px;">
+                                <td class="ybd-date"><?php echo esc_html(date('M j, Y', strtotime($item->date_added))); ?></td>
+                                <td style="min-width: 150px;">
                                     <?php
                                     $editor = class_exists('YBT_Tracking_Audit')
                                         ? YBT_Tracking_Audit::describe_last_editor($item)
@@ -383,8 +414,8 @@ if ($tracking_items) {
                                     ?>
                                     <?php if ($editor['has_editor']): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span class="badge bg-light border text-dark" style="font-weight: 600;" title="Last edited by <?php echo esc_attr($editor['name']); ?>">
-                                                <i class="fas fa-user-shield me-1 text-primary"></i><?php echo esc_html($editor['name']); ?>
+                                            <span class="ybt-editorbadge" title="Last edited by <?php echo esc_attr($editor['name']); ?>">
+                                                <i class="fas fa-user-shield"></i><?php echo esc_html($editor['name']); ?>
                                             </span>
                                         </div>
                                         <div class="text-muted" style="font-size: 11px; line-height: 1.4;">
@@ -445,7 +476,7 @@ if ($tracking_items) {
 
                 <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
-                <div class="pagination-wrapper p-3 text-center border-top">
+                <div class="ybt-pager p-3 text-center border-top">
                     <?php
                     $pagination_args = array(
                         'page' => 'ybt-manage-tracking',
@@ -462,7 +493,7 @@ if ($tracking_items) {
 
                     if ($current_page > 1) {
                         $prev_url = add_query_arg('paged', $current_page - 1, $base_url);
-                        echo '<a href="' . esc_url($prev_url) . '" class="button button-light">«</a> ';
+                        echo '<a href="' . esc_url($prev_url) . '" class="ybt-pager-btn">«</a> ';
                     }
 
                     $start_page = max(1, $current_page - 2);
@@ -470,40 +501,41 @@ if ($tracking_items) {
 
                     if ($start_page > 1) {
                         $first_url = add_query_arg('paged', 1, $base_url);
-                        echo '<a href="' . esc_url($first_url) . '" class="button button-light">1</a> ';
-                        if ($start_page > 2) echo '<span class="button disabled border-0">...</span> ';
+                        echo '<a href="' . esc_url($first_url) . '" class="ybt-pager-btn">1</a> ';
+                        if ($start_page > 2) echo '<span class="ybt-pager-btn ybt-pager-dots">...</span> ';
                     }
 
                     for ($i = $start_page; $i <= $end_page; $i++) {
                         if ($i == $current_page) {
-                            echo '<span class="button button-primary">' . $i . '</span> ';
+                            echo '<span class="ybt-pager-btn ybt-pager-cur">' . $i . '</span> ';
                         } else {
                             $page_url = add_query_arg('paged', $i, $base_url);
-                            echo '<a href="' . esc_url($page_url) . '" class="button button-light">' . $i . '</a> ';
+                            echo '<a href="' . esc_url($page_url) . '" class="ybt-pager-btn">' . $i . '</a> ';
                         }
                     }
 
                     if ($end_page < $total_pages) {
-                        if ($end_page < $total_pages - 1) echo '<span class="button disabled border-0">...</span> ';
+                        if ($end_page < $total_pages - 1) echo '<span class="ybt-pager-btn ybt-pager-dots">...</span> ';
                         $last_url = add_query_arg('paged', $total_pages, $base_url);
-                        echo '<a href="' . esc_url($last_url) . '" class="button button-light">' . $total_pages . '</a> ';
+                        echo '<a href="' . esc_url($last_url) . '" class="ybt-pager-btn">' . $total_pages . '</a> ';
                     }
 
                     if ($current_page < $total_pages) {
                         $next_url = add_query_arg('paged', $current_page + 1, $base_url);
-                        echo '<a href="' . esc_url($next_url) . '" class="button button-light">»</a>';
+                        echo '<a href="' . esc_url($next_url) . '" class="ybt-pager-btn">»</a>';
                     }
                     ?>
                 </div>
                 <?php endif; ?>
-            <?php else: ?>
-                <div class="p-5 text-center text-muted">
-                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
-                    <p>No tracking numbers found matching your criteria.</p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
+		<?php else: ?>
+			<div class="ybd-empty">
+				<div class="ybd-emptyicon"><i class="fas fa-search"></i></div>
+				<h4>No matching parcels</h4>
+				<p>No tracking numbers found matching your criteria.</p>
+			</div>
+		<?php endif; ?>
+		</div>
+	</div>
 </div>
 
 <!-- Modals (Preserved Functionality with clean styles) -->
@@ -629,14 +661,77 @@ if ($tracking_items) {
 </div>
 
 <style>
-/* Inline scoped overrides */
-.ybt-admin-wrapper .form-control { border: 1px solid #ccd0d4; border-radius: 4px; padding: 6px 12px; width: 100%; box-sizing: border-box; }
-.ybt-admin-wrapper label { margin-bottom: 4px; display: block; font-weight: 600; font-size: 12px; }
-.nav-tab-active { background: #fff !important; color: #000 !important; font-weight: bold; border: 1px solid #ccd0d4 !important; }
-.ybt-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 9999; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px); }
-.ybt-modal-content { background: #fff; border-radius: 12px; padding: 20px; width: 100%; max-width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
-.ybt-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.ybt-modal-meta { background: #f1f5f9; padding: 10px; border-radius: 6px; font-size: 13px; color: #64748b; margin-bottom: 15px; }
+/* ================================================================
+   TRACKING REGISTER — page-specific layer (consignment-note system)
+   Shared tokens & atoms come from assets/css/ybt-consignment.css
+   (scope root: .ybt-ledger). Modals render outside the scope, so
+   tokens are declared on .ybt-modal-content in the shared sheet.
+   ================================================================ */
+/* sort links + parcel meta inside manifest cells */
+.ybt-ledger .ybt-sortlink{ color:var(--ink); text-decoration:none; }
+.ybt-ledger .ybt-sortlink:hover{ color:var(--emerald-deep); }
+.ybt-ledger .ybt-parcelmeta{ display:block; font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--emerald-deep); margin-top:3px; }
+.ybt-ledger .ybt-method{
+	display:inline-block;
+	font-family:var(--mono);
+	font-size:10px;font-weight:600;
+	letter-spacing:.08em;
+	border-radius:4px;
+	padding:1px 6px;
+	margin-left:4px;
+	vertical-align:middle;
+}
+.ybt-ledger .ybt-method-air{ background:var(--gold-tint); color:var(--gold-deep); border:1px solid var(--gold); }
+.ybt-ledger .ybt-method-sea{ background:var(--emerald-tint); color:var(--emerald-deep); border:1px solid var(--emerald); }
+.ybt-ledger .ybt-editorbadge{
+	display:inline-flex;align-items:center;gap:5px;
+	font-family:var(--mono);
+	font-size:11px;font-weight:600;
+	color:var(--ink);
+	background:#fbf8f1;
+	border:1.5px solid var(--kraft-deep);
+	border-radius:5px;
+	padding:2px 8px;
+}
+.ybt-ledger .ybt-editorbadge i{ color:var(--gold-deep); }
+/* filter grid */
+.ybt-ledger .filter-form label{ font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#5c5543; margin-bottom:4px; display:block; }
+.ybt-ledger .filter-form .form-control{ border:1.5px solid var(--kraft-deep); border-radius:8px; background:#fbf8f1; color:var(--ink); font-size:14px; }
+.ybt-ledger .filter-form .form-control:focus{ border-color:var(--emerald); box-shadow:0 0 0 3px rgba(16,185,129,.22); outline:none; }
+/* pagination — emerald ticket squares */
+.ybt-ledger .ybt-pager{ border-top:2px dashed var(--kraft-line); }
+.ybt-pager-btn{
+	display:inline-flex;align-items:center;justify-content:center;
+	min-width:34px;height:34px;
+	margin:0 2px;
+	font-family:var(--mono);
+	font-size:13px;font-weight:600;
+	color:var(--emerald-deep);
+	background:var(--paper);
+	border:1.5px solid var(--emerald);
+	border-radius:7px;
+	text-decoration:none;
+}
+.ybt-pager-btn:hover{ background:var(--emerald-tint); color:var(--emerald-deep); }
+.ybt-pager-cur{ background:var(--emerald-deep); color:#fff; border-color:var(--emerald-deep); }
+.ybt-pager-dots{ border-color:transparent; background:transparent; color:#8b968f; }
+/* modals — consignment-note chrome (render outside .ybt-ledger) */
+.ybt-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,31,23,0.55); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+.ybt-modal-content { background: #fff; border: 1.5px solid #0f1f17; border-radius: 12px; padding: 20px; width: 100%; max-width: 450px; box-shadow: 6px 6px 0 rgba(15,31,23,.25); }
+.ybt-modal-content h3{ font-family: var(--display,'Archivo Black',sans-serif); font-weight: 400; font-size: 16px; margin: 0 0 12px; color: #0f1f17; }
+.ybt-modal-content label{ font-family: var(--mono,monospace); font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #5c5543; display: block; margin-bottom: 4px; }
+.ybt-modal-content .form-control{ border: 1.5px solid #b9a67f; border-radius: 8px; background: #fbf8f1; color: #0f1f17; font-size: 14px; }
+.ybt-modal-content .form-control:focus{ border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.22); outline: none; }
+.ybt-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.ybt-modal-meta { background: #faf3dc; border: 1px solid #d4af37; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #4a4232; margin-bottom: 15px; }
+.ybt-modal-content .close-modal{ border: 2px solid #10b981; background: transparent; color: #047857; border-radius: 8px; padding: 9px 18px; font-weight: 700; font-size: 14.5px; }
+.ybt-modal-content .close-modal:hover{ background: #e7f6ef; }
+.ybt-modal-content .button-primary{
+	background: #d4af37; color: #0f1f17; border: none; border-radius: 8px;
+	padding: 11px 20px; font-weight: 700; font-size: 14.5px;
+	box-shadow: 3px 3px 0 rgba(138,109,31,.45); text-shadow: none;
+}
+.ybt-modal-content .button-primary:hover{ background: #dfbc48; box-shadow: 4px 4px 0 rgba(138,109,31,.5); }
 </style>
 
 <script>
@@ -868,13 +963,13 @@ jQuery(document).ready(function($) {
             changesHtml += '</tbody></table>';
         }
 
-        return '<div style="border-left:3px solid #2271b1;background:#f6f7f7;border-radius:6px;padding:10px 12px;margin-bottom:10px;">'
+        return '<div style="border-left:3px solid #d4af37;background:#faf3dc;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:10px;">'
             + '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">'
-            +   '<strong><i class="fas fa-user-shield text-primary me-1"></i>' + adminName + '</strong>'
-            +   '<span style="font-size:12px;color:#646970;">' + when + '</span>'
+            +   '<strong><i class="fas fa-user-shield" style="color:#8a6d1f;margin-right:4px;"></i>' + adminName + '</strong>'
+            +   '<span style="font-size:12px;color:#5c5543;font-family:monospace;">' + when + '</span>'
             + '</div>'
             + '<div style="margin-top:4px;font-size:12px;">'
-            +   '<span class="badge bg-light border text-dark">' + actionLabel + '</span> '
+            +   '<span style="font-family:monospace;font-size:11px;font-weight:600;background:#fbf8f1;border:1px solid #b9a67f;border-radius:5px;padding:2px 8px;color:#0f1f17;">' + actionLabel + '</span> '
             +   '<span>' + summary + '</span>'
             + '</div>'
             + changesHtml

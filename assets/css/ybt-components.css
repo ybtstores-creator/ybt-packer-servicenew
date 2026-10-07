@@ -1,0 +1,192 @@
+/* ==========================================================================
+   YBT BRAND COMPONENTS
+   Shared, colour-bearing components used by several customer templates.
+   Every value comes from ybt-tokens.css, so the light/dark theme flips
+   without component-level overrides.
+   ========================================================================== */
+
+/* ---- Status tabs (parcel lists) ---- */
+.ybt-tabs .nav-link {
+    color: var(--ybt-slate-500);
+    font-weight: 700;
+    transition: all 0.3s ease;
+    border: 1.5px solid transparent;
+}
+
+.ybt-tabs .nav-link.active {
+    background: var(--ybt-gradient-brand) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px var(--ybt-glow-brand) !important;
+}
+
+.ybt-tabs .nav-link:hover:not(.active) {
+    color: var(--ybt-brand);
+    background: var(--ybt-brand-tint);
+}
+
+/* ---- Parcel entry row (add-tracking) ---- */
+.tracking-item-row {
+    background: var(--ybt-card-bg);
+    border: 1.5px solid var(--ybt-card-border) !important;
+    border-top: 3.5px solid var(--ybt-gold-500) !important;
+    border-radius: var(--ybt-rounded-md) !important;
+    box-shadow: var(--ybt-shadow-card);
+}
+
+/* ---- Brand colour utilities ---- */
+.text-brand-green { color: var(--ybt-brand) !important; }
+.text-brand-gold { color: var(--ybt-gold-500) !important; }
+.bg-brand-gold { background-color: var(--ybt-gold-500) !important; }
+
+.link-brand {
+    color: var(--ybt-brand);
+    text-decoration: none;
+}
+.link-brand:hover {
+    color: var(--ybt-emerald-600);
+    text-decoration: underline;
+}
+
+.masked-tracking {
+    font-family: var(--ybt-font-mono, monospace);
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: var(--ybt-text-body);
+    background: var(--ybt-inset-bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px dashed var(--ybt-card-border);
+}
+
+/* ---- Buttons ---- */
+.btn-brand-primary {
+    background: var(--ybt-gradient-brand) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 14px var(--ybt-glow-brand) !important;
+}
+.btn-brand-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(var(--ybt-emerald-500-rgb), 0.4) !important;
+}
+
+.btn-brand-success {
+    background: var(--ybt-gradient-accent) !important;
+    color: var(--ybt-slate-800) !important;
+    font-weight: 700 !important;
+    border: none !important;
+}
+.btn-brand-success:hover {
+    color: #ffffff !important;
+}
+
+.btn-brand-claim {
+    background-color: var(--ybt-emerald-600);
+    color: #ffffff;
+    border: none;
+    transition: all 0.3s ease;
+}
+.btn-brand-claim:hover {
+    background-color: var(--ybt-emerald-700);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--ybt-emerald-500-rgb), 0.3);
+}
+
+/* ---- Notices ---- */
+.alert-brand-info {
+    background: var(--ybt-brand-tint);
+    border-left: 4px solid var(--ybt-emerald-500);
+    color: var(--ybt-brand);
+}
+
+/* ---- Warehouse address copy card ---- */
+.ybt-address-copy-card-modern {
+    background: linear-gradient(135deg, rgba(var(--ybt-emerald-500-rgb), 0.06), rgba(var(--ybt-emerald-500-rgb), 0.02));
+    border: 2px dashed rgba(var(--ybt-emerald-500-rgb), 0.25);
+    border-radius: var(--ybt-rounded-md);
+    padding: var(--ybt-sp-6);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+.ybt-address-copy-card-modern:hover {
+    border-color: var(--ybt-emerald-500);
+    background: var(--ybt-inset-bg-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(var(--ybt-emerald-500-rgb), 0.15);
+}
+.ybt-address-copy-card-modern:active { transform: scale(0.98); }
+
+.ybt-address-copy-card:active { transform: scale(0.98); }
+
+.ybt-copy-hint-modern {
+    font-size: 0.8rem;
+    color: var(--ybt-brand);
+    display: flex;
+    align-items: center;
+    gap: var(--ybt-sp-2);
+    font-weight: 600;
+}
+.ybt-address-copy-card-modern:hover .ybt-copy-hint-modern { color: var(--ybt-emerald-600); }
+
+.ybt-copy-hint {
+    font-size: 0.78rem;
+    color: var(--ybt-brand);
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+.ybt-address-copy-card:hover .ybt-copy-hint { opacity: 1; }
+
+.ybt-addr-pre {
+    white-space: pre-wrap;
+    margin: 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--ybt-text-body);
+    pointer-events: none;
+}
+
+/* ---- App update banner ---- */
+.ybt-update-banner {
+    background: linear-gradient(135deg, var(--ybt-emerald-900), var(--ybt-emerald-700));
+    color: #ffffff;
+    border-radius: 14px;
+    padding: var(--ybt-sp-4) var(--ybt-sp-5);
+    box-shadow: 0 4px 20px rgba(var(--ybt-emerald-500-rgb), 0.2);
+    border: 1px solid rgba(var(--ybt-emerald-500-rgb), 0.3);
+}
+.ybt-update-icon {
+    font-size: 1.8rem;
+    color: var(--ybt-emerald-400);
+    background: rgba(var(--ybt-emerald-500-rgb), 0.15);
+    border-radius: var(--ybt-rounded-full);
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.ybt-update-msg {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+.ybt-update-btn {
+    background: var(--ybt-emerald-500);
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: var(--ybt-rounded-sm);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ybt-update-btn:hover {
+    background: var(--ybt-emerald-600);
+    color: #ffffff;
+}
+.ybt-update-close { color: rgba(255, 255, 255, 0.6); }
+.ybt-update-close:hover { color: #ffffff; }

@@ -1,6 +1,7 @@
 package com.packtracker
 
 import android.app.Application
+import androidx.appcompat.app.AppCompatDelegate
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.os.Handler
@@ -29,6 +30,21 @@ class PackTrackerApplication : Application(), Configuration.Provider {
 
         Log.d(TAG, "PackTrackerApplication created")
 
+        // Crash reporting FIRST - any later init crash must still be reported.
+        com.packtracker.AppContextHolder.set(this)
+        com.packtracker.utils.CrashReporter.install(
+            appVersionName = BuildConfig.VERSION_NAME,
+            appVersionCode = BuildConfig.VERSION_CODE,
+            appId = "packtracker"
+        )
+
+        // Brand dark mode follows the system setting; no in-app override in v1.
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+
+        // Track the top activity so heads-up notification popups can appear
+        // over ANY screen (dashboard, chat, scanner, detail sheets).
+        com.packtracker.utils.GlobalNotificationPoller.PopupHost.let { registerActivityLifecycleCallbacks(it) }
+
         // Defer WorkManager scheduling to avoid blocking the main thread
         Handler(Looper.getMainLooper()).post {
             try {
@@ -37,6 +53,19 @@ class PackTrackerApplication : Application(), Configuration.Provider {
                 Log.d(TAG, "Background sync scheduled")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to schedule background sync", e)
+            }
+
+            try {
+                // Background poll for new messages → system tray notification.
+                // Cancelled on logout; re-scheduled on sign-in.
+                com.packtracker.workers.NotificationPollWorker.ensureChannel(this)
+                val hasSession = getSharedPreferences("auth", MODE_PRIVATE)
+                    .getString("token", null)?.isNotBlank() == true
+                if (hasSession) {
+                    com.packtracker.workers.NotificationPollWorker.schedule(this)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to schedule notification poll", e)
             }
 
             // Listen for connectivity changes to trigger immediate sync

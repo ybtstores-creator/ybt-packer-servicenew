@@ -1,4 +1,8 @@
 <?php
+/**
+ * My Account Profile — "Member docket" (consignment-note system)
+ * JS contract: #profileUpdateForm, #saveProfileBtn, #profile-message, #mobile_number.
+ */
 if (!defined('ABSPATH')) exit;
 if (!is_user_logged_in()) { echo '<div class="alert alert-warning">Please login to view profile.</div>'; return; }
 
@@ -13,7 +17,7 @@ add_action('wp_head', function() {
         body.admin-bar { margin-top: 0 !important; padding-top: 0 !important; }
         html { margin-top: 0 !important; }
     </style>';
-    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src \'self\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;">';
+    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src \'self\' data: blob: https:; connect-src \'self\' https:;">';
 }, 1);
 
 // Load modern navbar
@@ -21,143 +25,231 @@ require_once YBT_PLUGIN_PATH . 'templates/components/dashboard-navbar-modern.php
 render_dashboard_navbar($current_user);
 ?>
 
-<div class="ybt-dashboard-wrapper animate-fade-in-up">
-    <div class="container py-4">
+<style>
+/* ================================================================
+   MEMBER DOCKET — page-specific layer
+   Shared tokens & atoms come from assets/css/ybt-consignment.css.
+   ================================================================ */
+.ybt-docket{
+	margin:clamp(16px,3vw,30px) auto;
+	max-width:760px;
+	padding:clamp(18px,3vw,32px);
+	display:flex;
+	flex-direction:column;
+	gap:22px;
+}
+/* docket masthead: monogram + name + verified chip */
+.ybt-docket .ybt-dockhead{
+	display:flex;
+	align-items:center;
+	gap:16px;
+	flex-wrap:wrap;
+}
+.ybt-docket .ybt-dockhead .ybt-monogram{
+	width:64px;height:64px;
+	flex:0 0 64px;
+	display:flex;align-items:center;justify-content:center;
+	border-radius:50%;
+	background:var(--ink);
+	color:var(--gold);
+	font-family:var(--display);
+	font-size:1.7rem;
+	border:2px solid var(--gold);
+	box-shadow:4px 4px 0 rgba(15,31,23,.15);
+}
+.ybt-docket .ybt-dockhead .ybt-whoami h2{
+	font-family:var(--display);
+	font-weight:400;
+	font-size:clamp(1.25rem,2.6vw,1.6rem);
+	margin:0;
+}
+.ybt-docket .ybt-dockhead .ybt-whoami p{
+	margin:2px 0 0;
+	font-family:var(--mono);
+	font-size:12.5px;
+	color:#5c5543;
+}
+.ybt-docket .ybt-dockhead .ybt-chip-verified{
+	margin-left:auto;
+	display:inline-flex;align-items:center;gap:7px;
+	font-family:var(--mono);
+	font-size:11px;font-weight:600;
+	letter-spacing:.08em;text-transform:uppercase;
+	color:var(--emerald-deep);
+	background:var(--emerald-tint);
+	border:1.5px solid var(--emerald);
+	border-radius:6px;
+	padding:6px 12px;
+}
+/* the docket rows */
+.ybt-docket .ybt-dockrows{
+	border:1.5px solid var(--kraft-line);
+	border-radius:10px;
+	background:#fbf8f1;
+	overflow:hidden;
+}
+.ybt-docket .ybt-dockrow{
+	display:grid;
+	grid-template-columns:180px 1fr;
+	gap:12px;
+	align-items:center;
+	padding:14px 18px;
+}
+.ybt-docket .ybt-dockrow + .ybt-dockrow{ border-top:1.5px dashed var(--kraft-line); }
+.ybt-docket .ybt-dockrow label{ margin:0; }
+.ybt-docket .ybt-dockrow .ybt-static{
+	font-family:var(--sans);
+	font-weight:600;
+	color:var(--ink);
+	font-size:15px;
+	padding:0;
+	background:none;
+	border:none;
+}
+.ybt-docket .ybt-dockrow .ybt-static.muted{ color:#5c5543; font-weight:500; }
+/* the one editable row: input + gold save share a line */
+.ybt-docket .ybt-dockrow .ybt-editline{ display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; }
+.ybt-docket .ybt-dockrow .ybt-editline .ybt-input{ flex:1 1 220px; }
+.ybt-docket .ybt-dockrow .ybt-input{ padding:10px 14px; }
+/* the ID plate */
+.ybt-docket .ybt-plate{
+	display:inline-flex;align-items:center;gap:10px;
+	font-family:var(--mono);
+	font-weight:600;
+	font-size:16px;
+	letter-spacing:.08em;
+	color:var(--emerald-deep);
+	background:var(--emerald-tint);
+	border:1.5px solid var(--emerald);
+	border-radius:8px;
+	padding:7px 14px;
+}
+/* dashed rule + action row */
+.ybt-docket .ybt-dockrule{ border:none; border-top:2px dashed var(--kraft-line); margin:0; }
+.ybt-docket .ybt-dockactions{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	gap:12px;
+	flex-wrap:wrap;
+}
+.ybt-docket .ybt-dockactions .ybt-logout{ color:#9c2020; border-color:#c95656; }
+.ybt-docket .ybt-dockactions .ybt-logout:hover{ background:#fdeeee; }
+.ybt-docket .ybt-actions-right{ display:flex; gap:10px; flex-wrap:wrap; }
 
-        <div class="row justify-content-center">
-            <div class="col-md-9 col-lg-8">
-                <div class="glass-card glass-card-green">
-                    <div class="info-card-header bg-white border-bottom p-4">
-                        <h4 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
-                            <i class="fas fa-id-card" style="color: #10b981;"></i> My Account Profile
-                        </h4>
-                    </div>
-                    <div class="info-card-body p-4 p-md-5">
-                        <div class="row mb-4 align-items-center g-3">
-                            <div class="col-auto">
-                                <div class="text-white rounded-circle d-flex align-items-center justify-content-center shadow-lg" style="width: 84px; height: 84px; font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 3px solid rgba(255,255,255,0.8);">
-                                    <?php echo strtoupper(substr($current_user->display_name, 0, 1)); ?>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <h3 class="mb-1 fw-bold text-dark"><?php echo esc_html($current_user->display_name); ?></h3>
-                                <p class="text-muted mb-1"><?php echo esc_html($current_user->user_email); ?></p>
-                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 fw-semibold" style="border: 1px solid rgba(16, 185, 129, 0.25);">
-                                    <i class="fas fa-check-circle me-1"></i>Verified Member
-                                </span>
-                            </div>
-                        </div>
+/* runtime message line (toggled by JS) */
+.ybt-docket .ybt-profilemsg{ display:none; font-family:var(--sans); font-size:13.5px; font-weight:600; }
+.ybt-docket .ybt-profilemsg.text-success{ display:inline-flex; align-items:center; gap:6px; color:var(--emerald-deep); }
+.ybt-docket .ybt-profilemsg.text-danger{ display:inline-flex; align-items:center; gap:6px; color:#9c2020; }
 
-                        <hr class="text-muted opacity-20 my-4">
+@media (max-width:620px){
+	.ybt-docket .ybt-dockrow{ grid-template-columns:1fr; gap:6px; }
+	.ybt-docket .ybt-dockhead .ybt-chip-verified{ margin-left:0; }
+}
+</style>
 
-                        <form id="profileUpdateForm">
-                            <div class="mb-4 row align-items-center">
-                                <label class="col-sm-3 col-form-label fw-bold text-secondary small text-uppercase">YBT CUSTOMER ID</label>
-                                <div class="col-sm-9">
-                                    <div class="d-inline-block px-3 py-1.5 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25">
-                                        <span class="fw-bold fs-5" style="color: #047857; font-family: monospace; letter-spacing: 1px;"><?php echo esc_attr($custom_id); ?></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-3 row align-items-center">
-                                <label class="col-sm-3 col-form-label fw-bold text-secondary small text-uppercase">USERNAME</label>
-                                <div class="col-sm-9">
-                                    <input type="text" readonly class="form-control-plaintext text-dark fw-semibold" value="<?php echo esc_attr($current_user->user_login); ?>">
-                                </div>
-                            </div>
-                            <div class="mb-3 row align-items-center">
-                                <label class="col-sm-3 col-form-label fw-bold text-secondary small text-uppercase">EMAIL ADDRESS</label>
-                                <div class="col-sm-9">
-                                    <input type="text" readonly class="form-control-plaintext text-dark" value="<?php echo esc_attr($current_user->user_email); ?>">
-                                </div>
-                            </div>
-                            <div class="mb-3 row align-items-center">
-                                <label for="mobile_number" class="col-sm-3 col-form-label fw-bold text-secondary small text-uppercase">MOBILE NUMBER</label>
-                                <div class="col-sm-9">
-                                    <div class="input-group">
-                                        <input type="text" name="mobile_number" id="mobile_number" class="form-control form-control-premium" value="<?php echo esc_attr(get_user_meta($user_id, 'ybt_mobile_number', true) ?: ''); ?>" placeholder="+1 234 567 8900">
-                                        <button class="btn btn-premium-primary px-4 fw-bold" type="submit" id="saveProfileBtn">Save Changes</button>
-                                    </div>
-                                    <div id="profile-message" class="mt-2 small" style="display:none;"></div>
-                                </div>
-                            </div>
-                            <div class="mb-3 row align-items-center">
-                                <label class="col-sm-3 col-form-label fw-bold text-secondary small text-uppercase">MEMBER SINCE</label>
-                                <div class="col-sm-9">
-                                    <input type="text" readonly class="form-control-plaintext text-muted" value="<?php echo date('F j, Y', strtotime($current_user->user_registered)); ?>">
-                                </div>
-                            </div>
-                        </form>
+<div class="ybt-dashboard-enhanced" style="background:none;border:none;padding:0;">
+<div class="ybt-docket">
 
-                        <div class="mt-5 pt-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-3">
-                             <a href="<?php echo home_url('/dashboard/'); ?>" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold">
-                                 <i class="fas fa-arrow-left me-2"></i>Dashboard
-                             </a>
-                             <div class="d-flex gap-2">
-                                 <a href="<?php echo home_url('/reset-password/'); ?>" class="btn btn-premium-gold rounded-pill px-4 fw-bold">
-                                     <i class="fas fa-key me-2"></i>Reset Password
-                                 </a>
-                                 <a href="<?php echo wp_logout_url(home_url()); ?>" class="btn btn-outline-danger rounded-pill px-4">
-                                     <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                 </a>
-                             </div>
-                        </div>
+	<!-- docket masthead -->
+	<div class="ybt-dockhead">
+		<div class="ybt-monogram"><?php echo esc_html(strtoupper(substr($current_user->display_name, 0, 1))); ?></div>
+		<div class="ybt-whoami">
+			<h2><?php echo esc_html($current_user->display_name); ?></h2>
+			<p><?php echo esc_html($current_user->user_email); ?></p>
+		</div>
+		<span class="ybt-chip-verified"><i class="fas fa-check-circle"></i>Verified member</span>
+	</div>
 
-                        <script>
-                        var ybtNonce = (typeof ybt_ajax !== 'undefined' && ybt_ajax.nonce) ? ybt_ajax.nonce : '<?php echo wp_create_nonce('ybt_nonce'); ?>';
-                        var ybtAjaxUrl = (typeof ybt_ajax !== 'undefined' && ybt_ajax.ajax_url) ? ybt_ajax.ajax_url : '<?php echo admin_url('admin-ajax.php'); ?>';
+	<!-- docket rows -->
+	<div class="ybt-dockrows">
+		<div class="ybt-dockrow">
+			<label class="ybd-formlabel" for="mobile_number">YBT customer ID</label>
+			<div><span class="ybt-plate"><i class="fas fa-barcode"></i><?php echo esc_html($custom_id); ?></span></div>
+		</div>
+		<div class="ybt-dockrow">
+			<label class="ybd-formlabel">Username</label>
+			<div><span class="ybt-static"><?php echo esc_html($current_user->user_login); ?></span></div>
+		</div>
+		<div class="ybt-dockrow">
+			<label class="ybd-formlabel">Email address</label>
+			<div><span class="ybt-static"><?php echo esc_html($current_user->user_email); ?></span></div>
+		</div>
+		<div class="ybt-dockrow">
+			<label class="ybd-formlabel" for="mobile_number">Mobile number</label>
+			<div class="ybt-editline">
+				<input type="text" name="mobile_number" id="mobile_number" class="ybt-input" value="<?php echo esc_attr(get_user_meta($user_id, 'ybt_mobile_number', true) ?: ''); ?>" placeholder="+1 234 567 8900">
+				<button type="submit" form="profileUpdateForm" class="ybd-btn ybd-btn-gold" id="saveProfileBtn">Save changes</button>
+			</div>
+			<div id="profile-message" class="ybt-profilemsg" style="display:none;"></div>
+		</div>
+		<div class="ybt-dockrow">
+			<label class="ybd-formlabel">Member since</label>
+			<div><span class="ybt-static muted"><?php echo esc_html(date('F j, Y', strtotime($current_user->user_registered))); ?></span></div>
+		</div>
+	</div>
 
-                        document.addEventListener('DOMContentLoaded', function() {
-                            const profileForm = document.getElementById('profileUpdateForm');
-                            const saveBtn = document.getElementById('saveProfileBtn');
-                            const messageEl = document.getElementById('profile-message');
+	<form id="profileUpdateForm" style="display:none;"></form>
 
-                            if (profileForm) {
-                                profileForm.addEventListener('submit', function(e) {
-                                    e.preventDefault();
-
-                                    const mobileNumber = document.getElementById('mobile_number').value.trim();
-
-                                    saveBtn.disabled = true;
-                                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-                                    messageEl.style.display = 'none';
-
-                                    const fd = new FormData();
-                                    fd.append('action', 'ybt_update_profile');
-                                    fd.append('nonce', ybtNonce);
-                                    fd.append('mobile_number', mobileNumber);
-
-                                    fetch(ybtAjaxUrl, {
-                                        method: 'POST',
-                                        body: fd
-                                    })
-                                    .then(res => res.json())
-                                    .then(response => {
-                                        if (response.success) {
-                                            messageEl.className = 'mt-2 small text-success fw-bold';
-                                            messageEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + response.data;
-                                        } else {
-                                            messageEl.className = 'mt-2 small text-danger fw-bold';
-                                            messageEl.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>' + (response.data || 'Error updating profile');
-                                        }
-                                        messageEl.style.display = 'block';
-                                    })
-                                    .catch(err => {
-                                        messageEl.className = 'mt-2 small text-danger fw-bold';
-                                        messageEl.textContent = 'Network error. Please try again.';
-                                        messageEl.style.display = 'block';
-                                    })
-                                    .finally(() => {
-                                        saveBtn.disabled = false;
-                                        saveBtn.textContent = 'Save Changes';
-                                    });
-                                });
-                            }
-                        });
-                        </script>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+	<div class="ybt-dockactions">
+		<a href="<?php echo esc_url(home_url('/dashboard/')); ?>" class="ybd-btn ybd-btn-emerald"><i class="fas fa-arrow-left"></i>Dashboard</a>
+		<div class="ybt-actions-right">
+			<a href="<?php echo esc_url(home_url('/reset-password/')); ?>" class="ybd-btn ybd-btn-gold"><i class="fas fa-key"></i>Reset password</a>
+			<a href="<?php echo esc_url(wp_logout_url(home_url())); ?>" class="ybd-btn ybd-btn-emerald ybt-logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+		</div>
+	</div>
 </div>
+</div>
+
+<script>
+var ybtNonce = (typeof ybt_ajax !== 'undefined' && ybt_ajax.nonce) ? ybt_ajax.nonce : '<?php echo wp_create_nonce('ybt_nonce'); ?>';
+var ybtAjaxUrl = (typeof ybt_ajax !== 'undefined' && ybt_ajax.ajax_url) ? ybt_ajax.ajax_url : '<?php echo admin_url('admin-ajax.php'); ?>';
+
+document.addEventListener('DOMContentLoaded', function() {
+    const profileForm = document.getElementById('profileUpdateForm');
+    const saveBtn = document.getElementById('saveProfileBtn');
+    const messageEl = document.getElementById('profile-message');
+
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const mobileNumber = document.getElementById('mobile_number').value.trim();
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+            messageEl.style.display = 'none';
+
+            const fd = new FormData();
+            fd.append('action', 'ybt_update_profile');
+            fd.append('nonce', ybtNonce);
+            fd.append('mobile_number', mobileNumber);
+
+            fetch(ybtAjaxUrl, {
+                method: 'POST',
+                body: fd
+            })
+            .then(res => res.json())
+            .then(response => {
+                if (response.success) {
+                    messageEl.className = 'ybt-profilemsg text-success';
+                    messageEl.innerHTML = '<i class="fas fa-check-circle"></i>' + response.data;
+                } else {
+                    messageEl.className = 'ybt-profilemsg text-danger';
+                    messageEl.innerHTML = '<i class="fas fa-exclamation-circle"></i>' + (response.data || 'Error updating profile');
+                }
+                messageEl.style.display = 'inline-flex';
+            })
+            .catch(err => {
+                messageEl.className = 'ybt-profilemsg text-danger';
+                messageEl.textContent = 'Network error. Please try again.';
+                messageEl.style.display = 'inline-flex';
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save changes';
+            });
+        });
+    }
+});
+</script>

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#ECE5DD">
+    android:background="@color/surface_variant">
 
     <!-- Toolbar -->
     <LinearLayout
@@ -31,7 +31,7 @@
             android:layout_weight="1"
             android:text=""
             android:textColor="@android:color/white"
-            android:textSize="18sp"
+            android:textSize="@dimen/text_subtitle"
             android:textStyle="bold"
             android:layout_marginStart="4dp"
             android:ellipsize="end"
@@ -42,8 +42,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text=""
-            android:textColor="#B3FFFFFF"
-            android:textSize="12sp"
+            android:textColor="@color/overlay_text_soft"
+            android:textSize="@dimen/text_caption"
             android:layout_marginEnd="8dp" />
     </LinearLayout>
 
@@ -59,7 +59,7 @@
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:padding="8dp"
-            android:background="#ECE5DD" />
+            android:background="@color/surface_variant" />
 
         <TextView
             android:id="@+id/tvEmpty"
@@ -68,8 +68,8 @@
             android:layout_gravity="center"
             android:gravity="center"
             android:text="No messages yet\nStart a conversation!"
-            android:textColor="#888888"
-            android:textSize="16sp"
+            android:textColor="@color/outline"
+            android:textSize="@dimen/text_title"
             android:visibility="gone" />
     </FrameLayout>
 
@@ -80,7 +80,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="#FFF8F4E9"
+        android:background="@color/surface_container_low"
         android:padding="8dp"
         android:visibility="gone">
 
@@ -98,8 +98,8 @@
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:text="photo.jpg"
-            android:textColor="#FF555555"
-            android:textSize="13sp"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="@dimen/text_body_sm"
             android:maxLines="1"
             android:ellipsize="end" />
 
@@ -144,9 +144,9 @@
             android:background="@drawable/bg_chat_input"
             android:paddingHorizontal="14dp"
             android:paddingVertical="10dp"
-            android:textSize="15sp"
+            android:textSize="@dimen/text_body"
             android:textColor="@color/on_surface"
-            android:textColorHint="#999999" />
+            android:textColorHint="@color/outline" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnSend"

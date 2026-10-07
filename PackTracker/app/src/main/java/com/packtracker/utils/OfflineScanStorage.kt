@@ -24,6 +24,7 @@ object OfflineScanStorage {
         val timestamp: Long = System.currentTimeMillis(),
         val isAdmin: Boolean = false,
         val targetUserId: Int = 0,
+        val description: String? = null,
         var syncStatus: SyncStatus = SyncStatus.PENDING
     ) {
         enum class SyncStatus { PENDING, SYNCING, SYNCED, FAILED }
@@ -204,6 +205,7 @@ object OfflineScanStorage {
             .apply()
     }
 
+    @Synchronized
     fun clearAll(context: Context) {
         prefs(context).edit()
             .remove(KEY_PENDING_SCANS)

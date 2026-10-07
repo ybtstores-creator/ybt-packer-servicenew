@@ -16,7 +16,7 @@ class YBT_DB_Helper {
     // Whitelist of allowed tables for query validation
     private static $allowed_tables = array(
         'ybt_tracking', 'ybt_admin_messages', 'ybt_chat', 'ybt_cartons',
-        'ybt_payment_settings', 'ybt_warehouse_settings', 'ybt_batch_payments',
+        'ybt_payment_settings', 'ybt_warehouse_settings',
         'ybt_fcm_tokens', 'ybt_activity_log'
     );
 
@@ -188,26 +188,12 @@ class YBT_DB_Helper {
      * Get sanitized client IP address
      */
     private static function get_client_ip() {
-        $ip_keys = array(
-            'HTTP_CF_CONNECTING_IP', // Cloudflare
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_REAL_IP',
-            'REMOTE_ADDR'
-        );
-
-        foreach ($ip_keys as $key) {
-            if (!empty($_SERVER[$key])) {
-                $ip = sanitize_text_field($_SERVER[$key]);
-                // Handle comma-separated IPs (X-Forwarded-For)
-                if (strpos($ip, ',') !== false) {
-                    $ips = array_map('trim', explode(',', $ip));
-                    $ip = $ips[0];
-                }
-                return $ip;
-            }
+        if (function_exists('ybt_get_client_ip')) {
+            return ybt_get_client_ip();
         }
 
-        return '127.0.0.1';
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '127.0.0.1';
     }
 
     /**

@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.chip.ChipGroup
 import com.packtracker.R
+import com.packtracker.activities.MainActivity
 import com.packtracker.api.ApiClient
 import com.packtracker.models.ApiResponse
 import com.packtracker.models.TrackingData
@@ -36,9 +37,23 @@ class TrackingFragment : Fragment() {
     private lateinit var editSearch: EditText
     private lateinit var chipGroup: ChipGroup
     private lateinit var tvEmpty: TextView
-    private var allItems: List<TrackingItem> = emptyList()
+    private lateinit var adapter: TrackingListAdapter
+    private val items = mutableListOf<TrackingItem>()
     private var currentStatus: String = "all"
     private var currentSearch: String = ""
+
+    // The server paginates, so the filter has to travel with the request:
+    // client-side filtering over one page hides everything past the newest rows.
+    private var nextOffset = 0
+    private var loading = false
+    private var endReached = false
+    private var requestSeq = 0
+    private val debounce = android.os.Handler(android.os.Looper.getMainLooper())
+
+    companion object {
+        private const val PAGE_SIZE = 50
+        private const val SEARCH_DEBOUNCE_MS = 350L
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,13 +86,16 @@ class TrackingFragment : Fragment() {
         tvEmpty = view.findViewById(R.id.tvEmptyTracking)
 
         recycler.layoutManager = LinearLayoutManager(requireContext())
+        adapter = TrackingListAdapter(items)
+        recycler.adapter = adapter
 
         editSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 currentSearch = s?.toString()?.trim() ?: ""
-                applyFilters()
+                debounce.removeCallbacksAndMessages(null)
+                debounce.postDelayed({ loadParcels() }, SEARCH_DEBOUNCE_MS)
             }
         })
 
@@ -87,13 +105,43 @@ class TrackingFragment : Fragment() {
                 R.id.chipDelivered -> "completed"
                 else -> "all"
             }
-            applyFilters()
+            loadParcels()
         }
+
+        recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
+                val lm = rv.layoutManager as? LinearLayoutManager ?: return
+                if (dy > 0 && !loading && !endReached &&
+                    lm.findLastVisibleItemPosition() >= items.size - 5
+                ) {
+                    loadMore()
+                }
+            }
+        })
 
         // A failed load shows this text; tapping retries.
         tvEmpty.setOnClickListener { loadParcels() }
 
         loadParcels()
+    }
+
+    /**
+     * Deep-link consumer: opened from a parcel notification. Waits for the
+     * list to load, then pops the detail sheet for that tracking number.
+     */
+    private fun consumePendingParcel() {
+        val wanted = MainActivity.pendingParcelTrackingNumber ?: return
+        MainActivity.pendingParcelTrackingNumber = null
+        if (wanted.isBlank()) return
+
+        // The sheet needs the full row; the list is the source. If the parcel
+        // isn't in this page (or the load failed), the tab still opens normally.
+        val match = items.firstOrNull { it.tracking_number == wanted }
+        if (match != null) {
+            if (!isAdded || parentFragmentManager.isStateSaved) return
+            val fm = activity?.supportFragmentManager ?: return
+            ParcelDetailSheet.newInstance(match).show(fm, "parcel_detail")
+        }
     }
 
     override fun onResume() {
@@ -103,45 +151,80 @@ class TrackingFragment : Fragment() {
         if (view != null) loadParcels()
     }
 
+    override fun onDestroyView() {
+        debounce.removeCallbacksAndMessages(null)
+        super.onDestroyView()
+    }
+
     private var loadFailed: Boolean = false
 
     private fun loadParcels() {
-        if (!isAdded) return
-        ApiClient.getService(requireContext()).getTracking(status = "all")
-            .enqueue(object : Callback<ApiResponse<TrackingData>> {
-                override fun onResponse(call: Call<ApiResponse<TrackingData>>, response: Response<ApiResponse<TrackingData>>) {
-                    if (!isAdded) return
-                    loadFailed = !response.isSuccessful || response.body() == null
-                    allItems = response.body()?.data?.items ?: emptyList()
-                    applyFilters()
-                }
-
-                override fun onFailure(call: Call<ApiResponse<TrackingData>>, t: Throwable) {
-                    if (!isAdded) return
-                    loadFailed = true
-                    applyFilters()
-                }
-            })
+        requestSeq++
+        nextOffset = 0
+        endReached = false
+        items.clear()
+        fetch()
     }
 
-    private fun applyFilters() {
+    private fun loadMore() {
+        requestSeq++
+        fetch()
+    }
+
+    private fun fetch() {
         if (!isAdded) return
-        var list = allItems
-        if (currentStatus != "all") {
-            list = list.filter { it.status.equals(currentStatus, ignoreCase = true) }
-        }
-        if (currentSearch.isNotEmpty()) {
-            val q = currentSearch.lowercase()
-            list = list.filter {
-                (it.tracking_number ?: "").lowercase().contains(q) ||
-                (it.description ?: "").lowercase().contains(q)
+        val seq = requestSeq
+        loading = true
+        val reset = nextOffset == 0
+        if (reset) render()
+
+        ApiClient.getService(requireContext()).getTracking(
+            status = currentStatus,
+            search = currentSearch.ifEmpty { null },
+            limit = PAGE_SIZE,
+            offset = nextOffset
+        ).enqueue(object : Callback<ApiResponse<TrackingData>> {
+            override fun onResponse(call: Call<ApiResponse<TrackingData>>, response: Response<ApiResponse<TrackingData>>) {
+                if (!isAdded || seq != requestSeq) return
+                loading = false
+                loadFailed = !response.isSuccessful || response.body() == null
+                val page = response.body()?.data?.items ?: emptyList()
+                if (!loadFailed) {
+                    items.addAll(page)
+                    nextOffset += page.size
+                    endReached = page.size < PAGE_SIZE
+                }
+                render()
+                // Deep-link target may live anywhere in the paginated list.
+                if (MainActivity.pendingParcelTrackingNumber != null) {
+                    if (items.any { it.tracking_number == MainActivity.pendingParcelTrackingNumber }) {
+                        consumePendingParcel()
+                    } else if (endReached) {
+                        consumePendingParcel()  // clears the pending flag gracefully
+                    } else if (nextOffset == 0 && items.isNotEmpty()) {
+                        // keep loading pages until found or end
+                    }
+                }
             }
-        }
-        recycler.adapter = TrackingListAdapter(list)
-        tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
-        recycler.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
-        if (list.isEmpty()) {
-            tvEmpty.text = if (loadFailed) "Couldn't load parcels — tap to retry" else "No parcels yet"
+
+            override fun onFailure(call: Call<ApiResponse<TrackingData>>, t: Throwable) {
+                if (!isAdded || seq != requestSeq) return
+                loading = false
+                loadFailed = true
+                render()
+            }
+        })
+    }
+
+    private fun render() {
+        if (!isAdded) return
+        adapter.notifyDataSetChanged()
+        tvEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+        recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+        if (items.isEmpty()) {
+            tvEmpty.text = if (loadFailed) "Couldn't load parcels — tap to retry"
+                else if (currentStatus != "all" || currentSearch.isNotEmpty()) "No matching parcels"
+                else "No parcels yet"
         }
     }
 }
@@ -170,30 +253,23 @@ class TrackingListAdapter(private val items: List<TrackingItem>) :
         holder.tvDate.text = item.date_added?.take(10) ?: ""
         val status = (item.status ?: "pending").replace('_', ' ')
         holder.tvStatus.text = status.replaceFirstChar { it.uppercase() }
-        holder.tvStatus.setTextColor(
-            when (item.status) {
-                "received" -> 0xFF0E7490.toInt()
-                "packing_in_progress" -> 0xFFB45309.toInt()
-                "packed" -> 0xFF047857.toInt()
-                "completed" -> 0xFF15803D.toInt()
-                else -> 0xFF6B7280.toInt()
-            }
-        )
+        // Presentation only: web-style status chip (was colored text)
+        com.packtracker.utils.StatusChipStyle.bind(holder.tvStatus, item.status)
 
         // Parse images for thumbnail preview
         val urls = mutableListOf<String>()
         item.images?.split(",")?.forEach {
-            val s = it.trim().removeSurrounding("\"").removeSurrounding("'")
-            if (s.isNotBlank() && s != "null" && s != "[]" && s.startsWith("http")) urls.add(s)
+            val resolved = UrlUtils.fixUrl(it)
+            if (!resolved.isNullOrBlank() && !urls.contains(resolved)) urls.add(resolved)
         }
         item.carton_images?.split(",")?.forEach {
-            val s = it.trim().removeSurrounding("\"").removeSurrounding("'")
-            if (s.isNotBlank() && s != "null" && s != "[]" && s.startsWith("http") && !urls.contains(s)) urls.add(s)
+            val resolved = UrlUtils.fixUrl(it)
+            if (!resolved.isNullOrBlank() && !urls.contains(resolved)) urls.add(resolved)
         }
 
         if (urls.isNotEmpty()) {
             holder.cardThumbnail.visibility = View.VISIBLE
-            val firstUrl = UrlUtils.fixUrl(urls.first())
+            val firstUrl = urls.first()
             Glide.with(holder.ivThumbnail.context)
                 .load(firstUrl)
                 .centerCrop()

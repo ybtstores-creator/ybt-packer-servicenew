@@ -17,12 +17,23 @@ class YBT_API_Auth_Handler extends YBT_API_Handler_Base {
             return;
         }
 
-        // Security: Enforce HTTPS for API authentication (except local development/emulator)
-        $is_local = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true) 
-            || in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', '10.0.2.2'], true)
+        // Security: Enforce HTTPS for API authentication (except local development/emulator).
+        // Host is matched WITHOUT its port so dev setups (localhost:8080 Docker,
+        // 10.0.2.2:8080 Android emulator) work, and the Host fallback is only
+        // honoured from loopback/private source IPs so remote clients can't
+        // spoof "Host: localhost" past the HTTPS requirement.
+        $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+        $host        = strtolower((string) preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? ''));
+        $is_loopback = in_array($remote_addr, ['127.0.0.1', '::1'], true);
+        $is_remote   = (bool) filter_var($remote_addr, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        $is_local    = $is_loopback
+            || (in_array($host, ['localhost', '127.0.0.1', '10.0.2.2'], true) && !$is_remote)
             || (defined('WP_ENVIRONMENT_TYPE') && WP_ENVIRONMENT_TYPE === 'local');
 
-        if (!is_ssl() && !$is_local && php_sapi_name() !== 'cli') {
+        $enforce_https = get_option('ybt_enforce_https', '1') === '1';
+        $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+
+        if ($enforce_https && !$is_https && !$is_local && php_sapi_name() !== 'cli') {
             YBT_API_Response::error('Security error: Please use HTTPS', 'https_required', 403);
             return;
         }
@@ -32,7 +43,8 @@ class YBT_API_Auth_Handler extends YBT_API_Handler_Base {
         $password = isset($_POST['password']) ? substr(wp_unslash($_POST['password']), 0, 4096) : '';
 
         if (empty($username) || empty($password)) {
-            YBT_API_Response::error('Username and password required', 'missing_credentials');
+            YBT_API_Response::error('Username and password required', 'missing_credentials', 400);
+            return;
         }
 
         $creds = array(
@@ -41,12 +53,13 @@ class YBT_API_Auth_Handler extends YBT_API_Handler_Base {
             'remember'      => true
         );
 
-        $user = wp_signon($creds, is_ssl());
+        $user = wp_signon($creds, $is_https);
 
         if (is_wp_error($user)) {
             error_log('YBT DEBUG: wp_signon failed: ' . $user->get_error_message() . ' codes: ' . implode(',', $user->get_error_codes()));
             $this->log('Login failed', 'warning', array('username' => $username, 'error' => $user->get_error_message()));
             YBT_API_Response::error('Invalid credentials or user does not exist', 'invalid_login', 401);
+            return;
         }
 
         // Clear rate limit on successful login
@@ -80,15 +93,39 @@ class YBT_API_Auth_Handler extends YBT_API_Handler_Base {
     }
 
     /**
+     * FIX REMOVED: any prior version that allowed a failed login to continue
+     * into the success path has been corrected above by returning after the
+     * wp_signon() failure branch.
+     */
+
+    /**
      * Mobile Registration
      */
     public function register() {
+        $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+        $host        = strtolower((string) preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? ''));
+        $is_loopback = in_array($remote_addr, ['127.0.0.1', '::1'], true);
+        $is_remote   = (bool) filter_var($remote_addr, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        $is_local    = $is_loopback
+            || (in_array($host, ['localhost', '127.0.0.1', '10.0.2.2'], true) && !$is_remote)
+            || (defined('WP_ENVIRONMENT_TYPE') && WP_ENVIRONMENT_TYPE === 'local');
+
+        $enforce_https = get_option('ybt_enforce_https', '1') === '1';
+        $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+
+        if ($enforce_https && !$is_https && !$is_local && php_sapi_name() !== 'cli') {
+            YBT_API_Response::error('Security error: Please use HTTPS', 'https_required', 403);
+            return;
+        }
+
         $username = $this->get_param('username');
         $email = $this->get_param('email', '', 'email');
         $password = isset($_POST['password']) ? substr(wp_unslash($_POST['password']), 0, 4096) : '';
+        // Mobile number is optional: the app's registration screen does not
+        // collect it, so requiring it here breaks all app registrations.
         $mobile_number = $this->get_param('mobile_number');
 
-        if (empty($username) || empty($email) || empty($password) || empty($mobile_number)) {
+        if (empty($username) || empty($email) || empty($password)) {
             YBT_API_Response::error('All fields are required', 'missing_fields');
         }
 
@@ -130,21 +167,27 @@ class YBT_API_Auth_Handler extends YBT_API_Handler_Base {
         $user = new WP_User($user_id);
         $user->set_role('subscriber');
 
-        // Save Mobile Number and Custom YBT ID (Alignment with web registration)
-        update_user_meta($user_id, 'ybt_mobile_number', $mobile_number);
+        // Save Mobile Number (when given) and Custom YBT ID (Alignment with web registration)
+        if (!empty($mobile_number)) {
+            update_user_meta($user_id, 'ybt_mobile_number', $mobile_number);
+        }
         
-        global $wpdb;
-        $max_id = $wpdb->get_var("SELECT MAX(CAST(SUBSTRING(meta_value, 4) AS UNSIGNED)) FROM {$wpdb->usermeta} WHERE meta_key = 'ybt_custom_user_id'");
-        $next_id = 'YBT' . str_pad(($max_id ? intval($max_id) + 1 : 1), 4, '0', STR_PAD_LEFT);
-        update_user_meta($user_id, 'ybt_custom_user_id', $next_id);
+        // Assign Custom YBT ID (the user_register hook usually already did this)
+        $custom_user_id = get_user_meta($user_id, 'ybt_custom_user_id', true);
+        if (empty($custom_user_id) || 'Pending' === $custom_user_id) {
+            global $wpdb;
+            $max_id = $wpdb->get_var("SELECT MAX(CAST(SUBSTRING(meta_value, 4) AS UNSIGNED)) FROM {$wpdb->usermeta} WHERE meta_key = 'ybt_custom_user_id'");
+            $custom_user_id = 'YBT' . str_pad(($max_id ? intval($max_id) + 1 : 1), 4, '0', STR_PAD_LEFT);
+            update_user_meta($user_id, 'ybt_custom_user_id', $custom_user_id);
+        }
 
         if (function_exists('ybt_log_activity')) {
             ybt_log_activity($user_id, 'register', "User registered via mobile app");
         }
 
-        $this->log('New user registered', 'info', array('user_id' => $user_id, 'username' => $username, 'custom_id' => $next_id));
+        $this->log('New user registered', 'info', array('user_id' => $user_id, 'username' => $username, 'custom_id' => $custom_user_id));
 
-        YBT_API_Response::success(array('custom_user_id' => $next_id), 'Registration successful! Please login.');
+        YBT_API_Response::success(array('custom_user_id' => $custom_user_id), 'Registration successful! Please login.');
     }
 
     /**
@@ -172,19 +215,21 @@ class YBT_API_Auth_Handler extends YBT_API_Handler_Base {
      * Unregister FCM Token (Logout)
      */
     public function unregister_fcm() {
-        // SECURITY: the router registers every action on wp_ajax_nopriv_ too,
-        // so this logout path must authenticate and scope the delete to the
-        // caller — otherwise any anonymous request can drop other users' tokens.
-        $this->authenticate();
-
         $fcm_token = $this->get_param('fcm_token');
 
         if (empty($fcm_token)) {
             YBT_API_Response::error('FCM token required', 'missing_token');
         }
 
+        // The app wipes its stored JWT before making this call, so a token is not
+        // always available. When one is supplied, scope the delete to that user:
+        // an unscoped delete lets one logout drop another account's row for the
+        // same device token.
+        $token_data = YBT_API_Helper::validate_token();
+        $owner_id = $token_data ? intval($token_data['user_id']) : 0;
+
         if (class_exists('YBT_Notifications')) {
-            YBT_Notifications::unregister_token($fcm_token, $this->user_id);
+            YBT_Notifications::unregister_token($fcm_token, $owner_id);
             YBT_API_Response::success(null, 'FCM token unregistered');
         } else {
             YBT_API_Response::error('Notification system not available', 'system_error', 503);

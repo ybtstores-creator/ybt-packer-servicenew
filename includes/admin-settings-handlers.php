@@ -18,20 +18,41 @@ function ybt_save_alert_settings_handler() {
     update_option('ybt_popup_enabled', $enabled);
     update_option('ybt_popup_message', $message);
 
-    if (isset($_POST['popup_url'])) {
-        update_option('ybt_popup_url', esc_url_raw(wp_unslash($_POST['popup_url'])));
-    }
-
-    // Handle Image Upload
+    // Handle Image Upload — replace any previous popup image first so the
+    // old file doesn't leak on disk.
     if (!empty($_FILES['popup_image']['name'])) {
+        if (function_exists('ybt_validate_file_upload')) {
+            $validation = ybt_validate_file_upload($_FILES['popup_image'], array('jpg', 'jpeg', 'png', 'gif', 'webp'), 5242880);
+            if (is_wp_error($validation)) {
+                wp_send_json_error('Image upload failed: ' . $validation->get_error_message());
+            }
+        }
         require_once(ABSPATH . 'wp-admin/includes/file.php');
-        $upload = wp_handle_upload($_FILES['popup_image'], array('test_form' => false));
+        $old_popup = get_option('ybt_popup_image', '');
+        $upload = wp_handle_upload($_FILES['popup_image'], array(
+            'test_form' => false,
+            'mimes' => array(
+                'jpg|jpeg|jpe' => 'image/jpeg',
+                'png'          => 'image/png',
+                'gif'          => 'image/gif',
+                'webp'         => 'image/webp'
+            )
+        ));
         if (isset($upload['url'])) {
+            if (!empty($old_popup) && $old_popup !== $upload['url'] && class_exists('YBT_File_Handler')) {
+                YBT_File_Handler::delete_urls(array($old_popup));
+            }
             update_option('ybt_popup_image', $upload['url']);
+        } elseif (isset($upload['error'])) {
+            wp_send_json_error('Upload error: ' . $upload['error']);
         }
     }
 
     if (isset($_POST['remove_popup_image']) && $_POST['remove_popup_image'] == '1') {
+        $old_popup = get_option('ybt_popup_image', '');
+        if (!empty($old_popup) && class_exists('YBT_File_Handler')) {
+            YBT_File_Handler::delete_urls(array($old_popup));
+        }
         update_option('ybt_popup_image', '');
     }
 
@@ -178,10 +199,26 @@ function ybt_add_message_handler() {
 
     // Handle Image Upload
     if (!empty($_FILES['message_image']['name'])) {
+        if (function_exists('ybt_validate_file_upload')) {
+            $validation = ybt_validate_file_upload($_FILES['message_image'], array('jpg', 'jpeg', 'png', 'gif', 'webp'), 5242880);
+            if (is_wp_error($validation)) {
+                wp_send_json_error('Image upload failed: ' . $validation->get_error_message());
+            }
+        }
         require_once(ABSPATH . 'wp-admin/includes/file.php');
-        $upload = wp_handle_upload($_FILES['message_image'], array('test_form' => false));
+        $upload = wp_handle_upload($_FILES['message_image'], array(
+            'test_form' => false,
+            'mimes' => array(
+                'jpg|jpeg|jpe' => 'image/jpeg',
+                'png'          => 'image/png',
+                'gif'          => 'image/gif',
+                'webp'         => 'image/webp'
+            )
+        ));
         if (isset($upload['url'])) {
             $image_url = $upload['url'];
+        } elseif (isset($upload['error'])) {
+            wp_send_json_error('Upload error: ' . $upload['error']);
         }
     }
 
@@ -220,11 +257,22 @@ function ybt_delete_message_handler() {
     if (!$id) wp_send_json_error('Invalid ID');
 
     global $wpdb;
+
+    // Fetch the message image before deletion so the physical file is removed too.
+    $message_image = $wpdb->get_var($wpdb->prepare(
+        "SELECT image_url FROM {$wpdb->prefix}ybt_admin_messages WHERE id = %d",
+        $id
+    ));
+
     $result = $wpdb->delete(
         $wpdb->prefix . 'ybt_admin_messages',
         array('id' => $id),
         array('%d')
     );
+
+    if ($result && !empty($message_image) && class_exists('YBT_File_Handler')) {
+        YBT_File_Handler::delete_urls(array($message_image));
+    }
 
     if ($result) {
         // Clear dashboard cache to reflect deletion immediately
@@ -237,6 +285,8 @@ function ybt_delete_message_handler() {
     }
 }
 add_action('wp_ajax_ybt_delete_message', 'ybt_delete_message_handler');
+
+
 
 /**
  * Save Payment Settings (bank details + optional QR image)
@@ -316,53 +366,3 @@ function ybt_save_payment_settings_handler() {
     wp_send_json_success('Payment settings saved.');
 }
 add_action('wp_ajax_ybt_save_payment_settings', 'ybt_save_payment_settings_handler');
-
-/**
- * Save FCM (Firebase service account) credentials
- * Called by templates/admin-fcm-settings.php with the raw JSON in fcm_json
- */
-function ybt_save_fcm_settings_handler() {
-    check_ajax_referer('ybt_admin_nonce', 'nonce');
-    if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
-
-    $json = isset($_POST['fcm_json']) ? wp_unslash($_POST['fcm_json']) : '';
-    $decoded = json_decode($json, true);
-
-    if (!is_array($decoded) || empty($decoded['client_email']) || empty($decoded['private_key'])) {
-        wp_send_json_error('Invalid service account JSON — paste the full contents of firebase-service-account.json.');
-    }
-
-    if (!class_exists('YBT_Notifications') || !method_exists('YBT_Notifications', 'save_secure_credentials')) {
-        wp_send_json_error('Notification system not available.');
-    }
-
-    if (YBT_Notifications::save_secure_credentials($json)) {
-        ybt_log_security_event('FCM_CREDENTIALS_SAVED', array('user_id' => get_current_user_id()));
-        wp_send_json_success('Firebase credentials encrypted and saved.');
-    }
-
-    wp_send_json_error('Failed to encrypt credentials.');
-}
-add_action('wp_ajax_ybt_save_fcm_settings', 'ybt_save_fcm_settings_handler');
-
-/**
- * Test FCM connection
- * Called by templates/admin-fcm-settings.php
- */
-function ybt_test_fcm_connection_handler() {
-    check_ajax_referer('ybt_admin_nonce', 'nonce');
-    if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
-
-    if (!class_exists('YBT_Notifications')) {
-        wp_send_json_error('Notification system not available.');
-    }
-
-    $result = YBT_Notifications::test_connection();
-    if (!empty($result['success'])) {
-        wp_send_json_success($result['message']);
-    }
-
-    wp_send_json_error(!empty($result['message']) ? $result['message'] : 'Connection test failed.');
-}
-add_action('wp_ajax_ybt_test_fcm_connection', 'ybt_test_fcm_connection_handler');
-

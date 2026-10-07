@@ -6,6 +6,9 @@ package com.packtracker.models
  * NOTE: this class was missing from the working tree (the file exists in the
  * real build tree). Recreated from the fields accessed across fragments.
  * All fields are nullable so partial API responses never break parsing.
+ *
+ * Serializable so fragments can carry it in their arguments Bundle — that
+ * survives process death, unlike passing it through a field.
  */
 data class TrackingItem(
     val id: Int? = null,
@@ -28,4 +31,4 @@ data class TrackingItem(
     val last_edited_by_name: String? = null,
     val last_edited_at: String? = null,
     val edit_count: Int? = null
-)
+) : java.io.Serializable

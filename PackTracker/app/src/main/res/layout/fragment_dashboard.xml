@@ -59,10 +59,9 @@
                                     android:id="@+id/tvBrandTitle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    style="@style/TextAppearance.PackTracker.DisplayFace.OnDark"
                                     android:text="YBT PACKING"
-                                    android:textColor="@android:color/white"
-                                    android:textSize="18sp"
-                                    android:textStyle="bold" />
+                                    android:textSize="@dimen/text_headline" />
 
                                 <TextView
                                     android:id="@+id/tvServiceStatus"
@@ -73,8 +72,8 @@
                                     android:paddingHorizontal="8dp"
                                     android:paddingVertical="2dp"
                                     android:text="FORWARDING SERVICE"
-                                    android:textColor="#FF7A5C00"
-                                    android:textSize="10sp"
+                                    android:textColor="@color/on_secondary"
+                                    android:textSize="@dimen/text_micro"
                                     android:textStyle="bold" />
                             </LinearLayout>
                         </LinearLayout>
@@ -85,7 +84,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/hero_text"
                             android:textColor="@color/white"
-                            android:textSize="26sp"
+                            android:textSize="@dimen/text_display"
                             android:fontFamily="sans-serif-black"
                             android:textStyle="bold" />
 
@@ -102,7 +101,7 @@
                             style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etSearch"
-                                android:textSize="14sp"
+                                android:textSize="@dimen/text_body"
                                 android:textColor="@color/white"
                                 android:textColorHint="@color/glass_white_40"
                                 android:padding="14dp"
@@ -137,8 +136,8 @@
                             app:cardBackgroundColor="@color/surface">
                             <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <ImageView android:background="@drawable/bg_stat_icon" android:padding="8dp" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginBottom="8dp" android:src="@drawable/ic_clock" />
-                                <TextView android:textSize="28sp" android:textColor="@color/on_surface" android:id="@+id/tvNotReceived" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
-                                <TextView android:id="@+id/tvNotReceivedLabel" android:textSize="10sp" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pending" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                                <TextView android:textSize="@dimen/text_display" android:textColor="@color/on_surface" android:id="@+id/tvNotReceived" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
+                                <TextView android:id="@+id/tvNotReceivedLabel" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pending" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
                         <com.google.android.material.card.MaterialCardView
@@ -152,8 +151,8 @@
                             app:cardBackgroundColor="@color/surface">
                             <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <ImageView android:background="@drawable/bg_stat_icon" android:padding="8dp" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginBottom="8dp" android:src="@drawable/ic_package" />
-                                <TextView android:textSize="28sp" android:textColor="@color/on_surface" android:id="@+id/tvReceived" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
-                                <TextView android:id="@+id/tvReceivedLabel" android:textSize="10sp" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/received" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                                <TextView android:textSize="@dimen/text_display" android:textColor="@color/on_surface" android:id="@+id/tvReceived" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
+                                <TextView android:id="@+id/tvReceivedLabel" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/received" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
                         <com.google.android.material.card.MaterialCardView
@@ -167,8 +166,8 @@
                             app:cardBackgroundColor="@color/surface">
                             <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <ImageView android:background="@drawable/bg_stat_icon" android:padding="8dp" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginBottom="8dp" android:src="@drawable/ic_folder" />
-                                <TextView android:textSize="28sp" android:textColor="@color/on_surface" android:id="@+id/tvPacked" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
-                                <TextView android:id="@+id/tvPackedLabel" android:textSize="10sp" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/packed" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                                <TextView android:textSize="@dimen/text_display" android:textColor="@color/on_surface" android:id="@+id/tvPacked" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
+                                <TextView android:id="@+id/tvPackedLabel" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/packed" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
                         <com.google.android.material.card.MaterialCardView
@@ -182,8 +181,8 @@
                             app:cardBackgroundColor="@color/surface">
                             <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <ImageView android:background="@drawable/bg_stat_icon" android:padding="8dp" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginBottom="8dp" android:src="@drawable/ic_check" />
-                                <TextView android:textSize="28sp" android:textColor="@color/on_surface" android:id="@+id/tvCompleted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
-                                <TextView android:id="@+id/tvCompletedLabel" android:textSize="10sp" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sent" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                                <TextView android:textSize="@dimen/text_display" android:textColor="@color/on_surface" android:id="@+id/tvCompleted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:fontFamily="sans-serif-black" />
+                                <TextView android:id="@+id/tvCompletedLabel" android:textSize="@dimen/text_micro" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sent" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
                     </GridLayout>
@@ -229,7 +228,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="Admin Orders"
                                     android:textColor="@color/on_surface"
-                                    android:textSize="16sp"
+                                    android:textSize="@dimen/text_title"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -238,7 +237,7 @@
                                     android:layout_marginTop="2dp"
                                     android:text="View \u0026 manage all tracking numbers"
                                     android:textColor="@color/on_surface_variant"
-                                    android:textSize="12sp" />
+                                    android:textSize="@dimen/text_caption" />
                             </LinearLayout>
 
                             <TextView
@@ -246,7 +245,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="\u203A"
                                 android:textColor="@color/on_surface_variant"
-                                android:textSize="22sp" />
+                                android:textSize="@dimen/text_headline" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -287,7 +286,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="Manage Users"
                                     android:textColor="@color/on_surface"
-                                    android:textSize="16sp"
+                                    android:textSize="@dimen/text_title"
                                     android:textStyle="bold" />
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -295,14 +294,14 @@
                                     android:layout_marginTop="2dp"
                                     android:text="View customer profiles \u0026 reset passwords"
                                     android:textColor="@color/on_surface_variant"
-                                    android:textSize="12sp" />
+                                    android:textSize="@dimen/text_caption" />
                             </LinearLayout>
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="\u203A"
                                 android:textColor="@color/on_surface_variant"
-                                android:textSize="22sp" />
+                                android:textSize="@dimen/text_headline" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -343,7 +342,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="Packing Requests"
                                     android:textColor="@color/on_surface"
-                                    android:textSize="16sp"
+                                    android:textSize="@dimen/text_title"
                                     android:textStyle="bold" />
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -351,14 +350,14 @@
                                     android:layout_marginTop="2dp"
                                     android:text="Process cartons \u0026 ready for shipment"
                                     android:textColor="@color/on_surface_variant"
-                                    android:textSize="12sp" />
+                                    android:textSize="@dimen/text_caption" />
                             </LinearLayout>
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="\u203A"
                                 android:textColor="@color/on_surface_variant"
-                                android:textSize="22sp" />
+                                android:textSize="@dimen/text_headline" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -399,7 +398,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="Warehouse Scanner"
                                     android:textColor="@color/on_surface"
-                                    android:textSize="16sp"
+                                    android:textSize="@dimen/text_title"
                                     android:textStyle="bold" />
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -407,14 +406,14 @@
                                     android:layout_marginTop="2dp"
                                     android:text="Scan barcodes to check in incoming parcels"
                                     android:textColor="@color/on_surface_variant"
-                                    android:textSize="12sp" />
+                                    android:textSize="@dimen/text_caption" />
                             </LinearLayout>
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="\u203A"
                                 android:textColor="@color/on_surface_variant"
-                                android:textSize="22sp" />
+                                android:textSize="@dimen/text_headline" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -429,8 +428,8 @@
                         app:strokeWidth="1dp"
                         app:cardBackgroundColor="@color/surface">
                         <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
-                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="@string/announcement" android:textSize="10sp" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
-                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvAnnouncement" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/no_announcements" android:textSize="14sp" android:lineSpacingMultiplier="1.4" />
+                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="@string/announcement" android:textSize="@dimen/text_micro" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvAnnouncement" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/no_announcements" android:textSize="@dimen/text_body" android:lineSpacingMultiplier="1.4" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                     <com.google.android.material.card.MaterialCardView
@@ -444,8 +443,8 @@
                         app:strokeWidth="1dp"
                         app:cardBackgroundColor="@color/surface">
                         <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
-                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="@string/quick_start" android:textSize="10sp" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
-                            <TextView android:textColor="@color/on_surface" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/quick_start_steps" android:textSize="14sp" android:lineSpacingMultiplier="1.4" />
+                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="@string/quick_start" android:textSize="@dimen/text_micro" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                            <TextView android:textColor="@color/on_surface" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/quick_start_steps" android:textSize="@dimen/text_body" android:lineSpacingMultiplier="1.4" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                     <com.google.android.material.card.MaterialCardView
@@ -460,14 +459,14 @@
                         app:strokeWidth="1dp"
                         app:cardBackgroundColor="@color/surface">
                         <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
-                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="@string/warehouse_address" android:textSize="10sp" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
-                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvWarehouseAddress" android:padding="8dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/loading" android:textSize="14sp" android:lineSpacingMultiplier="1.4" />
+                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="@string/warehouse_address" android:textSize="@dimen/text_micro" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvWarehouseAddress" android:padding="8dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/loading" android:textSize="@dimen/text_body" android:lineSpacingMultiplier="1.4" />
                             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                                <TextView android:textColor="@color/on_surface_variant" android:id="@+id/tvWarehousePhone" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="" android:textSize="12sp" />
-                                <TextView android:textColor="@color/on_surface_variant" android:id="@+id/tvWarehouseHours" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="" android:textSize="12sp" />
+                                <TextView android:textColor="@color/on_surface_variant" android:id="@+id/tvWarehousePhone" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="" android:textSize="@dimen/text_caption" />
+                                <TextView android:textColor="@color/on_surface_variant" android:id="@+id/tvWarehouseHours" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="" android:textSize="@dimen/text_caption" />
                                 <ImageView android:id="@+id/ivCopyAddress" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_copy" android:contentDescription="Copy address" />
                             </LinearLayout>
-                            <TextView android:textSize="12sp" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/tap_copy" />
+                            <TextView android:textSize="@dimen/text_caption" android:textColor="@color/on_surface_variant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/tap_copy" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                     <com.google.android.material.card.MaterialCardView
@@ -481,10 +480,10 @@
                         app:strokeWidth="1dp"
                         app:cardBackgroundColor="@color/surface">
                         <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
-                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Bank Details" android:textSize="10sp" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
-                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvBankName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/loading" android:textSize="14sp" />
-                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvAccountName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/loading" android:textSize="13sp" />
-                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvAccountNumber" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/loading" android:textSize="13sp" />
+                            <TextView android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Bank Details" android:textSize="@dimen/text_micro" android:fontFamily="sans-serif-black" android:letterSpacing="0.1" />
+                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvBankName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/loading" android:textSize="@dimen/text_body" />
+                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvAccountName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/loading" android:textSize="@dimen/text_body_sm" />
+                            <TextView android:textColor="@color/on_surface" android:id="@+id/tvAccountNumber" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/loading" android:textSize="@dimen/text_body_sm" />
                             <LinearLayout android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <ImageView android:id="@+id/ivQrCode" android:layout_width="72dp" android:layout_height="72dp" android:layout_marginTop="8dp" android:src="@android:drawable/ic_menu_report_image" android:contentDescription="Payment QR code" />
                                 <ImageView android:id="@+id/ivCopyBank" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="12dp" android:src="@drawable/ic_copy" android:contentDescription="Copy bank details" />
@@ -499,7 +498,7 @@
                                 android:drawablePadding="6dp"
                                 android:text="@string/download_qr"
                                 android:textColor="@color/primary"
-                                android:textSize="12sp"
+                                android:textSize="@dimen/text_caption"
                                 android:textStyle="bold"
                                 android:visibility="gone" />
                         </LinearLayout>

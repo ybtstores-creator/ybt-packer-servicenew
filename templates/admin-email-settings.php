@@ -6,7 +6,7 @@ if (!current_user_can('manage_options')) {
 }
 
 $from_email = get_option('ybt_email_from_email', get_option('admin_email'));
-$from_name = get_option('ybt_email_from_name', 'YBT Packer Service');
+$from_name = get_option('ybt_email_from_name', 'YBT Packing Service');
 $notifications_enabled = get_option('ybt_email_notifications_enabled', 1);
 ?>
 

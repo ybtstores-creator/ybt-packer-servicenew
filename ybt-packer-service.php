@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: YBT Packer Service
+ * Plugin Name: YBT Packing Service
  * Plugin URI: https://yourcompany.com/ybt-packer-service
  * Description: Professional freight packaging and tracking management system with advanced analytics and automation.
  * Version: 3.2
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define Plugin Constants
-define( 'YBT_VERSION', '3.2' );
+define( 'YBT_VERSION', '3.3' );
 define( 'YBT_PLUGIN_FILE', __FILE__ );
 define( 'YBT_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'YBT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -49,11 +49,11 @@ function ybt_check_requirements() {
 }
 
 function ybt_php_version_notice() {
-	echo '<div class="notice notice-error is-dismissible"><p><strong>YBT Packer Service:</strong> Requires PHP ' . esc_html(YBT_MIN_PHP_VERSION) . ' or higher. Current version: ' . esc_html(PHP_VERSION) . '</p></div>';
+	echo '<div class="notice notice-error is-dismissible"><p><strong>YBT Packing Service:</strong> Requires PHP ' . esc_html(YBT_MIN_PHP_VERSION) . ' or higher. Current version: ' . esc_html(PHP_VERSION) . '</p></div>';
 }
 
 function ybt_wp_version_notice() {
-	echo '<div class="notice notice-error is-dismissible"><p><strong>YBT Packer Service:</strong> Requires WordPress ' . esc_html(YBT_MIN_WP_VERSION) . ' or higher.</p></div>';
+	echo '<div class="notice notice-error is-dismissible"><p><strong>YBT Packing Service:</strong> Requires WordPress ' . esc_html(YBT_MIN_WP_VERSION) . ' or higher.</p></div>';
 }
 
 // System Requirements Check - stop loading if requirements not met
@@ -101,6 +101,7 @@ $additional_files = [
 	'includes/class-ybt-file-handler.php',
 	'includes/class-ybt-file-validator.php',
 	'includes/class-ybt-logger.php',
+	'includes/class-ybt-tracking-events.php',
 	'includes/class-ybt-tracking-audit.php',
 	'includes/class-ybt-encryption.php',
 	'includes/class-ybt-packing.php',
@@ -108,6 +109,8 @@ $additional_files = [
 	'includes/class-ybt-shortcodes.php',
 	'includes/class-ybt-user-profile.php',
 	'includes/class-ybt-notifications.php',
+	'includes/notifications-web.php',
+	'includes/notifications-announcements.php',
 	'includes/authentication.php',
 	'includes/tracking.php',
 	'includes/file-upload.php',
@@ -118,6 +121,7 @@ $additional_files = [
 	'includes/mobile-auth.php',
 	'includes/mobile-tracking.php',
 	'includes/mobile-dashboard.php',
+	'includes/mobile-crash-log.php',
 	'includes/dashboard-stats.php',
 	'includes/ybt-offline-sync.php',
 	'includes/api-bootstrap.php',
@@ -129,6 +133,7 @@ $additional_files = [
 	'includes/class-ybt-invoice.php',
 	'includes/class-ybt-automation.php',
 	'includes/class-ybt-admin-menu-style.php',
+	'includes/class-ybt-admin-shell.php',
     'includes/admin-settings-handlers.php',
     'includes/admin-rest-api.php',
     'includes/class-ybt-ai-operator.php',
@@ -177,10 +182,13 @@ function ybt_init_plugin() {
 			|| ! ybt_table_exists( $wpdb->prefix . 'ybt_security_log' );
 	}
 	if ( version_compare( $stored_version, YBT_VERSION, '<' ) || $missing_tables ) {
+		$migrated = true;
 		if ( class_exists( 'YBT_Database' ) ) {
-			YBT_Database::create_tables();
+			$migrated = YBT_Database::create_tables( true );
 		}
-		update_option( 'ybt_db_version', YBT_VERSION );
+		if ( $migrated !== false ) {
+			update_option( 'ybt_db_version', YBT_VERSION );
+		}
 	}
 
 	if ( function_exists( 'ybt_profile_stop' ) ) {
@@ -222,9 +230,11 @@ function ybt_add_security_headers() {
 	
 	// SECURITY FIX: Enforce HTTPS site-wide (excluding AJAX requests and optionally localhost)
 	$enforce_https = get_option('ybt_enforce_https', '1') === '1';
-	$is_local = in_array($_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+	$remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+	$is_local = in_array($remote_ip, array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+	$is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
 	
-	if ( $enforce_https && ! is_ssl() && ! defined('WP_CLI') && ! defined('DOING_AJAX') && !$is_local ) {
+	if ( $enforce_https && ! $is_https && ! defined('WP_CLI') && ! defined('DOING_AJAX') && !$is_local ) {
 		header( 'Location: https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'], true, 301 );
 		exit;
 	}
@@ -479,7 +489,7 @@ add_action( 'activated_plugin', 'ybt_optimize_logo_image', 10, 2 );
 if ( ! function_exists( 'ybt_log_error' ) ) {
 	function ybt_log_error( $message, $context = array() ) {
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( 'YBT Packer: ' . $message . ' Context: ' . wp_json_encode( $context ) );
+			error_log( 'YBT Packing Service: ' . $message . ' Context: ' . wp_json_encode( $context ) );
 		}
 	}
 }
@@ -622,7 +632,7 @@ add_action( 'admin_init', 'ybt_check_file_integrity' );
 
 function ybt_missing_files_notice() {
 	global $missing_files_list;
-	echo '<div class="notice notice-error"><p><strong>YBT Packer Service:</strong> Critical files missing: ' . esc_html( $missing_files_list ) . '. Plugin has been deactivated.</p></div>';
+	echo '<div class="notice notice-error"><p><strong>YBT Packing Service:</strong> Critical files missing: ' . esc_html( $missing_files_list ) . '. Plugin has been deactivated.</p></div>';
 }
 
 // =============================================================================

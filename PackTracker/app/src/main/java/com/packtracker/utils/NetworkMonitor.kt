@@ -19,7 +19,7 @@ object NetworkMonitor {
     }
 
     fun isOnline(context: Context): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
         val network = cm.activeNetwork ?: return false
         val caps = cm.getNetworkCapabilities(network) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
@@ -36,6 +36,7 @@ object NetworkMonitor {
                 listener.onConnectivityChanged(isOnline(context))
             }
         }
+        @Suppress("DEPRECATION")
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         context.registerReceiver(receiver, filter)
         return receiver

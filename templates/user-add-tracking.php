@@ -15,7 +15,7 @@ add_action('wp_head', function() {
         body.admin-bar { margin-top: 0 !important; padding-top: 0 !important; }
         html { margin-top: 0 !important; }
     </style>';
-    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src \'self\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;">';
+    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src \'self\' data: blob: https:; connect-src \'self\' https:;">';
 }, 1);
 
 // Load modern navbar
@@ -23,213 +23,272 @@ require_once YBT_PLUGIN_PATH . 'templates/components/dashboard-navbar-modern.php
 render_dashboard_navbar($current_user);
 ?>
 <style>
-:root {
-    --ybt-green: #10b981;
-    --ybt-green-hover: #059669;
-    --ybt-green-light: #ecfdf5;
-    --ybt-gold: #d4af37;
-    --ybt-gold-hover: #b59021;
+/* ================================================================
+   ADD TRACKING — "The intake desk" (page-specific layer)
+   Shared tokens & atoms come from assets/css/ybt-consignment.css
+   (.ybd-page scope). JS contracts untouched:
+   #add-tracking-form (tracking_numbers[]/descriptions[]/item_counts[],
+   tracking_nonce), #claim-tracking-form (claim_tracking_number,
+   claim_nonce), #add-more-btn, .tracking-item-row, .remove-row-btn,
+   #submit-btn, #claim-btn.
+   ================================================================ */
+.ybd-page .ybt-tabs{
+	list-style:none;
+	margin:0 0 18px;
+	padding:4px;
+	display:flex;
+	gap:6px;
+	background:var(--kraft);
+	border:1.5px solid var(--kraft-line);
+	border-radius:10px;
 }
-
-.ybt-tabs .nav-link {
-    color: #64748b;
-    font-weight: 700;
-    transition: all 0.3s ease;
-    border: 1.5px solid transparent;
+.ybd-page .ybt-tabs button{
+	flex:1;
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	gap:8px;
+	font-family:var(--mono);
+	font-size:12.5px;
+	font-weight:600;
+	letter-spacing:.08em;
+	text-transform:uppercase;
+	color:#5c5543;
+	background:transparent;
+	border:1.5px solid transparent;
+	border-radius:7px;
+	padding:11px 14px;
+	cursor:pointer;
+	transition:color .15s ease, background-color .15s ease, border-color .15s ease;
 }
-
-.ybt-tabs .nav-link.active {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+.ybd-page .ybt-tabs button:hover{ color:var(--emerald-deep); background:var(--emerald-tint); }
+.ybd-page .ybt-tabs button.active{
+	color:var(--ink);
+	background:var(--paper);
+	border-color:var(--emerald);
+	box-shadow:3px 3px 0 rgba(16,185,129,.18);
 }
-
-.ybt-tabs .nav-link:hover:not(.active) {
-    color: #10b981;
-    background: #ecfdf5;
+.ybd-page .tracking-item-row{
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:12px;
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+	padding:18px;
+	margin-bottom:16px;
+	animation:ybt-row-in .3s ease-out both;
 }
-
-.tracking-item-row {
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0 !important;
-    border-top: 3.5px solid #d4af37 !important;
-    border-radius: 14px !important;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+@keyframes ybt-row-in{
+	from{ opacity:0; transform:translateY(6px); }
+	to{ opacity:1; transform:none; }
 }
-
-.text-brand-green {
-    color: #10b981 !important;
+.ybd-page .tracking-item-row .ybt-rowhead{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:10px;
+	margin-bottom:12px;
 }
-
-.btn-brand-primary {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: #ffffff !important;
-    border: none !important;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+.ybd-page .tracking-item-row .ybt-rowhead h6{
+	margin:0;
+	font-family:var(--mono);
+	font-size:11px;
+	font-weight:600;
+	letter-spacing:.16em;
+	text-transform:uppercase;
+	color:var(--emerald-deep);
+	display:flex;
+	align-items:center;
+	gap:8px;
 }
-.btn-brand-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4) !important;
+.ybd-page .tracking-item-row .ybt-rowhead h6 i{ color:var(--gold-deep); }
+.ybd-page .remove-row-btn{
+	width:30px;height:30px;
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	background:none;
+	border:1.5px solid var(--kraft-deep);
+	border-radius:8px;
+	color:#9c2020;
+	cursor:pointer;
+	transition:border-color .15s ease, background-color .15s ease;
 }
-
-.btn-brand-success {
-    background: linear-gradient(135deg, #d4af37 0%, #b59021 100%) !important;
-    color: #1e293b !important;
-    font-weight: 700 !important;
-    border: none !important;
+.ybd-page .remove-row-btn:hover{ border-color:#9c2020; background:#fdeeee; }
+.ybd-page .ybt-fieldrow{
+	display:grid;
+	grid-template-columns:2fr 3fr 1.2fr;
+	gap:12px;
 }
-.btn-brand-success:hover {
-    color: #ffffff !important;
+.ybd-page .ybt-intake-actions{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:12px;
+	flex-wrap:wrap;
+	margin:18px 0;
 }
-.link-brand {
-    color: #10b981;
-    text-decoration: none;
+.ybd-page .ybt-hint{
+	font-family:var(--mono);
+	font-size:11px;
+	letter-spacing:.06em;
+	color:#8b968f;
+	display:inline-flex;
+	align-items:center;
+	gap:6px;
 }
-.link-brand:hover {
-    color: #059669;
-    text-decoration: underline;
+.ybd-page .ybt-hint i{ color:var(--gold-deep); }
+.ybd-page .ybt-submitrow{
+	margin-top:6px;
+	padding-top:18px;
+	border-top:2px dashed var(--kraft-line);
 }
-.alert-brand-info {
-    background: #ecfdf5;
-    border-left: 4px solid #10b981;
-    color: #047857;
+.ybd-page .ybt-submitrow .ybd-btn{ width:100%; padding:14px 22px; font-size:15px; }
+.ybd-page .ybt-backlink{
+	display:inline-flex;
+	align-items:center;
+	gap:8px;
+	margin-top:18px;
+	font-family:var(--mono);
+	font-size:12.5px;
+	font-weight:600;
+	color:#5c5543;
+	text-decoration:none;
+}
+.ybd-page .ybt-backlink:hover{ color:var(--emerald-deep); }
+/* pane visibility: works without Bootstrap CSS/JS (JS below re-implements toggling) */
+.ybd-page .tab-pane{ display:none; }
+.ybd-page .tab-pane.active{ display:block; }
+@media (max-width:820px){
+	.ybd-page .ybt-fieldrow{ grid-template-columns:1fr; }
 }
 </style>
 
-<div class="ybt-dashboard-wrapper animate-up">
-<div class="container py-4">
+<div class="ybd-page">
 
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-        <h2 class="mb-0" style="color: #1e293b; font-weight: 800;">
-            <i class="fas fa-plus-circle me-2" style="color: #10b981;"></i>Register Parcels
-        </h2>
-    </div>
+	<!-- page head -->
+	<div class="ybd-pagehead">
+		<div>
+			<p class="ybd-eyebrow">Stage 1 of 5 &middot; Intake desk</p>
+			<h2>Register parcels</h2>
+			<p class="ybd-sub">Add the tracking numbers from your online orders. We take it from the moment the courier delivers.</p>
+		</div>
+		<span class="ybd-count">Intake open &middot; Mon&ndash;Sat</span>
+	</div>
 
-    <div class="glass-card mb-5">
-        <div class="info-card-header bg-white border-bottom p-3">
-            <span class="fw-bold text-muted"><i class="fas fa-magic me-2" style="color: #d4af37;"></i>Manage Your Tracking</span>
-        </div>
-        <div class="info-card-body p-0">
+	<div class="ybd-panel">
 
-<!-- Tab Navigation -->
-<ul class="nav nav-pills nav-fill bg-light p-3 mb-0 ybt-tabs" id="trackingTabs" role="tablist">
-<li class="nav-item" role="presentation">
-<button class="nav-link active rounded-pill py-3" id="add-tab" data-bs-toggle="tab" data-bs-target="#add-pane" type="button" role="tab">
-<i class="fas fa-plus-circle me-2"></i>ADD NEW
-</button>
-</li>
-<li class="nav-item" role="presentation">
-<button class="nav-link rounded-pill py-3" id="claim-tab" data-bs-toggle="tab" data-bs-target="#claim-pane" type="button" role="tab">
-<i class="fas fa-search me-2"></i>CLAIM RECEIVED
-</button>
-</li>
-</ul>
+		<!-- tab strip -->
+		<div class="ybt-tabs" role="tablist">
+			<button type="button" class="active" id="add-tab" data-bs-toggle="tab" data-bs-target="#add-pane" role="tab" aria-selected="true">
+				<i class="fas fa-plus-circle"></i> Add new
+			</button>
+			<button type="button" id="claim-tab" data-bs-toggle="tab" data-bs-target="#claim-pane" role="tab" aria-selected="false">
+				<i class="fas fa-barcode"></i> Claim received
+			</button>
+		</div>
 
-<div class="tab-content p-4 p-md-5" id="trackingTabsContent">
-<!-- Add New Pane -->
-<div class="tab-pane fade show active" id="add-pane" role="tabpanel">
-<div class="row justify-content-center">
-<div class="col-12 col-lg-10 col-xl-8">
-<form id="add-tracking-form">
-<?php wp_nonce_field('ybt_user_add_tracking', 'tracking_nonce'); ?>
-<input type="hidden" name="action" value="ybt_user_add_tracking">
-<div id="tracking-items-container">
-<!-- Initial Item -->
-<div class="tracking-item-row mb-4 p-4 rounded-3 position-relative">
-<div class="d-flex justify-content-between align-items-center mb-3">
-<h6 class="text-brand-green fw-bold mb-0"><i class="fas fa-box me-2" style="color: #d4af37;"></i>ITEM #1</h6>
-</div>
-<div class="row g-3">
-<div class="col-md-4">
-<label class="form-label fw-semibold text-secondary small">Tracking Number</label>
-<div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-<span class="input-group-text bg-light border-end-0"><i class="fas fa-hashtag text-muted"></i></span>
-<input type="text" class="form-control form-control-premium border-start-0" name="tracking_numbers[]" required
-       placeholder="e.g. 1Z999..." autocomplete="off" maxlength="50">
-</div>
-</div>
-<div class="col-md-5">
-<label class="form-label fw-semibold text-secondary small">Description</label>
-<div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-<span class="input-group-text bg-light border-end-0"><i class="fas fa-tag text-muted"></i></span>
-<input type="text" class="form-control form-control-premium border-start-0" name="descriptions[]" required
-       placeholder="e.g. Shoes, Clothes..." autocomplete="off" maxlength="200">
-</div>
-</div>
-<div class="col-md-3">
-<label class="form-label fw-semibold text-secondary small">Item Count</label>
-<div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-<span class="input-group-text bg-light border-end-0"><i class="fas fa-boxes text-muted"></i></span>
-<input type="number" class="form-control form-control-premium border-start-0" name="item_counts[]" required
-       placeholder="Qty" min="1" max="9999" value="1">
-</div>
-</div>
-</div>
-</div>
-</div>
+		<div class="tab-content" id="trackingTabsContent">
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-<button type="button" id="add-more-btn" class="btn btn-outline-success rounded-pill fw-bold" style="border-color: #10b981; color: #10b981;">
-<i class="fas fa-plus me-1"></i> Add Another Item
-</button>
-<div class="text-muted small">
-<i class="fas fa-info-circle me-1" style="color: #d4af37;"></i> Press '+' to add more rows
-</div>
-</div>
+		<!-- add new pane -->
+		<div class="tab-pane fade show active" id="add-pane" role="tabpanel">
+		<form id="add-tracking-form">
+		<?php wp_nonce_field('ybt_user_add_tracking', 'tracking_nonce'); ?>
+		<input type="hidden" name="action" value="ybt_user_add_tracking">
 
-<div class="d-grid">
-<button type="submit" class="btn btn-brand-primary btn-lg rounded-pill shadow-lg fw-bold" id="submit-btn">
-<i class="fas fa-paper-plane me-2"></i>Register All Parcels
-</button>
-</div>
-</form>
-</div>
-</div>
-</div>
+		<div id="tracking-items-container">
+			<!-- Initial item row -->
+			<div class="tracking-item-row">
+				<div class="ybt-rowhead">
+					<h6><i class="fas fa-box"></i> Item #1</h6>
+				</div>
+				<div class="ybt-fieldrow">
+					<div>
+						<label class="ybd-formlabel" for="tn-1">Tracking number</label>
+						<input type="text" class="ybd-input" id="tn-1" name="tracking_numbers[]" required placeholder="e.g. 1Z999..." autocomplete="off" maxlength="50">
+					</div>
+					<div>
+						<label class="ybd-formlabel" for="desc-1">Description</label>
+						<input type="text" class="ybd-input" id="desc-1" name="descriptions[]" required placeholder="e.g. Shoes, Clothes..." autocomplete="off" maxlength="200">
+					</div>
+					<div>
+						<label class="ybd-formlabel" for="qty-1">Item count</label>
+						<input type="number" class="ybd-input" id="qty-1" name="item_counts[]" required placeholder="Qty" min="1" max="9999" value="1">
+					</div>
+				</div>
+			</div>
+		</div>
 
-<!-- Claim Pane -->
-<div class="tab-pane fade" id="claim-pane" role="tabpanel">
-<div class="row justify-content-center">
-<div class="col-12 col-lg-8 col-xl-6">
-<div class="alert alert-brand-info mb-4">
-<i class="fas fa-info-circle me-2"></i> Use this if your tracking shows <strong>Delivered</strong> but it's not in your list yet.
-</div>
-<form id="claim-tracking-form">
-<?php wp_nonce_field('ybt_claim_parcel', 'claim_nonce'); ?>
-<input type="hidden" name="action" value="ybt_claim_parcel">
-<div class="mb-4">
-<label class="form-label fw-semibold text-secondary small">Received Tracking Number</label>
-<div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-<span class="input-group-text bg-light border-end-0"><i class="fas fa-barcode text-muted"></i></span>
-<input type="text" class="form-control form-control-premium border-start-0" id="claim_tracking_number" name="tracking_number"
-       required placeholder="Paste tracking number here" maxlength="50">
-</div>
-</div>
-<div class="d-grid mb-3">
-<button type="submit" class="btn btn-brand-success btn-lg rounded-pill" id="claim-btn">
-<i class="fas fa-search me-2"></i>Search & Claim
-</button>
-</div>
-<div class="text-center">
-<a href="<?php echo esc_url(home_url('/anonymous/')); ?>" class="link-brand fw-bold">
-<i class="fas fa-list me-1"></i> Browse all unclaimed parcels
-</a>
-</div>
-</form>
-</div>
-</div>
-        </div> <!-- .info-card-body -->
-    </div> <!-- .glass-card -->
+		<div class="ybt-intake-actions">
+			<button type="button" id="add-more-btn" class="ybd-btn ybd-btn-emerald">
+				<i class="fas fa-plus"></i> Add another item
+			</button>
+			<span class="ybt-hint"><i class="fas fa-keyboard"></i> Press '+' to add more rows</span>
+		</div>
 
-    <div class="text-start mt-4">
-        <a href="<?php echo esc_url(home_url('/dashboard/')); ?>" class="text-decoration-none text-muted fw-bold">
-            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-        </a>
-    </div>
-</div> <!-- .container -->
-</div> <!-- .ybt-dashboard-wrapper -->
+		<div class="ybt-submitrow">
+			<button type="submit" class="ybd-btn ybd-btn-gold" id="submit-btn">
+				<i class="fas fa-paper-plane"></i> Register all parcels
+			</button>
+		</div>
+		</form>
+		</div>
+
+		<!-- claim pane -->
+		<div class="tab-pane fade" id="claim-pane" role="tabpanel">
+		<div class="ybd-note" style="margin-top:0;">
+			<i class="fas fa-circle-info"></i>
+			<span><strong>Already delivered?</strong> If your tracking shows delivered but the parcel isn't in your list yet, claim it here with the tracking number.</span>
+		</div>
+
+		<form id="claim-tracking-form" style="margin-top:18px;">
+		<?php wp_nonce_field('ybt_claim_parcel', 'claim_nonce'); ?>
+		<input type="hidden" name="action" value="ybt_claim_parcel">
+
+		<div style="max-width:520px;">
+			<label class="ybd-formlabel" for="claim_tracking_number">Received tracking number</label>
+			<input type="text" class="ybd-input" id="claim_tracking_number" name="tracking_number" required placeholder="Paste tracking number here" maxlength="50">
+
+			<button type="submit" class="ybd-btn ybd-btn-gold" id="claim-btn" style="width:100%;margin-top:16px;">
+				<i class="fas fa-magnifying-glass"></i> Search &amp; claim
+			</button>
+
+			<p style="text-align:center;margin:14px 0 0;">
+				<a href="<?php echo esc_url(home_url('/anonymous/')); ?>" class="ybd-ghostlink">
+					<i class="fas fa-list"></i> Browse all unclaimed parcels
+				</a>
+			</p>
+		</div>
+		</form>
+		</div>
+
+		</div><!-- /.tab-content -->
+	</div><!-- /.ybd-panel -->
+
+	<a href="<?php echo esc_url(home_url('/dashboard/')); ?>" class="ybt-backlink">
+		<i class="fas fa-arrow-left"></i> Back to dashboard
+	</a>
+</div><!-- /.ybd-page -->
 
 <script>
+(function(){
+	// self-contained tab switching (no Bootstrap dependency)
+	document.addEventListener('DOMContentLoaded', function(){
+		var tabs = document.querySelectorAll('.ybt-tabs [data-bs-toggle="tab"]');
+		tabs.forEach(function(tab){
+			tab.addEventListener('click', function(){
+				tabs.forEach(function(t){
+					t.classList.remove('active');
+					t.setAttribute('aria-selected', 'false');
+				});
+				tab.classList.add('active');
+				tab.setAttribute('aria-selected', 'true');
+				document.querySelectorAll('.ybd-page .tab-pane').forEach(function(p){ p.classList.remove('active', 'show', 'in'); });
+				var pane = document.querySelector(tab.getAttribute('data-bs-target'));
+				if (pane) { pane.classList.add('active'); }
+			});
+		});
+	});
+})();
 jQuery(document).ready(function($) {
     const addNonce = (typeof ybt_ajax !== 'undefined' && ybt_ajax.add_tracking_nonce) ? ybt_ajax.add_tracking_nonce : '<?php echo wp_create_nonce('ybt_user_add_tracking'); ?>';
     const claimNonce = (typeof ybt_ajax !== 'undefined' && ybt_ajax.claim_nonce) ? ybt_ajax.claim_nonce : '<?php echo wp_create_nonce('ybt_claim_parcel'); ?>';
@@ -291,34 +350,25 @@ jQuery(document).ready(function($) {
         const safeCount = $('<div>').text(itemCount).html();
 
         const newRow = `
-        <div class="tracking-item-row mb-4 p-4 rounded-3 position-relative fade-in">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="text-brand-green fw-bold mb-0"><i class="fas fa-box me-2" style="color: #d4af37;"></i>ITEM #${safeCount}</h6>
-        <button type="button" class="btn btn-sm btn-outline-danger rounded-circle remove-row-btn" title="Remove Item">
+        <div class="tracking-item-row">
+        <div class="ybt-rowhead">
+        <h6><i class="fas fa-box"></i> Item #${safeCount}</h6>
+        <button type="button" class="remove-row-btn" title="Remove Item" aria-label="Remove Item">
         <i class="fas fa-times"></i>
         </button>
         </div>
-        <div class="row g-3">
-        <div class="col-md-4">
-        <label class="form-label fw-semibold text-secondary small">Tracking Number</label>
-        <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-        <span class="input-group-text bg-light border-end-0"><i class="fas fa-hashtag text-muted"></i></span>
-        <input type="text" class="form-control form-control-premium border-start-0" name="tracking_numbers[]" required placeholder="e.g. 1Z999..." autocomplete="off" maxlength="50">
+        <div class="ybt-fieldrow">
+        <div>
+        <label class="ybd-formlabel">Tracking number</label>
+        <input type="text" class="ybd-input" name="tracking_numbers[]" required placeholder="e.g. 1Z999..." autocomplete="off" maxlength="50">
         </div>
+        <div>
+        <label class="ybd-formlabel">Description</label>
+        <input type="text" class="ybd-input" name="descriptions[]" required placeholder="e.g. Shoes, Clothes..." autocomplete="off" maxlength="200">
         </div>
-        <div class="col-md-5">
-        <label class="form-label fw-semibold text-secondary small">Description</label>
-        <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-        <span class="input-group-text bg-light border-end-0"><i class="fas fa-tag text-muted"></i></span>
-        <input type="text" class="form-control form-control-premium border-start-0" name="descriptions[]" required placeholder="e.g. Shoes, Clothes..." autocomplete="off" maxlength="200">
-        </div>
-        </div>
-        <div class="col-md-3">
-        <label class="form-label fw-semibold text-secondary small">Item Count</label>
-        <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-        <span class="input-group-text bg-light border-end-0"><i class="fas fa-boxes text-muted"></i></span>
-        <input type="number" class="form-control form-control-premium border-start-0" name="item_counts[]" required placeholder="Qty" min="1" max="9999" value="1">
-        </div>
+        <div>
+        <label class="ybd-formlabel">Item count</label>
+        <input type="number" class="ybd-input" name="item_counts[]" required placeholder="Qty" min="1" max="9999" value="1">
         </div>
         </div>
         </div>

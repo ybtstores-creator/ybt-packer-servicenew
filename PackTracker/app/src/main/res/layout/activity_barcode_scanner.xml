@@ -28,7 +28,7 @@
             android:paddingVertical="6dp"
             android:text="Align barcode in the box"
             android:textColor="@color/white"
-            android:textSize="13sp" />
+            android:textSize="@dimen/text_body_sm" />
 
         <TextView
             android:id="@+id/tvBarcodeValue"
@@ -40,7 +40,7 @@
             android:paddingVertical="6dp"
             android:text=""
             android:textColor="@color/white"
-            android:textSize="15sp"
+            android:textSize="@dimen/text_body"
             android:textStyle="bold"
             android:visibility="gone" />
 
@@ -50,8 +50,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text=""
-            android:textColor="#CCFFFFFF"
-            android:textSize="11sp" />
+            android:textColor="@color/overlay_text_high"
+            android:textSize="@dimen/text_micro" />
 
         <TextView
             android:id="@+id/tvError"
@@ -59,8 +59,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text=""
-            android:textColor="#FFFF6B6B"
-            android:textSize="12sp" />
+            android:textColor="@color/overlay_error"
+            android:textSize="@dimen/text_caption" />
 
         <TextView
             android:id="@+id/tvDuplicate"
@@ -68,8 +68,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text=""
-            android:textColor="#FFFFD166"
-            android:textSize="12sp" />
+            android:textColor="@color/overlay_warn"
+            android:textSize="@dimen/text_caption" />
 
         <TextView
             android:id="@+id/tvSaved"
@@ -78,7 +78,7 @@
             android:layout_marginTop="4dp"
             android:text=""
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
 
         <TextView
             android:id="@+id/tvIndex"
@@ -87,7 +87,7 @@
             android:layout_marginTop="4dp"
             android:text=""
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
     </LinearLayout>
 
     <TextView
@@ -101,7 +101,7 @@
         android:paddingVertical="4dp"
         android:text="Online"
         android:textColor="@color/white"
-        android:textSize="11sp" />
+        android:textSize="@dimen/text_micro" />
 
     <!-- Offline banner -->
     <LinearLayout
@@ -122,7 +122,7 @@
             android:layout_height="wrap_content"
             android:text="Offline — scans saved locally"
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
 
         <TextView
             android:id="@+id/tvOfflineSaved"
@@ -131,7 +131,7 @@
             android:layout_marginStart="8dp"
             android:text=""
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
     </LinearLayout>
 
     <!-- Pending sync pill -->
@@ -146,7 +146,7 @@
         android:paddingVertical="4dp"
         android:text="0 pending"
         android:textColor="@color/white"
-        android:textSize="12sp" />
+        android:textSize="@dimen/text_caption" />
 
     <!-- Batch badge + confirm action shown during a batch scan session -->
     <FrameLayout
@@ -164,7 +164,7 @@
             android:layout_height="wrap_content"
             android:text="BATCH"
             android:textColor="@color/white"
-            android:textSize="11sp"
+            android:textSize="@dimen/text_micro"
             android:textStyle="bold" />
     </FrameLayout>
 
@@ -180,7 +180,7 @@
         android:paddingVertical="8dp"
         android:text="Confirm batch"
         android:textColor="@color/white"
-        android:textSize="13sp"
+        android:textSize="@dimen/text_body_sm"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -191,7 +191,7 @@
         android:layout_height="180dp"
         android:layout_gravity="bottom"
         android:layout_marginBottom="140dp"
-        android:background="#66000000"
+        android:background="@color/overlay_scrim_soft"
         android:clipToPadding="false"
         android:padding="8dp" />
 
@@ -200,7 +200,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="#CC000000"
+        android:background="@color/scanner_overlay"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="12dp">
@@ -211,7 +211,7 @@
             android:layout_height="wrap_content"
             android:text="0 scanned this session"
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
 
         <LinearLayout
             android:layout_width="match_parent"

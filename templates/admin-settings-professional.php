@@ -1,7 +1,7 @@
 <?php
 /**
  * Professional Admin Settings Page
- * YBT Packer Service v2.0
+ * YBT Packing Service v2.0
  */
 
 if (!defined('ABSPATH')) {
@@ -57,7 +57,7 @@ $security_stats = $security->get_security_stats();
         <div class="ybt-header-content">
             <div class="ybt-header-title">
                 <h1><i class="fas fa-cogs"></i> <?php _e('System Settings', 'ybt-packer'); ?></h1>
-                <p class="ybt-header-subtitle"><?php _e('Configure your YBT Packer Service', 'ybt-packer'); ?></p>
+                <p class="ybt-header-subtitle"><?php _e('Configure your YBT Packing Service', 'ybt-packer'); ?></p>
             </div>
             <div class="ybt-header-info">
                 <div class="ybt-env-badge ybt-env-<?php echo esc_attr($current_env); ?>">

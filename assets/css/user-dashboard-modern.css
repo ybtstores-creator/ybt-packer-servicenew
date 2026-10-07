@@ -4,12 +4,12 @@
  */
 
 :root {
-    /* Modern Color Palette */
-    --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gold-gradient: linear-gradient(135deg, #d4af37 0%, #b59021 100%);
-    --success-gradient: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-    --warning-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    --danger-gradient: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    /* Modern Color Palette (brand gradients → ybt-tokens.css) */
+    --primary-gradient: var(--ybt-gradient-brand);
+    --gold-gradient: var(--ybt-gradient-accent);
+    --success-gradient: linear-gradient(135deg, var(--ybt-emerald-400) 0%, var(--ybt-emerald-500) 100%);
+    --warning-gradient: linear-gradient(135deg, #fbbf24 0%, var(--ybt-status-packing) 100%);
+    --danger-gradient: linear-gradient(135deg, #f87171 0%, var(--ybt-danger) 100%);
     --info-gradient: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
 
     /* Cards — Clean, flat, no blur */
@@ -86,9 +86,9 @@ body.admin-bar #wpbody {
 
 /* Modern Card Design — Redesigned */
 .ybt-card-modern {
-    background: #ffffff !important;
+    background: var(--ybt-card-bg) !important;
     backdrop-filter: none !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid var(--ybt-card-border) !important;
     border-radius: 16px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03) !important;
     padding: 1.5rem;
@@ -127,7 +127,7 @@ body.admin-bar #wpbody {
 }
 
 .ybt-stat-card-modern {
-    background: white;
+    background: var(--ybt-card-bg);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     position: relative;
@@ -307,7 +307,7 @@ body.admin-bar #wpbody {
     line-height: 1.8;
     color: var(--text-main);
     padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--ybt-inset-bg);
     border-radius: var(--radius-md);
     border-left: 4px solid #10b981;
     cursor: pointer;
@@ -315,7 +315,7 @@ body.admin-bar #wpbody {
 }
 
 .ybt-warehouse-address-modern:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--ybt-inset-bg-hover);
     border-left-color: #d4af37;
     transform: translateX(4px);
 }
@@ -378,7 +378,7 @@ body.admin-bar #wpbody {
 }
 
 .ybt-activity-row-modern {
-    background: white;
+    background: var(--ybt-card-bg);
     transition: all var(--transition-fast);
     cursor: pointer;
 }
@@ -831,7 +831,7 @@ body.admin-bar #wpbody {
     top: calc(100% + 0.5rem);
     right: 0;
     width: 280px;
-    background: white;
+    background: var(--ybt-card-bg);
     border-radius: 16px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(16, 185, 129, 0.1);
@@ -1082,7 +1082,7 @@ body.admin-bar #wpbody {
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    background: white;
+    background: var(--ybt-card-bg);
     padding: 1rem 1.5rem;
     border-radius: var(--radius-md);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -1107,21 +1107,3 @@ body.admin-bar #wpbody {
     border-left-color: #f59e0b;
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --glass-bg: rgba(31, 41, 55, 0.85);
-        --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-        --text-main: #f9fafb;
-        --text-muted: #9ca3af;
-    }
-
-    .ybt-dashboard-enhanced {
-        background: linear-gradient(135deg, #1f2937 0%, #111827 50%, #1f2937 100%);
-    }
-
-    .ybt-card-modern,
-    .ybt-stat-card-modern {
-        background: rgba(31, 41, 55, 0.9);
-    }
-}

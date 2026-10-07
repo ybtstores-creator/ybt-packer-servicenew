@@ -24,117 +24,208 @@ $pending_items = $wpdb->get_results($wpdb->prepare(
 ));
 ?>
 <style>
-.packing-request-container { max-width: 950px; margin: 2rem auto; padding: 0 15px; }
-.packing-card { background: white; border-radius: 18px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.08); overflow: hidden; border: 1px solid rgba(255,255,255,0.6); }
-.packing-header { background: linear-gradient(135deg, #047857 0%, #10b981 60%, #059669 100%); color: white; padding: 2.5rem 2rem; text-align: center; border-bottom: 4px solid #d4af37; }
-.packing-header h1 { margin: 0; font-weight: 800; font-size: 2rem; }
-.packing-header p { margin: 0.5rem 0 0; opacity: 0.9; font-size: 1.05rem; }
-.form-section { padding: 2rem; border-bottom: 1px solid #f1f5f9; }
-.form-section:last-child { border-bottom: none; }
-.form-label { font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; display: block; font-size: 0.9rem; }
-.form-control, .form-select { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; width: 100%; font-size: 0.95rem; background: #f8fafc; }
-.form-control:focus, .form-select:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); outline: none; background: #ffffff; }
-.item-row { display: flex; align-items: center; padding: 1.2rem 1.5rem; background: #f8fafc; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e2e8f0; border-left: 4px solid #d4af37; transition: all 0.2s ease; }
-.item-row:hover { background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
-.checkbox-container { width: 30px; margin-right: 15px; }
-.tracking-info { flex: 1; }
-.tracking-number { font-weight: 700; font-size: 1.1rem; color: #047857; }
-.item-description { color: #64748b; font-size: 0.95rem; margin-top: 3px; }
-.item-count { width: 90px; text-align: center; font-weight: 600; }
-.btn-submit { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 700; border-radius: 12px; width: 100%; transition: all 0.3s; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
-.btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
-.alert { border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
-.alert-info { background: #ecfdf5; border-left: 4px solid #10b981; color: #047857; }
+/* ================================================================
+   PACKING REQUEST — "The consignment counter" (page-specific layer)
+   Shared tokens & atoms come from assets/css/ybt-consignment.css
+   (.ybd-page scope). JS contract (assets/packing-request.js) is
+   untouched: .item-checkbox, #select-all-btn, #deselect-all-btn,
+   #selected-count, #packing-request-form, #submit-packing-btn,
+   #packing-request-alert, input names, ybt_nonce_field.
+   ================================================================ */
+.ybt-packingform .ybd-packinggrid{
+	display:grid;
+	grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+	gap:18px;
+	align-items:start;
+}
+.ybt-packingform .ybd-itemrow{
+	display:flex;
+	align-items:center;
+	gap:14px;
+	padding:13px 16px;
+	background:#fbf8f1;
+	border:1px solid var(--kraft-line);
+	border-radius:10px;
+	margin-bottom:10px;
+	transition:border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.ybt-packingform .ybd-itemrow:hover{
+	border-color:var(--emerald);
+	background:var(--emerald-tint);
+}
+.ybt-packingform .ybd-itemrow .ybd-check{ flex-shrink:0; }
+.ybt-packingform .ybd-itemrow .ybd-trackno{
+	font-size:14px;
+	color:var(--emerald-deep);
+}
+.ybt-packingform .ybd-itemrow .ybd-desc{
+	font-size:13px;
+	margin-top:2px;
+}
+.ybt-packingform .ybd-itemrow .ybd-pcs{ margin-left:auto; flex-shrink:0; }
+.ybt-packingform .ybd-selbar{
+	display:flex;
+	align-items:center;
+	gap:10px;
+	flex-wrap:wrap;
+	margin-top:14px;
+}
+.ybt-packingform .ybd-selcount{
+	font-family:var(--mono);
+	font-size:12px;
+	font-weight:600;
+	color:var(--emerald-deep);
+	margin-left:auto;
+}
+.ybt-packingform .ybd-formgrid{
+	display:grid;
+	grid-template-columns:repeat(2,minmax(0,1fr));
+	gap:14px 16px;
+}
+.ybt-packingform .ybd-formgrid .ybd-span2{ grid-column:1 / -1; }
+.ybt-packingform .ybd-actions{
+	margin-top:20px;
+	padding-top:18px;
+	border-top:2px dashed var(--kraft-line);
+	display:flex;
+	justify-content:flex-end;
+}
+.ybt-packingform .ybd-btn[disabled]{
+	opacity:.55;
+	cursor:not-allowed;
+	transform:none;
+	box-shadow:none;
+}
+/* alerts the packing-request.js injects into #packing-request-alert */
+.ybt-packingform .alert{
+	border-radius:8px;
+	padding:11px 14px;
+	margin:0 0 14px;
+	font-size:14px;
+	border:1.5px solid transparent;
+	display:block;
+}
+.ybt-packingform .alert.alert-success{
+	background:var(--emerald-tint);
+	color:var(--emerald-deep);
+	border:1px solid #b5e8d2;
+}
+.ybt-packingform .alert.alert-danger{
+	background:#fdeeee;
+	color:#9c2020;
+	border:1px solid #f3c9c9;
+}
+@media (max-width:900px){
+	.ybt-packingform .ybd-packinggrid{ grid-template-columns:1fr; }
+	.ybt-packingform .ybd-formgrid{ grid-template-columns:1fr; }
+	.ybt-packingform .ybd-actions{ justify-content:stretch; }
+	.ybt-packingform .ybd-actions .ybd-btn{ width:100%; }
+}
 </style>
 
-<div class="packing-request-container animate-up">
-    <div class="packing-card">
-        <div class="packing-header">
-            <h1><i class="fas fa-box-open me-2"></i>Request Packing</h1>
-            <p>Select received parcels and specify forwarding destination details</p>
-        </div>
+<div class="ybd-page ybt-packingform">
 
-        <div class="form-section">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Instructions:</strong> Select items below, then fill in your shipping company details. We'll pack your items, issue photos, and calculate weight/cost before dispatch.
-            </div>
+	<!-- ── page head ─────────────────────────────────────────── -->
+	<div class="ybd-pagehead">
+		<div>
+			<p class="ybd-eyebrow">Stage 3 of 5 &middot; Consignment counter</p>
+			<h2>Request packing</h2>
+			<p class="ybd-sub">Pick the parcels to pack together, then tell us where the sealed box is going.</p>
+		</div>
+		<span class="ybd-count ybd-count-gold"><?php echo count($pending_items); ?> awaiting packing</span>
+	</div>
 
-            <h3 class="mb-3 text-dark fw-bold" style="font-size: 1.25rem;"><i class="fas fa-list-check me-2" style="color: #10b981;"></i>Select Items to Pack</h3>
+	<div id="packing-request-alert" aria-live="polite"></div>
 
-            <?php if ($pending_items): ?>
-            <div id="items-container">
-                <?php foreach ($pending_items as $item): ?>
-                <div class="item-row">
-                    <div class="checkbox-container">
-                        <input type="checkbox" class="form-check-input item-checkbox"
-                               id="item-<?php echo esc_attr($item->id); ?>"
-                               value="<?php echo esc_attr($item->id); ?>"
-                               data-tracking="<?php echo esc_attr($item->tracking_number); ?>">
-                    </div>
-                    <div class="tracking-info">
-                        <div class="tracking-number"><?php echo esc_html($item->tracking_number); ?></div>
-                        <div class="item-description"><?php echo esc_html($item->description ?: 'No description'); ?></div>
-                    </div>
-                    <div class="item-count">
-                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-bold" style="border: 1px solid rgba(16,185,129,0.2);"><?php echo esc_html($item->item_count); ?> pcs</span>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
+	<div class="ybd-packinggrid">
 
-            <div class="mt-3 d-flex align-items-center flex-wrap gap-2">
-                <button type="button" id="select-all-btn" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" style="border-color: #10b981; color: #10b981;">
-                    <i class="fas fa-check-square me-1"></i>Select All
-                </button>
-                <button type="button" id="deselect-all-btn" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-                    <i class="fas fa-square me-1"></i>Deselect All
-                </button>
-                <span id="selected-count" class="ms-3 text-muted fw-semibold">0 items selected</span>
-            </div>
-            <?php else: ?>
-            <div class="alert alert-warning rounded-3">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                You have no received items available for packing. Please register your tracking numbers first.
-            </div>
-            <?php endif; ?>
-        </div>
+		<!-- ── item selection ──────────────────────────────────── -->
+		<div class="ybd-panel">
+			<div class="ybd-panelhead">
+				<span class="ybd-hint"><i class="fas fa-boxes-stacked"></i> Select items to pack together</span>
+			</div>
+			<div class="ybd-panelbody">
+				<?php if ($pending_items): ?>
+				<div id="items-container">
+					<?php foreach ($pending_items as $item): ?>
+					<label class="ybd-itemrow" for="item-<?php echo esc_attr($item->id); ?>">
+						<input type="checkbox" class="ybd-check item-checkbox"
+						       id="item-<?php echo esc_attr($item->id); ?>"
+						       value="<?php echo esc_attr($item->id); ?>"
+						       data-tracking="<?php echo esc_attr($item->tracking_number); ?>">
+						<span>
+							<span class="ybd-trackno"><?php echo esc_html($item->tracking_number); ?></span>
+							<span class="ybd-desc"><?php echo esc_html($item->description ?: 'No description'); ?></span>
+						</span>
+						<span class="ybd-pcs"><?php echo esc_html($item->item_count); ?> pcs</span>
+					</label>
+					<?php endforeach; ?>
+				</div>
 
-        <div class="form-section">
-            <h3 class="mb-4 text-dark fw-bold" style="font-size: 1.25rem;"><i class="fas fa-truck-fast me-2" style="color: #d4af37;"></i>Forwarding Address & Instructions</h3>
-            
-            <form id="packing-request-form">
-                <?php wp_nonce_field('ybt_nonce', 'ybt_nonce_field'); ?>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">LOGISTICS COMPANY / RECEIVER NAME</label>
-                        <input type="text" class="form-control" name="shipping_company" required placeholder="e.g. DHL Express / Agent Name">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">CONTACT PHONE NUMBER</label>
-                        <input type="text" class="form-control" name="contact_phone" required placeholder="Receiver phone number">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">DELIVERY / WAREHOUSE ADDRESS</label>
-                        <textarea class="form-control" name="shipping_address" rows="3" required placeholder="Full delivery address for final shipment"></textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">SHIPPING MARK / MARKS & NUMBERS</label>
-                        <input type="text" class="form-control" name="shipping_mark" placeholder="e.g. YBT-MARK-1234">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">SPECIAL PACKING INSTRUCTIONS</label>
-                        <input type="text" class="form-control" name="custom_notes" placeholder="e.g. Double bubble wrap, remove shoeboxes">
-                    </div>
-                </div>
+				<div class="ybd-selbar">
+					<button type="button" id="select-all-btn" class="ybd-btn ybd-btn-emerald">
+						<i class="fas fa-check-double"></i> Select all
+					</button>
+					<button type="button" id="deselect-all-btn" class="ybd-btn ybd-btn-emerald">
+						<i class="fas fa-square"></i> Clear
+					</button>
+					<span id="selected-count" class="ybd-selcount">0 items selected</span>
+				</div>
+				<?php else: ?>
+				<div class="ybd-empty">
+					<div class="ybd-emptyicon"><i class="fas fa-box-open"></i></div>
+					<h4>Nothing at the counter</h4>
+					<p>You have no received parcels ready for packing. Register a tracking number first &mdash; items appear here once the warehouse scans them in.</p>
+					<a class="ybd-btn ybd-btn-emerald" href="<?php echo esc_url(home_url('/add-tracking/')); ?>">Register tracking numbers</a>
+				</div>
+				<?php endif; ?>
+			</div>
+		</div>
 
-                <div class="mt-4 pt-2">
-                    <button type="submit" class="btn btn-submit shadow-lg" id="submit-packing-btn" <?php echo !$pending_items ? 'disabled' : ''; ?>>
-                        <i class="fas fa-paper-plane me-2"></i>Submit Packing Request
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+		<!-- ── forwarding details ──────────────────────────────── -->
+		<div class="ybd-panel ybd-panel-gold">
+			<div class="ybd-panelhead">
+				<span class="ybd-hint"><i class="fas fa-truck-fast"></i> Forwarding address &amp; instructions</span>
+			</div>
+			<div class="ybd-panelbody">
+				<div class="ybd-note" style="margin-top:0;">
+					<i class="fas fa-circle-info"></i>
+					<span><strong>How it works.</strong> We pack your items, photograph every step, and log weight and cost before dispatch &mdash; then hand the sealed box to your carrier.</span>
+				</div>
+
+				<form id="packing-request-form" style="margin-top:18px;">
+					<?php wp_nonce_field('ybt_nonce', 'ybt_nonce_field'); ?>
+					<div class="ybd-formgrid">
+						<div class="ybd-span2">
+							<label class="ybd-formlabel" for="pr-shipping-company">Logistics company / receiver name</label>
+							<input type="text" class="ybd-input" id="pr-shipping-company" name="shipping_company" required placeholder="e.g. DHL Express / Agent Name">
+						</div>
+						<div>
+							<label class="ybd-formlabel" for="pr-contact-phone">Contact phone number</label>
+							<input type="text" class="ybd-input" id="pr-contact-phone" name="contact_phone" required placeholder="Receiver phone number">
+						</div>
+						<div>
+							<label class="ybd-formlabel" for="pr-shipping-mark">Shipping mark / marks &amp; numbers</label>
+							<input type="text" class="ybd-input" id="pr-shipping-mark" name="shipping_mark" placeholder="e.g. YBT-MARK-1234">
+						</div>
+						<div class="ybd-span2">
+							<label class="ybd-formlabel" for="pr-shipping-address">Delivery / warehouse address</label>
+							<textarea class="ybd-textarea" id="pr-shipping-address" name="shipping_address" rows="3" required placeholder="Full delivery address for final shipment"></textarea>
+						</div>
+						<div class="ybd-span2">
+							<label class="ybd-formlabel" for="pr-custom-notes">Special packing instructions</label>
+							<input type="text" class="ybd-input" id="pr-custom-notes" name="custom_notes" placeholder="e.g. Double bubble wrap, remove shoeboxes">
+						</div>
+					</div>
+
+					<div class="ybd-actions">
+						<button type="submit" class="ybd-btn ybd-btn-gold" id="submit-packing-btn" <?php echo !$pending_items ? 'disabled' : ''; ?>>
+							<i class="fas fa-paper-plane"></i> Submit packing request
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+	</div>
 </div>

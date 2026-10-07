@@ -4,53 +4,56 @@ if (!defined('ABSPATH')) exit;
 $key = isset($_GET['key']) ? sanitize_text_field($_GET['key']) : '';
 $login = isset($_GET['login']) ? sanitize_text_field($_GET['login']) : '';
 $is_reset_step = !empty($key) && !empty($login);
+
+require YBT_PLUGIN_PATH . 'templates/components/auth-page-styles.php';
 ?>
 
-<div class="auth-split-wrapper">
-    <div class="glass-card p-4 p-md-5 mx-auto animate-fade-in-up" style="max-width: 480px; width: 100%;">
-        <div class="text-center mb-4">
-            <img src="<?php echo ybt_get_logo_url(); ?>" alt="YBT Packer" style="max-height: 70px;" loading="eager" fetchpriority="high" decoding="async">
-            <h1 class="h4 mt-3 fw-bold text-dark">Account Recovery</h1>
-            <p class="text-muted small">YBT Parcel Consolidation Service</p>
-        </div>
-
-        <!-- Message Area -->
-        <div id="reset-message" class="alert rounded-3 mb-4" style="display:none; word-break: break-word;"></div>
-
-        <?php if ($is_reset_step): ?>
-            <h2 class="h5 fw-bold text-center mb-3">Set New Password</h2>
-            <form id="ybt-process-reset-form">
-                <input type="hidden" name="key" value="<?php echo esc_attr($key); ?>">
-                <input type="hidden" name="login" value="<?php echo esc_attr($login); ?>">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold text-secondary small">NEW PASSWORD</label>
-                    <input type="password" class="form-control form-control-premium" name="pass1" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+<div class="ybt-authwrap">
+    <div class="ybt-authcard ybt-authcard-solo">
+        <div class="ybt-authform">
+            <div style="text-align:center; margin-bottom:20px;">
+                <div class="ybt-authmark" style="justify-content:center;">
+                    <strong style="font-family:var(--display); font-weight:400; font-size:24px; color:var(--emerald-deep);">YBT</strong>
+                    <span style="font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.2em; color:#5c5543; text-transform:uppercase;">Packing service</span>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold text-secondary small">CONFIRM NEW PASSWORD</label>
-                    <input type="password" class="form-control form-control-premium" name="pass2" required minlength="8" autocomplete="new-password" placeholder="Re-enter new password">
-                </div>
-                <button type="submit" class="btn btn-premium-primary w-100 py-3 mb-3 fw-bold">Save New Password</button>
-            </form>
-        <?php else: ?>
-            <h2 class="h5 fw-bold text-center mb-1">Forgot Your Password?</h2>
-            <p class="text-muted text-center mb-4 small">Enter your username or email address and we'll send you a password reset link.</p>
-            <form id="ybt-request-reset-form">
-                <div class="mb-4">
-                    <label class="form-label fw-semibold text-secondary small">USERNAME OR EMAIL</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-user text-muted"></i></span>
-                        <input type="text" class="form-control form-control-premium border-start-0" name="user_login" required placeholder="Enter username or email">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-premium-primary w-100 py-3 mb-3 fw-bold">Send Reset Link</button>
-            </form>
-        <?php endif; ?>
+                <p class="ybt-eyebrow" style="margin-top:14px;">Account recovery</p>
+                <h2 style="margin-bottom:4px;"><?php echo $is_reset_step ? 'Set new password' : 'Forgot your password?'; ?></h2>
+                <p class="ybt-sub" style="margin-bottom:0;">
+                    <?php echo $is_reset_step
+                        ? 'Choose a new password for your account.'
+                        : 'Enter your username or email and we&rsquo;ll send you a reset link.'; ?>
+                </p>
+            </div>
 
-        <div class="text-center pt-2">
-            <a href="<?php echo home_url('/login/'); ?>" class="text-success text-decoration-none fw-semibold small">
-                <i class="fas fa-arrow-left me-1"></i> Back to Sign In
-            </a>
+            <!-- Message Area -->
+            <div id="reset-message" class="alert" style="display:none; word-break:break-word;"></div>
+
+            <?php if ($is_reset_step): ?>
+                <form id="ybt-process-reset-form">
+                    <input type="hidden" name="key" value="<?php echo esc_attr($key); ?>">
+                    <input type="hidden" name="login" value="<?php echo esc_attr($login); ?>">
+                    <label class="ybt-formlabel" for="pass1">New password</label>
+                    <input type="password" class="ybt-input" id="pass1" name="pass1" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+                    <label class="ybt-formlabel" for="pass2">Confirm new password</label>
+                    <input type="password" class="ybt-input" id="pass2" name="pass2" required minlength="8" autocomplete="new-password" placeholder="Re-enter new password">
+                    <button type="submit" class="ybt-btn ybt-btn-gold">Save new password</button>
+                </form>
+            <?php else: ?>
+                <form id="ybt-request-reset-form">
+                    <label class="ybt-formlabel" for="user_login">Username or email</label>
+                    <input type="text" class="ybt-input" id="user_login" name="user_login" required placeholder="Enter username or email">
+                    <button type="submit" class="ybt-btn ybt-btn-gold">Send reset link</button>
+                </form>
+            <?php endif; ?>
+
+            <div class="ybt-swap">
+                <a href="<?php echo home_url('/login/'); ?>"><i class="fas fa-arrow-left"></i> Back to sign in</a>
+            </div>
+
+            <div class="ybt-authfoot">
+                <div class="ybt-authbarcode" aria-hidden="true"></div>
+                <span><?php echo $is_reset_step ? 'Reset in progress' : 'Recovery desk'; ?></span>
+            </div>
         </div>
     </div>
 </div>

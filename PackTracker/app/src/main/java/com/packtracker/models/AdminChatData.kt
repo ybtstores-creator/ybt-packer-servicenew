@@ -5,7 +5,7 @@ data class AdminChatData(
 )
 
 data class AdminChatItem(
-    val user_id: Any? = null,
+    val user_id: Int? = null,
     val username: String? = null,
     val display_name: String? = null,
     val last_message: String? = null,

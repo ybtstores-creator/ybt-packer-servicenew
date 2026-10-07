@@ -1,0 +1,195 @@
+/* ==========================================================================
+   YBT DESIGN TOKENS — single source of truth
+   Emerald + gold brand system. Mirrored in PackTracker res/values/colors.xml
+   and documented in BRAND-TOKENS.md.
+   Legacy variable namespaces (--ybt-green*, --brand-*, --ybt-primary*, etc.)
+   alias into this file; nothing outside this file should hardcode brand hexes.
+   ========================================================================== */
+
+:root {
+    /* --- Emerald ramp --- */
+    --ybt-emerald-50:  #ecfdf5;
+    --ybt-emerald-100: #d1fae5;
+    --ybt-emerald-200: #a7f3d0;
+    --ybt-emerald-300: #6ee7b7;
+    --ybt-emerald-400: #34d399;
+    --ybt-emerald-500: #10b981;
+    --ybt-emerald-600: #059669;
+    --ybt-emerald-700: #047857;
+    --ybt-emerald-800: #065f46;
+    --ybt-emerald-900: #064e3b;
+    --ybt-emerald-500-rgb: 16, 185, 129;
+    --ybt-emerald-600-rgb: 5, 150, 105;
+    --ybt-emerald-700-rgb: 4, 120, 87;
+
+    /* --- Gold ramp --- */
+    --ybt-gold-50:  #fff8e1;
+    --ybt-gold-100: #fef3c7;
+    --ybt-gold-200: #f5e6c3;
+    --ybt-gold-300: #e8cd7c;
+    --ybt-gold-400: #dfbc55;
+    --ybt-gold-500: #d4af37;
+    --ybt-gold-600: #b59021;
+    --ybt-gold-700: #856404;
+    --ybt-gold-500-rgb: 212, 175, 55;
+    --ybt-gold-600-rgb: 181, 144, 33;
+
+    /* --- Slate neutrals --- */
+    --ybt-slate-50:  #f8fafc;
+    --ybt-slate-100: #f1f5f9;
+    --ybt-slate-200: #e2e8f0;
+    --ybt-slate-300: #cbd5e1;
+    --ybt-slate-400: #94a3b8;
+    --ybt-slate-500: #64748b;
+    --ybt-slate-600: #475569;
+    --ybt-slate-700: #334155;
+    --ybt-slate-800: #1e293b;
+    --ybt-slate-900: #0f172a;
+    --ybt-slate-500-rgb: 100, 116, 139;
+    --ybt-slate-900-rgb: 15, 23, 42;
+
+    /* --- Semantic roles --- */
+    --ybt-brand: var(--ybt-emerald-500);
+    --ybt-brand-dark: var(--ybt-emerald-700);
+    --ybt-accent: var(--ybt-gold-500);
+    --ybt-accent-dark: var(--ybt-gold-600);
+
+    --ybt-text-strong: var(--ybt-slate-800);
+    --ybt-text-body: var(--ybt-slate-600);
+    --ybt-text-muted: var(--ybt-slate-400);
+    --ybt-text-inverse: #ffffff;
+
+    --ybt-surface: #ffffff;
+    --ybt-surface-alt: var(--ybt-slate-50);
+    --ybt-surface-dark: var(--ybt-slate-900);
+    --ybt-border: var(--ybt-slate-200);
+    --ybt-border-light: var(--ybt-slate-100);
+
+    /* --- Canonical parcel-status palette
+       (source: ybt_get_status_badge_color(); mirrored in Android colors.xml) --- */
+    --ybt-status-not-received: #64748b;
+    --ybt-status-received: #0ea5e9;
+    --ybt-status-packing: #f59e0b;
+    --ybt-status-packed: #10b981;
+    --ybt-status-completed: #047857;
+    --ybt-status-not-received-rgb: 100, 116, 139;
+    --ybt-status-received-rgb: 14, 165, 233;
+    --ybt-status-packing-rgb: 245, 158, 11;
+    --ybt-status-packed-rgb: 16, 185, 129;
+    --ybt-status-completed-rgb: 4, 120, 87;
+
+    --ybt-danger: #ef4444;
+    --ybt-danger-rgb: 239, 68, 68;
+    --ybt-info: #06b6d4;
+    --ybt-info-rgb: 6, 182, 212;
+
+    /* --- Gradients --- */
+    --ybt-gradient-brand: linear-gradient(135deg, var(--ybt-emerald-500) 0%, var(--ybt-emerald-600) 100%);
+    --ybt-gradient-accent: linear-gradient(135deg, var(--ybt-gold-500) 0%, var(--ybt-gold-600) 100%);
+    --ybt-page-bg: linear-gradient(180deg, #f0fdf4 0%, #f8fafc 50%, #ffffff 100%);
+
+    /* --- Glow / tint helpers --- */
+    --ybt-glow-brand: rgba(var(--ybt-emerald-500-rgb), 0.25);
+    --ybt-glow-accent: rgba(var(--ybt-gold-500-rgb), 0.25);
+
+    /* --- Spacing (4px grid) --- */
+    --ybt-sp-1: 4px;
+    --ybt-sp-2: 8px;
+    --ybt-sp-3: 12px;
+    --ybt-sp-4: 16px;
+    --ybt-sp-5: 20px;
+    --ybt-sp-6: 24px;
+    --ybt-sp-8: 32px;
+    --ybt-sp-10: 40px;
+    --ybt-sp-12: 48px;
+
+    /* --- Radius --- */
+    --ybt-rounded-sm: 8px;
+    --ybt-rounded-md: 12px;
+    --ybt-rounded-lg: 16px;
+    --ybt-rounded-xl: 24px;
+    --ybt-rounded-full: 9999px;
+
+    /* --- Type scale --- */
+    --ybt-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --ybt-font-heading: 'Outfit', 'Inter', sans-serif;
+    --ybt-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ybt-text-xs: 0.75rem;
+    --ybt-text-sm: 0.875rem;
+    --ybt-text-base: 1rem;
+    --ybt-text-lg: 1.125rem;
+    --ybt-text-xl: 1.25rem;
+    --ybt-text-2xl: 1.5rem;
+    --ybt-text-3xl: 1.875rem;
+
+    /* --- Shadows --- */
+    --ybt-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --ybt-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --ybt-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --ybt-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+
+    /* --- Transitions --- */
+    --ybt-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ybt-dur-fast: 150ms;
+    --ybt-dur-normal: 250ms;
+    --ybt-dur-slow: 350ms;
+
+    /* --- Component surfaces (cards / inputs flip with the theme) --- */
+    --ybt-card-bg: #ffffff;
+    --ybt-card-border: var(--ybt-slate-200);
+    --ybt-input-bg: #f8fafc;
+    --ybt-input-bg-focus: #ffffff;
+    --ybt-input-border: var(--ybt-slate-200);
+    --ybt-brand-tint: var(--ybt-emerald-50);
+    --ybt-inset-bg: rgba(255, 255, 255, 0.7);
+    --ybt-inset-bg-hover: rgba(255, 255, 255, 0.9);
+    --ybt-surface-warn: #fffbeb;
+    --ybt-text-warn: #b45309;
+    --ybt-text-warn-strong: #92400e;
+
+    /* --- Bootstrap 5.3 bridge: recolor generic utility classes
+       (bg-primary / text-primary / border-primary and their rgba mixes) --- */
+    --bs-primary: #10b981;
+    --bs-primary-rgb: var(--ybt-emerald-500-rgb);
+    --bs-success: #10b981;
+    --bs-success-rgb: var(--ybt-emerald-500-rgb);
+    --bs-info: #0ea5e9;
+    --bs-info-rgb: var(--ybt-status-received-rgb);
+    --bs-warning: #f59e0b;
+    --bs-warning-rgb: var(--ybt-status-packing-rgb);
+    --bs-body-font-family: var(--ybt-font-body);
+}
+
+/* Dark surfaces — activated by [data-theme="dark"] (Phase 2.4).
+   Only raw tokens are overridden; aliases above follow automatically. */
+:root[data-theme="dark"] {
+    --ybt-text-strong: var(--ybt-slate-100);
+    --ybt-text-body: var(--ybt-slate-300);
+    --ybt-text-muted: var(--ybt-slate-500);
+    --ybt-text-inverse: var(--ybt-slate-900);
+
+    --ybt-surface: var(--ybt-slate-900);
+    --ybt-surface-alt: #111c30;
+    --ybt-surface-dark: #020617;
+    --ybt-border: var(--ybt-slate-700);
+    --ybt-border-light: var(--ybt-slate-800);
+
+    --ybt-brand: var(--ybt-emerald-400);
+    --ybt-brand-dark: var(--ybt-emerald-300);
+    --ybt-glow-brand: rgba(var(--ybt-emerald-500-rgb), 0.35);
+
+    --ybt-page-bg: linear-gradient(180deg, #020617 0%, var(--ybt-slate-900) 100%);
+    --ybt-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.25);
+
+    --ybt-card-bg: var(--ybt-slate-800);
+    --ybt-card-border: var(--ybt-slate-700);
+    --ybt-input-bg: var(--ybt-slate-900);
+    --ybt-input-bg-focus: var(--ybt-slate-800);
+    --ybt-input-border: var(--ybt-slate-700);
+    --ybt-brand-tint: rgba(var(--ybt-emerald-500-rgb), 0.14);
+    --ybt-inset-bg: rgba(2, 6, 23, 0.45);
+    --ybt-inset-bg-hover: rgba(15, 23, 42, 0.7);
+    --ybt-surface-warn: rgba(245, 158, 11, 0.14);
+    --ybt-text-warn: #fbbf24;
+    --ybt-text-warn-strong: #fcd34d;
+}

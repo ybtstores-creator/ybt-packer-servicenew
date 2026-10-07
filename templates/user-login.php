@@ -15,91 +15,71 @@ add_action('wp_head', function() {
         html { margin-top: 0 !important; }
     </style>';
 }, 2);
+
+require YBT_PLUGIN_PATH . 'templates/components/auth-page-styles.php';
 ?>
 
-<div class="auth-split-wrapper">
-    <div class="auth-split-container glass-card">
-        <!-- Left Side: Brand & Visuals -->
-        <div class="auth-banner-side">
-            <div>
-                <div class="d-flex align-items-center gap-3 mb-4">
-                    <img src="<?php echo ybt_get_logo_url(); ?>" alt="YBT Logo" style="max-height: 60px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));" loading="eager" fetchpriority="high" decoding="async">
-                    <div>
-                        <h2 class="h4 mb-0 fw-bold text-white">YBT PACKING</h2>
-                        <span class="badge bg-warning text-dark fw-bold px-2 py-1">FORWARDING SERVICE</span>
-                    </div>
-                </div>
-                <h1 class="display-6 fw-bold mb-3">Global Consolidation Made Simple</h1>
-                <p class="text-white-50 lead fs-6">Streamline your international shipments. Fast receiving, photo verification, and professional repacking.</p>
-            </div>
+<div class="ybt-authwrap">
+    <div class="ybt-authcard">
 
-            <div class="mt-4 pt-4 border-top border-white border-opacity-25">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        <i class="fas fa-shield-alt text-warning"></i>
-                    </div>
+        <!-- Carrier's copy: brand side -->
+        <div class="ybt-authbrand">
+            <span class="ybt-authstamp">Forwarding service</span>
+            <div class="ybt-authmark">
+                <strong>YBT</strong>
+                <span>Packing service</span>
+            </div>
+            <h1>Global consolidation, made simple.</h1>
+            <p class="ybt-authlede">Streamline your international shipments. Fast receiving, photo verification, and professional repacking.</p>
+            <div class="ybt-authbarcode" aria-hidden="true"></div>
+
+            <div class="ybt-authfeats">
+                <div class="ybt-authfeat">
+                    <i class="fas fa-shield-alt"></i>
                     <div>
-                        <strong class="d-block text-white">100% Insured Storage</strong>
-                        <small class="text-white-50">Free warehouse holding up to 30 days</small>
+                        <strong>100% insured storage</strong>
+                        <small>Free warehouse holding up to 30 days</small>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        <i class="fas fa-boxes text-warning"></i>
-                    </div>
+                <div class="ybt-authfeat">
+                    <i class="fas fa-boxes"></i>
                     <div>
-                        <strong class="d-block text-white">Real-Time Photo Proof</strong>
-                        <small class="text-white-50">Inspect packages before dispatch</small>
+                        <strong>Real-time photo proof</strong>
+                        <small>Inspect packages before dispatch</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Side: Login Form -->
-        <div class="auth-form-side">
-            <div class="mb-4">
-                <h2 class="h3 fw-bold text-dark mb-1">Welcome Back</h2>
-                <p class="text-muted small">Enter your credentials to access your dashboard</p>
-            </div>
+        <!-- Customer copy: form side -->
+        <div class="ybt-authform">
+            <p class="ybt-eyebrow">Access &middot; Consignment desk</p>
+            <h2>Welcome back</h2>
+            <p class="ybt-sub">Enter your credentials to access your dashboard.</p>
 
-            <div id="login-message" class="alert mb-4" style="display:none;"></div>
+            <div id="login-message" class="alert" style="display:none;"></div>
 
             <form id="login-form" method="POST">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold text-secondary small">USERNAME OR EMAIL</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-user text-muted"></i></span>
-                        <input type="text" class="form-control form-control-premium border-start-0" id="username" name="username" required autofocus placeholder="Enter your username">
-                    </div>
+                <label class="ybt-formlabel" for="username">Username or email</label>
+                <input type="text" class="ybt-input" id="username" name="username" required autofocus placeholder="Enter your username">
+
+                <label class="ybt-formlabel" for="password">Password <a href="<?php echo home_url('/reset-password/'); ?>">Forgot?</a></label>
+                <input type="password" class="ybt-input" id="password" name="password" required placeholder="Enter password">
+
+                <div class="ybt-checkrow">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me on this device</label>
                 </div>
 
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold text-secondary small mb-0">PASSWORD</label>
-                        <a href="<?php echo home_url('/reset-password/'); ?>" class="small text-success text-decoration-none fw-semibold">Forgot?</a>
-                    </div>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
-                        <input type="password" class="form-control form-control-premium border-start-0" id="password" name="password" required placeholder="Enter password">
-                    </div>
-                </div>
-
-                <div class="mb-4 d-flex justify-content-between align-items-center">
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                        <label class="form-check-label text-muted small" for="remember">Remember me on this device</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-premium-primary w-100 py-3 mb-3 fw-bold">
-                    <i class="fas fa-sign-in-alt me-2"></i>Sign In to Dashboard
+                <button type="submit" class="ybt-btn ybt-btn-gold">
+                    <i class="fas fa-sign-in-alt"></i>Sign in to dashboard
                 </button>
             </form>
 
-            <div class="text-center pt-2">
-                <p class="text-muted small mb-2">New to YBT Packer? <a href="<?php echo home_url('/register/'); ?>" class="text-success fw-bold text-decoration-none">Create Account</a></p>
-                <p class="mb-0"><a href="<?php echo home_url('/anonymous/'); ?>" class="text-muted small text-decoration-underline">Continue as Guest</a></p>
+            <div class="ybt-swap">
+                New to YBT Packing Service? <a href="<?php echo home_url('/register/'); ?>">Create account</a>
             </div>
+            <a href="<?php echo home_url('/anonymous/'); ?>" class="ybt-guest">Continue as guest</a>
         </div>
     </div>
 </div>

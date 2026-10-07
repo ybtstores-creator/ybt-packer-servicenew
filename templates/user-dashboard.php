@@ -1,6 +1,6 @@
 <?php
 /**
- * YBT User Dashboard - Optimized Version
+ * YBT User Dashboard — "The Consignment Desk"
  * Shows tracking stats, announcements, warehouse, payments, and recent activity
  *
  * Performance optimizations:
@@ -88,7 +88,7 @@ add_action('wp_head', function() {
     echo '<style>
         /* Completely hide WordPress admin bar */
         #wpadminbar { 
-            display: none !important; 
+            display: none !important;
         }
         
         /* Remove WordPress admin bar margins from body */
@@ -103,7 +103,7 @@ add_action('wp_head', function() {
     </style>';
     
     // Add CSP meta tag to allow CDN resources
-    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src \'self\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;">';
+    echo '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src \'self\' data: blob: https:; connect-src \'self\' https:;">';
 }, 1);
 
 // Load modern navbar
@@ -111,165 +111,572 @@ require_once YBT_PLUGIN_PATH . 'templates/components/dashboard-navbar-modern.php
 render_dashboard_navbar($current_user);
 ?>
 
-<div class="ybt-dashboard-enhanced animate-up">
+<style>
+/* ================================================================
+   YBT USER DASHBOARD — "The Consignment Desk" (page-specific layer)
+   Shared tokens & atoms come from assets/css/ybt-consignment.css.
+   ================================================================ */
+
+.ybt-dashboard-enhanced .ybd-section{ margin-top:clamp(20px,3vw,30px); }
+.ybt-dashboard-enhanced .ybd-panel{ padding:clamp(18px,3vw,28px); }
+.ybt-dashboard-enhanced .ybd-panel > h2{ margin:0 0 6px; }
+
+/* ── header: the desk strip ───────────────────────────────── */
+.ybt-dashboard-enhanced .ybd-desk{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:16px;
+	flex-wrap:wrap;
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:12px;
+	padding:18px 22px;
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+	animation:ybd-settle .5s ease-out both;
+}
+@keyframes ybd-settle{
+	from{ opacity:0; transform:translateY(8px); }
+	to{ opacity:1; transform:none; }
+}
+.ybt-dashboard-enhanced .ybd-desk .ybd-who strong{
+	font-family:var(--display);
+	font-weight:400;
+	font-size:clamp(1.25rem,2.6vw,1.7rem);
+	color:var(--ink);
+	display:block;
+	letter-spacing:-.01em;
+}
+.ybt-dashboard-enhanced .ybd-desk .ybd-who span{
+	font-family:var(--mono);
+	font-size:12px;
+	color:#5c5543;
+	letter-spacing:.06em;
+}
+.ybt-dashboard-enhanced .ybd-desk-right{
+	display:flex;
+	align-items:center;
+	gap:12px;
+	flex-wrap:wrap;
+}
+.ybt-dashboard-enhanced .ybd-consignee{
+	font-family:var(--mono);
+	font-size:12px;
+	font-weight:600;
+	letter-spacing:.08em;
+	color:var(--emerald-deep);
+	border:1.5px solid var(--emerald);
+	background:var(--emerald-tint);
+	border-radius:6px;
+	padding:8px 12px;
+	white-space:nowrap;
+}
+/* search sizing only — base look comes from the shared sheet */
+.ybt-dashboard-enhanced .ybd-search{
+	font-size:14px;
+	padding:9px 14px;
+	width:min(220px,60vw);
+}
+.ybt-dashboard-enhanced #searchResults{
+	background:var(--paper);
+	border:1.5px solid var(--ink);
+	border-radius:10px;
+	padding:12px 14px;
+	margin-top:10px;
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+	font-size:14px;
+}
+
+/* ── app update banner ────────────────────────────────────── */
+.ybt-dashboard-enhanced .ybd-update{
+	margin-bottom:18px;
+	background:var(--emerald-deep);
+	color:#fff;
+	border-radius:12px;
+	padding:14px 18px;
+	display:flex;
+	align-items:center;
+	gap:14px;
+	flex-wrap:wrap;
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+}
+.ybt-dashboard-enhanced .ybd-update-icon{
+	font-size:1.4rem;
+	color:var(--gold);
+}
+.ybt-dashboard-enhanced .ybd-update strong{ color:#fff; }
+.ybt-dashboard-enhanced .ybd-update-msg{ font-size:.85rem; opacity:.85; width:100%; }
+.ybt-dashboard-enhanced .ybd-update-btn{
+	background:var(--gold);
+	color:var(--ink);
+	border:none;
+	padding:8px 18px;
+	border-radius:8px;
+	font-weight:700;
+	white-space:nowrap;
+	text-decoration:none;
+	display:inline-block;
+}
+.ybt-dashboard-enhanced .ybd-update-btn:hover{ background:#dfbc48; color:var(--ink); }
+.ybt-dashboard-enhanced .ybd-update-close{
+	background:none;border:none;color:rgba(255,255,255,.65);
+	font-size:1rem;cursor:pointer;padding:4px 8px;
+}
+.ybt-dashboard-enhanced .ybd-update-close:hover{ color:#fff; }
+
+/* ── stock tally (stats) ──────────────────────────────────── */
+.ybt-dashboard-enhanced .ybd-tally{
+	display:grid;
+	grid-template-columns:repeat(6,1fr);
+	border:1.5px solid var(--ink);
+	border-radius:12px;
+	background:var(--paper);
+	box-shadow:6px 6px 0 rgba(15,31,23,.12);
+	overflow:hidden;
+}
+.ybt-dashboard-enhanced .ybd-tally-cell{
+	position:relative;
+	padding:18px 14px;
+	border-right:1px solid var(--kraft-line);
+	text-align:center;
+}
+.ybt-dashboard-enhanced .ybd-tally-cell:last-child{ border-right:none; }
+.ybt-dashboard-enhanced .ybd-tally-num{
+	font-family:var(--mono);
+	font-size:clamp(1.5rem,3vw,2.1rem);
+	font-weight:600;
+	color:var(--ink);
+	display:block;
+	line-height:1.1;
+}
+.ybt-dashboard-enhanced .ybd-tally-label{
+	font-family:var(--mono);
+	font-size:10px;font-weight:600;
+	letter-spacing:.12em;text-transform:uppercase;
+	color:#5c5543;
+	display:block;
+	margin-top:6px;
+}
+.ybt-dashboard-enhanced .ybd-tally-cell.ybd-is-gold .ybd-tally-num{ color:var(--gold-deep); }
+.ybt-dashboard-enhanced .ybd-tally-cell.ybd-is-green .ybd-tally-num{ color:var(--emerald-deep); }
+.ybt-dashboard-enhanced .ybd-tally-cell.ybd-is-quiet .ybd-tally-num{ color:#8b968f; }
+.ybt-dashboard-enhanced .ybd-tick{
+	display:block;
+	width:26px;height:3px;
+	margin:8px auto 0;
+	border-radius:2px;
+	background:var(--kraft-line);
+}
+.ybd-is-gold .ybd-tick{ background:var(--gold); }
+.ybd-is-green .ybd-tick{ background:var(--emerald); }
+
+/* ── notice board (announcements) ─────────────────────────── */
+.ybt-dashboard-enhanced .ybd-notice{
+	background:var(--gold-tint);
+	border:1px solid var(--gold);
+	border-left-width:5px;
+	border-radius:0 10px 10px 0;
+	padding:16px 18px;
+	margin-bottom:12px;
+}
+.ybt-dashboard-enhanced .ybd-notice-head{
+	display:flex;
+	justify-content:space-between;
+	align-items:baseline;
+	gap:10px;
+	margin-bottom:8px;
+}
+.ybt-dashboard-enhanced .ybd-notice-head .ybd-mono{
+	font-size:11px;font-weight:600;
+	letter-spacing:.14em;text-transform:uppercase;
+	color:var(--gold-deep);
+}
+.ybt-dashboard-enhanced .ybd-notice p{
+	margin:0 0 4px;
+	color:#4a4232;
+	line-height:1.6;
+}
+.ybt-dashboard-enhanced .ybd-notice img{
+	max-width:150px;float:right;margin-left:1rem;
+	border-radius:8px;border:1px solid var(--kraft-line);
+	cursor:zoom-in;
+}
+.ybt-dashboard-enhanced .ybd-notice .ybd-notice-file{
+	display:inline-block;
+	font-family:var(--mono);
+	font-size:12px;font-weight:600;
+	color:var(--gold-deep);
+	text-decoration:underline;
+}
+
+/* ── routing line (live) ──────────────────────────────────── */
+.ybt-dashboard-enhanced .ybd-route{
+	list-style:none;
+	margin:0;
+	padding:0;
+	display:grid;
+	grid-template-columns:repeat(5,1fr);
+	position:relative;
+}
+.ybt-dashboard-enhanced .ybd-route::before{
+	content:'';
+	position:absolute;
+	top:19px;
+	left:calc(10% + 19px);
+	right:calc(10% + 19px);
+	height:2px;
+	background:repeating-linear-gradient(90deg,var(--emerald) 0 6px,transparent 6px 10px);
+}
+.ybt-dashboard-enhanced .ybd-route li{
+	position:relative;
+	padding:0 8px;
+	text-align:center;
+}
+.ybt-dashboard-enhanced .ybd-route .num{
+	width:40px;height:40px;
+	margin:0 auto 10px;
+	display:flex;align-items:center;justify-content:center;
+	border-radius:50%;
+	background:var(--paper);
+	border:2px solid var(--kraft-deep);
+	color:#8b968f;
+	font-family:var(--mono);
+	font-weight:600;font-size:14px;
+	position:relative;z-index:1;
+}
+.ybt-dashboard-enhanced .ybd-route li.ybd-live .num{
+	border-color:var(--emerald);
+	color:var(--emerald-deep);
+	background:var(--emerald-tint);
+}
+.ybt-dashboard-enhanced .ybd-route .name{
+	display:block;
+	font-weight:700;font-size:13.5px;
+	color:var(--ink);
+}
+.ybt-dashboard-enhanced .ybd-route .cnt{
+	display:inline-block;
+	margin-top:6px;
+	font-family:var(--mono);
+	font-size:12px;font-weight:600;
+	color:var(--emerald-deep);
+	background:var(--emerald-tint);
+	border:1px solid var(--emerald);
+	border-radius:6px;
+	padding:2px 10px;
+}
+.ybt-dashboard-enhanced .ybd-route li:not(.ybd-live) .cnt{
+	color:#5c5543;
+	background:#fbf8f1;
+	border-color:var(--kraft-line);
+}
+.ybt-dashboard-enhanced .ybd-sync{
+	text-align:center;
+	font-family:var(--mono);
+	font-size:11px;
+	letter-spacing:.08em;
+	color:#8b968f;
+	margin-top:18px;
+}
+
+/* ── origin & settlement cards ────────────────────────────── */
+.ybt-dashboard-enhanced .ybd-duo{
+	display:grid;
+	grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+	gap:16px;
+	align-items:stretch;
+}
+.ybt-dashboard-enhanced .ybd-doc{
+	padding:clamp(18px,2.6vw,24px);
+	display:flex;
+	flex-direction:column;
+	gap:14px;
+}
+.ybt-dashboard-enhanced .ybd-doc-head{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:10px;
+	padding-bottom:12px;
+	border-bottom:2px dashed var(--kraft-line);
+}
+.ybt-dashboard-enhanced .ybd-doc-head h3{
+	margin:0;
+	font-family:var(--mono);
+	font-size:12px;font-weight:600;
+	letter-spacing:.18em;text-transform:uppercase;
+	color:var(--emerald-deep);
+}
+.ybt-dashboard-enhanced .ybd-doc-gold .ybd-doc-head h3{ color:var(--gold-deep); }
+.ybt-dashboard-enhanced .ybd-copycard{
+	border:1.5px dashed var(--kraft-deep);
+	border-radius:10px;
+	background:#fbf8f1;
+	padding:16px;
+	cursor:pointer;
+	user-select:none;
+	transition:border-color .15s ease, background-color .15s ease, transform .15s ease;
+}
+.ybt-dashboard-enhanced .ybd-copycard:hover{
+	border-color:var(--emerald);
+	background:var(--emerald-tint);
+	transform:translateY(-2px);
+}
+.ybt-dashboard-enhanced .ybd-copycard:active{ transform:scale(.98); }
+.ybt-dashboard-enhanced .ybd-copycard .ybd-addr{
+	font-family:var(--mono);
+	font-size:14px;
+	line-height:1.7;
+	color:var(--ink);
+	pointer-events:none;
+}
+.ybt-dashboard-enhanced .ybd-copyhint{
+	font-family:var(--mono);
+	font-size:11px;font-weight:600;
+	letter-spacing:.1em;text-transform:uppercase;
+	color:var(--emerald-deep);
+	display:inline-flex;align-items:center;gap:6px;
+}
+.ybt-dashboard-enhanced .ybd-doc .ybd-meta{
+	display:flex;gap:16px;flex-wrap:wrap;
+	font-size:13px;color:#3d4a42;
+}
+.ybt-dashboard-enhanced .ybd-doc .ybd-meta i{ color:var(--emerald-deep); }
+.ybt-dashboard-enhanced .ybd-kv{
+	display:flex;flex-direction:column;gap:2px;
+	padding:8px 0;
+	border-bottom:1px solid var(--kraft-line);
+}
+.ybt-dashboard-enhanced .ybd-kv:last-of-type{ border-bottom:none; }
+.ybt-dashboard-enhanced .ybd-kv .ybd-val{
+	font-family:var(--mono);
+	font-size:14px;font-weight:600;
+	color:var(--ink);
+	display:flex;align-items:center;gap:10px;
+}
+.ybt-dashboard-enhanced .ybd-copybtn{
+	font-family:var(--mono);
+	font-size:11px;font-weight:600;
+	background:var(--gold-tint);
+	color:var(--gold-deep);
+	border:1.5px solid var(--gold);
+	border-radius:6px;
+	padding:4px 10px;
+	cursor:pointer;
+	display:inline-flex;align-items:center;gap:6px;
+}
+.ybt-dashboard-enhanced .ybd-copybtn:hover{ background:var(--gold); color:var(--ink); }
+.ybt-dashboard-enhanced .ybd-qr{
+	text-align:center;
+	background:var(--gold-tint);
+	border:1px solid var(--gold);
+	border-radius:10px;
+	padding:14px;
+}
+.ybt-dashboard-enhanced .ybd-qr img{ max-height:120px;border-radius:8px; }
+.ybt-dashboard-enhanced .ybd-qr .ybd-mono{
+	font-size:11px;font-weight:600;
+	letter-spacing:.12em;text-transform:uppercase;
+	color:var(--gold-deep);
+	margin-top:8px;
+}
+
+/* ── manifest row actions ─────────────────────────────────── */
+.ybt-dashboard-enhanced .ybd-viewbtn{
+	background:none;
+	border:1.5px solid var(--kraft-deep);
+	border-radius:8px;
+	color:var(--emerald-deep);
+	width:34px;height:34px;
+	cursor:pointer;
+	display:inline-flex;align-items:center;justify-content:center;
+	transition:border-color .15s ease, background-color .15s ease;
+}
+.ybt-dashboard-enhanced .ybd-viewbtn:hover{ border-color:var(--emerald); background:var(--emerald-tint); }
+.ybt-dashboard-enhanced .ybd-ghostlink{
+	font-family:var(--mono);
+	font-size:12px;font-weight:600;
+	letter-spacing:.08em;text-transform:uppercase;
+	color:var(--emerald-deep);
+	text-decoration:underline;
+}
+.ybt-dashboard-enhanced .ybd-ghostlink:hover{ color:var(--emerald); }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width:1000px){
+	.ybt-dashboard-enhanced .ybd-tally{ grid-template-columns:repeat(3,1fr); }
+	.ybt-dashboard-enhanced .ybd-tally-cell:nth-child(3n){ border-right:none; }
+	.ybt-dashboard-enhanced .ybd-tally-cell:nth-child(-n+3){ border-bottom:1px solid var(--kraft-line); }
+}
+@media (max-width:760px){
+	.ybt-dashboard-enhanced .ybd-route{
+		grid-template-columns:1fr;
+		gap:16px;
+	}
+	.ybt-dashboard-enhanced .ybd-route::before{
+		top:0;bottom:0;left:19px;right:auto;
+		width:2px;height:auto;
+		background:repeating-linear-gradient(180deg,var(--emerald) 0 6px,transparent 6px 10px);
+	}
+	.ybt-dashboard-enhanced .ybd-route li{
+		display:grid;
+		grid-template-columns:40px 1fr;
+		column-gap:14px;
+		text-align:left;
+		padding:0;
+	}
+	.ybt-dashboard-enhanced .ybd-route .num{ margin:0; }
+}
+@media (max-width:560px){
+	.ybt-dashboard-enhanced .ybd-tally{ grid-template-columns:repeat(2,1fr); }
+	.ybt-dashboard-enhanced .ybd-tally-cell{ border-bottom:1px solid var(--kraft-line); }
+	.ybt-dashboard-enhanced .ybd-tally-cell:nth-child(2n){ border-right:none; }
+	.ybt-dashboard-enhanced .ybd-tally-cell:nth-child(n+5){ border-bottom:none; }
+}
+</style>
+
+<div class="ybt-dashboard-enhanced">
 <div class="container" style="padding-top: 1rem !important;">
 
   <!-- ====== APP UPDATE BANNER ====== -->
   <?php if (!empty($app_latest_version) && !empty($app_download_url)): ?>
-  <div class="ybt-update-banner mb-4" id="ybtUpdateBanner">
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-      <div class="ybt-update-icon"><i class="fas fa-mobile-alt"></i></div>
-      <div class="flex-grow-1">
-        <strong>App Update Available &mdash; v<?php echo esc_html($app_latest_version); ?></strong>
-        <?php if (!empty($app_update_message)): ?>
-          <div class="ybt-update-msg"><?php echo esc_html($app_update_message); ?></div>
-        <?php endif; ?>
-      </div>
-      <a href="<?php echo esc_url($app_download_url); ?>" class="btn btn-sm ybt-update-btn" download>
-        <i class="fas fa-download me-1"></i> Download Update
-      </a>
-      <button class="btn btn-sm btn-link ybt-update-close" onclick="document.getElementById('ybtUpdateBanner').style.display='none'" title="Dismiss">
-        <i class="fas fa-times"></i>
-      </button>
+  <div class="ybd-update" id="ybtUpdateBanner">
+    <div class="ybd-update-icon"><i class="fas fa-mobile-alt"></i></div>
+    <div class="flex-grow-1">
+      <strong>App update available &mdash; v<?php echo esc_html($app_latest_version); ?></strong>
+      <?php if (!empty($app_update_message)): ?>
+        <div class="ybd-update-msg"><?php echo esc_html($app_update_message); ?></div>
+      <?php endif; ?>
     </div>
+    <a href="<?php echo esc_url($app_download_url); ?>" class="ybd-update-btn" download>Download update</a>
+    <button class="ybd-update-close" onclick="document.getElementById('ybtUpdateBanner').style.display='none'" title="Dismiss" aria-label="Dismiss">
+      <i class="fas fa-times"></i>
+    </button>
   </div>
   <?php endif; ?>
 
-  <!-- ====== HEADER & QUICK SEARCH ====== -->
-  <div class="mb-5">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
-      <div class="d-flex align-items-center gap-3">
-        <div class="ybt-floating-icon" style="font-size: 3rem; color: #10b981;"><i class="fas fa-rocket"></i></div>
-        <div>
-          <h1 class="mb-1" style="font-weight: 800; color: #1e293b;">MY DASHBOARD</h1>
-          <p class="mb-0 text-muted">Tracking excellence for <?php echo esc_html($current_user->display_name); ?></p>
-        </div>
-      </div>
-      <div class="d-flex align-items-center gap-3 glass-card p-2" style="background: white;">
-        <div class="badge bg-success bg-opacity-10 text-success rounded-pill px-4 py-2" style="font-size: 1rem; border: 1px solid #10b981;">
-          ID: <?php echo esc_html($custom_user_id); ?>
-        </div>
-        <input type="text" id="quickSearch" class="form-control border-0 bg-transparent" placeholder="Search parcels..." style="width: 200px;">
-      </div>
+  <!-- ====== THE DESK (header) ====== -->
+  <div class="ybd-desk">
+    <div class="ybd-who">
+      <p class="ybd-eyebrow">Consignment desk</p>
+      <strong>Your parcels</strong>
+      <span>Tracking for <?php echo esc_html($current_user->display_name); ?></span>
     </div>
-    <div id="searchResults" class="glass-card mt-3 shadow-sm" style="display:none; border-radius: 12px; background:white;"></div>
+    <div class="ybd-desk-right">
+      <span class="ybd-consignee">Consignee <?php echo esc_html($custom_user_id); ?></span>
+      <input type="text" id="quickSearch" class="ybd-search" placeholder="Trace a parcel&hellip;" aria-label="Search parcels">
+    </div>
   </div>
+  <div id="searchResults" style="display:none;"></div>
 
-  <!-- ====== STATS CARDS - MODERN DESIGN ====== -->
-  <div class="ybt-stats-grid-modern animate-fade-in-up">
-    <!-- Total -->
-    <div class="ybt-stat-card-modern">
-      <div class="ybt-stat-icon-modern all"><i class="fas fa-boxes"></i></div>
-      <div class="ybt-stat-value-modern"><?php echo esc_html($stats['total'] ?? 0); ?></div>
-      <div class="ybt-stat-label-modern">Total Parcels</div>
-    </div>
-    
-    <!-- Not Received -->
-    <div class="ybt-stat-card-modern">
-      <div class="ybt-stat-icon-modern pending"><i class="fas fa-clock"></i></div>
-      <div class="ybt-stat-value-modern"><?php echo esc_html($not_received); ?></div>
-      <div class="ybt-stat-label-modern">Not Received</div>
-    </div>
-    
-    <!-- Received -->
-    <div class="ybt-stat-card-modern">
-      <div class="ybt-stat-icon-modern received"><i class="fas fa-warehouse"></i></div>
-      <div class="ybt-stat-value-modern"><?php echo esc_html($received); ?></div>
-      <div class="ybt-stat-label-modern">Received</div>
-    </div>
-    
-    <!-- Packing In Progress -->
-    <div class="ybt-stat-card-modern">
-      <div class="ybt-stat-icon-modern packing"><i class="fas fa-box-open"></i></div>
-      <div class="ybt-stat-value-modern"><?php echo esc_html($packing_in_progress); ?></div>
-      <div class="ybt-stat-label-modern">Packing</div>
-    </div>
-    
-    <!-- Packed -->
-    <div class="ybt-stat-card-modern">
-      <div class="ybt-stat-icon-modern packed"><i class="fas fa-box"></i></div>
-      <div class="ybt-stat-value-modern"><?php echo esc_html($packed); ?></div>
-      <div class="ybt-stat-label-modern">Packed</div>
-    </div>
-    
-    <!-- Completed -->
-    <div class="ybt-stat-card-modern">
-      <div class="ybt-stat-icon-modern completed"><i class="fas fa-check-circle"></i></div>
-      <div class="ybt-stat-value-modern"><?php echo esc_html($completed); ?></div>
-      <div class="ybt-stat-label-modern">Completed</div>
+  <!-- ====== STOCK TALLY (stats) ====== -->
+  <div class="ybd-section">
+    <div class="ybd-tally" role="list" aria-label="Parcel tally">
+      <div class="ybd-tally-cell" role="listitem">
+        <span class="ybd-tally-num"><?php echo esc_html($stats['total'] ?? 0); ?></span>
+        <span class="ybd-tally-label">Total</span>
+        <span class="ybd-tick" aria-hidden="true"></span>
+      </div>
+      <div class="ybd-tally-cell ybd-is-quiet" role="listitem">
+        <span class="ybd-tally-num"><?php echo esc_html($not_received); ?></span>
+        <span class="ybd-tally-label">Not received</span>
+        <span class="ybd-tick" aria-hidden="true"></span>
+      </div>
+      <div class="ybd-tally-cell ybd-is-green" role="listitem">
+        <span class="ybd-tally-num"><?php echo esc_html($received); ?></span>
+        <span class="ybd-tally-label">Received</span>
+        <span class="ybd-tick" aria-hidden="true"></span>
+      </div>
+      <div class="ybd-tally-cell ybd-is-gold" role="listitem">
+        <span class="ybd-tally-num"><?php echo esc_html($packing_in_progress); ?></span>
+        <span class="ybd-tally-label">Packing</span>
+        <span class="ybd-tick" aria-hidden="true"></span>
+      </div>
+      <div class="ybd-tally-cell ybd-is-green" role="listitem">
+        <span class="ybd-tally-num"><?php echo esc_html($packed); ?></span>
+        <span class="ybd-tally-label">Packed</span>
+        <span class="ybd-tick" aria-hidden="true"></span>
+      </div>
+      <div class="ybd-tally-cell ybd-is-green" role="listitem">
+        <span class="ybd-tally-num"><?php echo esc_html($completed); ?></span>
+        <span class="ybd-tally-label">Completed</span>
+        <span class="ybd-tick" aria-hidden="true"></span>
+      </div>
     </div>
   </div>
 
-  <!-- ====== ANNOUNCEMENTS ====== -->
+  <!-- ====== NOTICE BOARD (announcements) ====== -->
   <?php if (!empty($admin_messages)): ?>
-  <div class="mb-5">
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <i class="fas fa-bullhorn text-primary fa-lg"></i>
-      <h5 class="mb-0 fw-bold">Global Announcements</h5>
-    </div>
+  <div class="ybd-section">
+    <p class="ybd-eyebrow">Notice board &middot; From the warehouse</p>
     <?php foreach ($admin_messages as $msg):
       $msg->message = nl2br(esc_html($msg->message));
       $msg_date = date('M j, Y g:i A', strtotime($msg->date_created));
     ?>
-      <div class="ybt-glass-card border-start border-4 border-primary" style="background: #ffffff; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);">
-        <div class="d-flex justify-content-between mb-2">
-          <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">Official Broadcast</span>
-          <small class="text-muted"><?php echo $msg_date; ?></small>
+      <div class="ybd-notice">
+        <div class="ybd-notice-head">
+          <span class="ybd-mono">Notice</span>
+          <span class="ybd-mono" style="color:#8b8265;"><?php echo $msg_date; ?></span>
         </div>
         <?php if (!empty($msg->image_url)): ?>
           <img src="<?php echo esc_url($msg->image_url); ?>"
-               alt="Announcement image"
+               alt="Notice image"
                loading="lazy"
                decoding="async"
-               style="max-width:150px; float:right; margin-left:1rem; border-radius:8px;"
                onclick="window.openImageFullscreen('<?php echo esc_url($msg->image_url); ?>')" />
         <?php endif; ?>
-        <p style="color: #334155; line-height:1.6; margin-bottom:1rem;"><?php echo $msg->message; ?></p>
+        <p><?php echo $msg->message; ?></p>
         <?php if (!empty($msg->video_url)): ?>
-          <a href="<?php echo esc_url($msg->video_url); ?>" target="_blank" class="btn btn-sm btn-outline-primary">View Attachment</a>
+          <a href="<?php echo esc_url($msg->video_url); ?>" target="_blank" rel="noopener" class="ybd-notice-file">View attachment</a>
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
-  <!-- ====== JOURNEY PROGRESS ====== -->
-  <div class="ybt-glass-card mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h5><i class="fas fa-microchip me-2" style="color: var(--neo-green);"></i>System Pulse</h5>
-      <div class="d-flex align-items-center gap-2"><span class="badge bg-success bg-opacity-10 text-success small">Live</span><div class="ybt-pulse-dot"></div></div>
-    </div>
-    <div class="journey-container">
-      <?php
-      $journey_steps = [
-        ['label' => 'Awaiting', 'icon' => 'fa-clock', 'count' => $not_received, 'active' => $not_received > 0, 'color' => 'var(--neo-gold)'],
-        ['label' => 'Warehouse', 'icon' => 'fa-warehouse', 'count' => $received, 'active' => $received > 0, 'color' => 'var(--neo-green)'],
-        ['label' => 'Packing', 'icon' => 'fa-box-open', 'count' => $packed, 'active' => $packed > 0, 'color' => '#60a5fa'],
-        ['label' => 'SENT', 'icon' => 'fa-flag-checkered', 'count' => $completed, 'active' => $completed > 0, 'color' => '#a78bfa']
-      ];
-      foreach ($journey_steps as $step):
-        $active = $step['active'] ? 'active' : '';
-        $count = $step['count'] > 0 ? '<span class="journey-count-badge">' . $step['count'] . '</span>' : '';
-      ?>
-        <div class="journey-step <?php echo $active; ?>">
-          <div class="journey-blob" style="border-color: <?php echo $step['color']; ?>;">
-            <i class="fas <?php echo esc_attr($step['icon']); ?>"></i>
-            <?php echo $count; ?>
-          </div>
-          <div class="journey-step-label"><?php echo esc_html($step['label']); ?></div>
+  <!-- ====== ROUTING (live journey) ====== -->
+  <div class="ybd-section">
+    <div class="ybd-panel">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:22px;">
+        <div>
+          <p class="ybd-eyebrow" style="margin-bottom:6px;">Routing &middot; Live</p>
+          <h2 class="ybd-h-display">Where your parcels are</h2>
         </div>
-      <?php endforeach; ?>
+        <span class="ybd-stamp" style="font-size:9px;padding:4px 8px;">On the record</span>
+      </div>
+      <ol class="ybd-route">
+        <?php
+        $journey_steps = [
+          ['label' => 'Not received',         'count' => $not_received],
+          ['label' => 'Received',             'count' => $received],
+          ['label' => 'Packing in progress',  'count' => $packing_in_progress],
+          ['label' => 'Packed',               'count' => $packed],
+          ['label' => 'Completed',            'count' => $completed],
+        ];
+        foreach ($journey_steps as $i => $step):
+          $live  = $step['count'] > 0 ? ' ybd-live' : '';
+          $count = $step['count'] > 0 ? '<span class="cnt">' . (int) $step['count'] . '</span>' : '';
+        ?>
+          <li class="<?php echo trim($live); ?>">
+            <span class="num" aria-hidden="true"><?php echo $i + 1; ?></span>
+            <div>
+              <span class="name"><?php echo esc_html($step['label']); ?></span>
+              <?php echo $count; ?>
+            </div>
+          </li>
+        <?php endforeach; ?>
+      </ol>
+      <div class="ybd-sync">Data synced as of <?php echo date('H:i'); ?></div>
     </div>
-    <div class="text-center text-muted mt-4"><small>Data synced as of <?php echo date('H:i'); ?></small></div>
   </div>
 
-  <!-- ====== WAREHOUSE & PAYMENT - MODERN DESIGN ====== -->
-  <div class="row g-4">
-    <div class="col-12 col-lg-6">
-      <div class="ybt-warehouse-card-modern h-100 animate-fade-in-up">
-        <div class="ybt-warehouse-title-modern">
-          <i class="fas fa-plane-departure" style="color: #10b981;"></i>
-          <span>Consolidation Hub</span>
+  <!-- ====== ORIGIN & SETTLEMENT ====== -->
+  <div class="ybd-section">
+    <div class="ybd-duo">
+      <!-- Warehouse: click-to-copy waybill -->
+      <div class="ybd-doc">
+        <div class="ybd-doc-head">
+          <h3>Origin &middot; Consolidation hub</h3>
         </div>
         <?php if ($warehouse_settings && !empty($warehouse_settings->address)):
           $phone = esc_html($warehouse_settings->phone ?: 'N/A');
@@ -277,49 +684,45 @@ render_dashboard_navbar($current_user);
           $addr = ybt_smart_format_address($warehouse_settings->address, $custom_user_id);
           $clipboard_text = htmlspecialchars($addr . "\nPhone: " . $phone, ENT_QUOTES, 'UTF-8');
         ?>
-          <div class="ybt-address-copy-card-modern"
+          <div class="ybd-copycard"
                id="warehouseAddressCard"
                data-clipboard-text="<?php echo $clipboard_text; ?>"
                title="Click to copy address"
                role="button"
                tabindex="0">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-              <span class="ybt-status-badge-modern completed">
-                <i class="fas fa-check-circle"></i> Active Warehouse
-              </span>
-              <span class="ybt-copy-hint-modern">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+              <span class="ybd-label">Warehouse address</span>
+              <span class="ybd-copyhint">
                 <i class="far fa-copy"></i>
                 <span class="copy-hint-txt">Click to copy</span>
               </span>
             </div>
-            <div class="ybt-warehouse-address-modern">
+            <div class="ybd-addr">
               <?php echo nl2br(esc_html($addr)); ?>
             </div>
-            <div class="mt-3 d-flex gap-3 flex-wrap">
-              <small class="d-flex align-items-center gap-2">
-                <i class="fas fa-phone" style="color: #10b981;"></i>
-                <?php echo $phone; ?>
-              </small>
-              <small class="d-flex align-items-center gap-2">
-                <i class="far fa-clock" style="color: #10b981;"></i>
-                <?php echo $hours; ?>
-              </small>
-            </div>
+          </div>
+          <div class="ybd-meta">
+            <small class="d-flex align-items-center gap-2">
+              <i class="fas fa-phone"></i>
+              <?php echo $phone; ?>
+            </small>
+            <small class="d-flex align-items-center gap-2">
+              <i class="far fa-clock"></i>
+              <?php echo $hours; ?>
+            </small>
           </div>
         <?php else: ?>
-          <div class="text-center py-5 text-muted">
-            <i class="fas fa-warehouse fa-3x mb-3 opacity-25"></i>
+          <div class="ybd-empty">
+            <i class="fas fa-warehouse fa-3x opacity-25"></i>
             <p>No warehouse set</p>
           </div>
         <?php endif; ?>
       </div>
-    </div>
-    
-    <div class="col-12 col-lg-6">
-      <div class="ybt-payment-card-modern h-100 animate-fade-in-up">
-        <div class="ybt-warehouse-title-modern">
-          <i class="fas fa-wallet" style="color: #d4af37;"></i>
-          <span>Settlement Protocols</span>
+
+      <!-- Settlement: bank details -->
+      <div class="ybd-doc ybd-doc-gold">
+        <div class="ybd-doc-head">
+          <h3>Settlement &middot; Bank details</h3>
         </div>
         <?php if ($payment_settings):
           $bank = esc_html($payment_settings->bank_name);
@@ -327,46 +730,43 @@ render_dashboard_navbar($current_user);
           $acc = esc_html($payment_settings->account_number);
           $qr = esc_url($payment_settings->qr_code_image ?: '');
         ?>
-          <div class="d-flex flex-wrap gap-4">
-            <div class="flex-grow-1">
-              <div class="ybt-payment-detail-modern">
-                <span class="ybt-payment-label-modern">Bank</span>
-                <span class="ybt-payment-value-modern"><?php echo $bank; ?></span>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">
+            <div class="flex-grow-1" style="min-width:200px;">
+              <div class="ybd-kv">
+                <span class="ybd-label">Bank</span>
+                <span class="ybd-val"><?php echo $bank; ?></span>
               </div>
-              <div class="ybt-payment-detail-modern">
-                <span class="ybt-payment-label-modern">Account</span>
-                <span class="ybt-payment-value-modern"><?php echo $name; ?></span>
+              <div class="ybd-kv">
+                <span class="ybd-label">Account name</span>
+                <span class="ybd-val"><?php echo $name; ?></span>
               </div>
-              <div class="ybt-payment-detail-modern">
-                <span class="ybt-payment-label-modern">Number</span>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="ybt-payment-value-modern"><?php echo $acc; ?></span>
-                  <button class="btn btn-sm ybt-btn-modern ybt-btn-gold-modern py-1 px-3 copy-btn" 
+              <div class="ybd-kv">
+                <span class="ybd-label">Account number</span>
+                <span class="ybd-val">
+                  <?php echo $acc; ?>
+                  <button class="ybd-copybtn copy-btn" type="button"
                           data-clipboard-text="<?php echo htmlspecialchars($acc, ENT_QUOTES, 'UTF-8'); ?>">
-                    <i class="fas fa-copy"></i>
+                    <i class="fas fa-copy"></i> Copy
                   </button>
-                </div>
+                </span>
               </div>
             </div>
             <?php if ($qr): ?>
-              <div class="text-center p-3" style="background: rgba(255, 248, 225, 0.5); border-radius: 12px;">
+              <div class="ybd-qr">
                 <img src="<?php echo esc_url($qr); ?>"
-                     alt="QR Code for payment"
+                     alt="QR code for payment"
                      loading="lazy"
-                     decoding="async"
-                     style="max-height:120px; border-radius:8px;" />
-                <div class="small mt-2" style="color: #b59021; font-weight: 600;">Scan to Pay</div>
-                <a href="<?php echo esc_url($qr); ?>"
-                   class="btn btn-sm ybt-btn-modern ybt-btn-gold-modern py-1 px-3 mt-2 qr-download-btn"
-                   download="ybt-payment-qr.jpg">
+                     decoding="async" />
+                <div class="ybd-mono">Scan to pay</div>
+                <a href="<?php echo esc_url($qr); ?>" class="ybd-ghostlink" download>
                   <i class="fas fa-download"></i> Download QR
                 </a>
               </div>
             <?php endif; ?>
           </div>
         <?php else: ?>
-          <div class="text-center py-5 text-muted">
-            <i class="fas fa-credit-card fa-3x mb-3 opacity-25"></i>
+          <div class="ybd-empty">
+            <i class="fas fa-credit-card fa-3x opacity-25"></i>
             <p>No payment configured</p>
           </div>
         <?php endif; ?>
@@ -374,55 +774,69 @@ render_dashboard_navbar($current_user);
     </div>
   </div>
 
-  <!-- ====== RECENT ACTIVITY ====== -->
-  <div class="ybt-glass-card mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 p-3 border-bottom">
-      <h5><i class="fas fa-history me-2" style="color: var(--neo-green);"></i>Operational History</h5>
-      <a href="<?php echo esc_url(home_url('/tracking/received')); ?>" class="btn btn-sm btn-outline-primary">Audit All</a>
-    </div>
-    <?php if (!empty($recent_activity)): ?>
-      <div class="table-responsive">
-        <table class="table mb-0">
-          <thead style="background:#f8fafc;"><tr><th>Tracking #</th><th>Status</th><th>Date</th><th>View</th></tr></thead>
-          <tbody>
-            <?php
-            $status_colors = [
-                'not_received'       => ['bg' => 'secondary', 'text' => 'white'],
-                'received'           => ['bg' => 'warning',   'text' => 'dark'],
-                'packing_in_progress'=> ['bg' => 'primary',   'text' => 'white'],
-                'packed'             => ['bg' => 'info',      'text' => 'dark'],
-                'completed'          => ['bg' => 'success',   'text' => 'white'],
-            ];
-            foreach ($recent_activity as $item):
-              $status   = $item->status;
-              $colors   = $status_colors[$status] ?? ['bg' => 'secondary', 'text' => 'white'];
-              $bg_class = $colors['bg'];
-              $tx_class = $colors['text'];
-              $text     = ucwords(str_replace('_', ' ', $status));
-              $date     = $item->date_added ? date('M j, Y', strtotime($item->date_added)) : '-';
-            ?>
-              <tr>
-                <td><strong><?php echo esc_html($item->tracking_number); ?></strong></td>
-                <td><span class="badge bg-<?php echo $bg_class; ?> text-<?php echo $tx_class; ?> px-2 py-1 rounded"><?php echo esc_html($text); ?></span></td>
-                <td><?php echo esc_html($date); ?></td>
-                <td>
-                    <button type="button"
-                            class="btn btn-sm btn-light rounded-circle view-parcel-details"
-                            data-parcel='<?php echo htmlspecialchars(json_encode($item), ENT_QUOTES, "UTF-8"); ?>'
-                            data-status-text="<?php echo esc_attr($text); ?>"
-                            data-bg-class="<?php echo esc_attr($bg_class); ?>"
-                            data-tx-class="<?php echo esc_attr($tx_class); ?>">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+  <!-- ====== MANIFEST (recent activity) ====== -->
+  <div class="ybd-section">
+    <div class="ybd-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <div>
+          <p class="ybd-eyebrow" style="margin-bottom:6px;">Manifest &middot; Latest entries</p>
+          <h2 class="ybd-h-display">Recent activity</h2>
+        </div>
+        <a href="<?php echo esc_url(home_url('/tracking/received')); ?>" class="ybd-ghostlink">Audit all</a>
       </div>
-    <?php else: ?>
-      <div class="p-5 text-center text-muted"><i class="fas fa-inbox fa-3x mb-3 opacity-25"></i><p>No recent activity</p></div>
-    <?php endif; ?>
+      <?php if (!empty($recent_activity)): ?>
+        <div class="ybd-tablewrap">
+          <table class="ybd-manifest">
+            <thead>
+              <tr>
+                <th>Tracking #</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">View</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              // Bootstrap class names are kept for the details-modal script below.
+              $status_colors = [
+                  'not_received'       => ['bg' => 'secondary', 'text' => 'white'],
+                  'received'           => ['bg' => 'warning',   'text' => 'dark'],
+                  'packing_in_progress'=> ['bg' => 'primary',   'text' => 'white'],
+                  'packed'             => ['bg' => 'info',      'text' => 'dark'],
+                  'completed'          => ['bg' => 'success',   'text' => 'white'],
+              ];
+              foreach ($recent_activity as $item):
+                $status   = $item->status;
+                $colors   = $status_colors[$status] ?? ['bg' => 'secondary', 'text' => 'white'];
+                $bg_class = $colors['bg'];
+                $tx_class = $colors['text'];
+                $text     = ucwords(str_replace('_', ' ', $status));
+                $date     = $item->date_added ? date('M j, Y', strtotime($item->date_added)) : '-';
+              ?>
+                <tr>
+                  <td><span class="ybd-trackno"><?php echo esc_html($item->tracking_number); ?></span></td>
+                  <td><span class="ybd-chip ybd-chip-<?php echo esc_attr($status); ?>"><?php echo esc_html($text); ?></span></td>
+                  <td><span class="ybd-date"><?php echo esc_html($date); ?></span></td>
+                  <td>
+                      <button type="button"
+                              class="ybd-viewbtn view-parcel-details"
+                              aria-label="View details for <?php echo esc_attr($item->tracking_number); ?>"
+                              data-parcel='<?php echo htmlspecialchars(json_encode($item), ENT_QUOTES, "UTF-8"); ?>'
+                              data-status-text="<?php echo esc_attr($text); ?>"
+                              data-bg-class="<?php echo esc_attr($bg_class); ?>"
+                              data-tx-class="<?php echo esc_attr($tx_class); ?>">
+                          <i class="fas fa-chevron-right"></i>
+                      </button>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php else: ?>
+        <div class="ybd-empty"><i class="fas fa-inbox fa-3x opacity-25"></i><p>No recent activity &mdash; add a tracking number to start a consignment.</p></div>
+      <?php endif; ?>
+    </div>
   </div>
 
 </div>
@@ -476,96 +890,18 @@ function openImageFullscreen(src) {
 </script>
 
 <!-- ====== COPY TOAST ====== -->
-<div id="ybtCopyToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;padding:10px 22px;border-radius:30px;font-size:0.9rem;z-index:99999;opacity:0;pointer-events:none;transition:all 0.3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
-  <i class="fas fa-check-circle me-2" style="color:#10b981;"></i> Address copied!
+<div id="ybtCopyToast" role="status" aria-live="polite">
+  <i class="fas fa-check-circle me-2"></i> Address copied!
 </div>
 
 <!-- ====== COPY FUNCTIONS ====== -->
-<style>
-.ybt-address-copy-card-modern {
-  background: linear-gradient(135deg,rgba(16,185,129,0.06),rgba(16,185,129,0.02));
-  border: 2px dashed rgba(16,185,129,0.25);
-  border-radius: 12px;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none;
-  position: relative;
-  overflow: hidden;
-}
-.ybt-address-copy-card-modern:hover {
-  border-color: #10b981;
-  background: white;
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(16,185,129,0.15);
-}
-.ybt-address-copy-card-modern:active { transform: scale(0.98); }
-.ybt-copy-hint-modern {
-  font-size: 0.8rem;
-  color: #10b981;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-}
-.ybt-address-copy-card-modern:hover .ybt-copy-hint-modern { color: #059669; }
-.ybt-address-copy-card:active { transform: scale(0.98); }
-.ybt-copy-hint {
-  font-size: 0.78rem;
-  color: #10b981;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-.ybt-address-copy-card:hover .ybt-copy-hint { opacity: 1; }
-.ybt-addr-pre {
-  white-space: pre-wrap;
-  margin: 0;
-  font-family: inherit;
-  font-size: 0.95rem;
-  color: #1e293b;
-  pointer-events: none;
-}
-.ybt-update-banner {
-  background: linear-gradient(135deg,#1e3a5f,#1a5c3a);
-  color: #fff;
-  border-radius: 14px;
-  padding: 1rem 1.3rem;
-  box-shadow: 0 4px 20px rgba(16,185,129,0.2);
-  border: 1px solid rgba(16,185,129,0.3);
-}
-.ybt-update-icon {
-  font-size: 1.8rem;
-  color: #10b981;
-  background: rgba(16,185,129,0.15);
-  border-radius: 50%;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.ybt-update-msg { font-size: 0.85rem; opacity: 0.85; margin-top: 2px; }
-.ybt-update-btn {
-  background: #10b981;
-  color: #fff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.ybt-update-btn:hover { background: #059669; color: #fff; }
-.ybt-update-close { color: rgba(255,255,255,0.6); }
-.ybt-update-close:hover { color: #fff; }
-</style>
 <script>
 function ybtShowCopyToast(msg) {
   const t = document.getElementById('ybtCopyToast');
   if (!t) return;
   
   // Update content
-  t.innerHTML = '<i class="fas fa-check-circle me-2" style="color:#10b981;"></i> ' + (msg || 'Copied!');
+  t.innerHTML = '<i class="fas fa-check-circle me-2"></i> ' + (msg || 'Copied!');
   
   // Show toast
   t.style.opacity = '1';
@@ -600,31 +936,6 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() { btn.innerHTML = orig; }, 2000);
     } catch(e) {
       alert('Copy failed. Please copy manually.');
-    }
-    document.body.removeChild(ta);
-  };
-
-  // Fallback copy function for address card
-  var copyWithFallback = function(text, hint) {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    ta.style.top = '0';
-    ta.style.left = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      var successful = document.execCommand('copy');
-      if (successful) {
-        ybtShowCopyToast('Address copied!');
-        if (hint) { hint.textContent = 'Copied!'; setTimeout(function() { hint.textContent = 'Click to copy'; }, 2000); }
-      } else {
-        alert('Copy failed. Please select and copy manually.');
-      }
-    } catch(e) {
-      console.error('execCommand failed:', e);
-      alert('Copy not supported. Please select and copy manually.');
     }
     document.body.removeChild(ta);
   };
@@ -673,10 +984,8 @@ document.addEventListener('DOMContentLoaded', function() {
           if (hint) {
               var originalText = hint.textContent;
               hint.textContent = 'Copied!';
-              hint.style.color = '#059669';
               setTimeout(function() {
                   hint.textContent = originalText;
-                  hint.style.color = '';
               }, 2500);
           }
       }).catch(function(err) {
@@ -712,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', function() {
         navigator.clipboard.writeText(text).then(function() {
           ybtShowCopyToast('Copied!');
           var orig = btn.innerHTML;
-          btn.innerHTML = '<i class="fas fa-check text-success"></i>';
+          btn.innerHTML = '<i class="fas fa-check"></i>';
           setTimeout(function() { btn.innerHTML = orig; }, 2000);
         }).catch(function() {
           copyBtnFallback(btn, text);
@@ -743,47 +1052,68 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-</div> <!-- ybt-dashboard-enhanced -->
-
 <!-- ====== PARCEL DETAILS MODAL ====== -->
-<div id="parcelDetailsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
-    <div class="glass-card p-4 mx-3" style="width: 100%; max-width: 600px; background: #fff; border-radius: 16px; position: relative; max-height: 90vh; overflow-y: auto;">
-        <button onclick="jQuery('#parcelDetailsModal').fadeOut(200)" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#64748b; font-size:24px; cursor:pointer;">&times;</button>
+<div id="parcelDetailsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,31,23,0.75); z-index:9999; align-items:center; justify-content:center;">
+    <div style="width:100%; max-width:600px; margin:0 1rem; background:#ffffff; border:1.5px solid #0f1f17; border-radius:12px; position:relative; max-height:90vh; overflow-y:auto; padding:1.6rem; box-shadow:6px 6px 0 rgba(15,31,23,.3);">
+        <button onclick="jQuery('#parcelDetailsModal').fadeOut(200)" aria-label="Close" style="position:absolute; top:14px; right:14px; background:none; border:none; color:#5c5543; font-size:24px; cursor:pointer;">&times;</button>
 
-        <div class="modal-header-custom mb-4 pb-3 border-bottom">
-            <h4 class="fw-bold mb-1" id="m-tracking-number">Tracking Details</h4>
-            <span id="m-status-badge" class="badge rounded-pill px-3 py-2"></span>
+        <div style="margin-bottom:1.2rem; padding-bottom:0.9rem; border-bottom:2px dashed #d9ccb0;">
+            <p style="margin:0 0 4px; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#8a6d1f;">Consignment details</p>
+            <h4 style="margin:0 0 10px; font-family:'IBM Plex Mono',monospace; font-size:1.3rem; font-weight:600; color:#0f1f17;" id="m-tracking-number">Tracking Details</h4>
+            <span id="m-status-badge" class="badge rounded-pill px-3 py-2" style="font-family:'IBM Plex Mono',monospace; font-size:12px;"></span>
         </div>
 
         <div class="row g-4">
             <div class="col-md-6">
-                <label class="text-muted small text-uppercase fw-bold d-block mb-1">Description</label>
-                <div id="m-description" class="fw-medium text-dark">-</div>
+                <label class="ybd-m-label">Description</label>
+                <div id="m-description" class="ybd-m-val">-</div>
             </div>
             <div class="col-md-6">
-                <label class="text-muted small text-uppercase fw-bold d-block mb-1">Items count</label>
-                <div id="m-count" class="fw-medium text-dark">-</div>
+                <label class="ybd-m-label">Items count</label>
+                <div id="m-count" class="ybd-m-val">-</div>
             </div>
             <div class="col-md-6">
-                <label class="text-muted small text-uppercase fw-bold d-block mb-1">Registered Date</label>
-                <div id="m-date-added" class="fw-medium text-dark">-</div>
+                <label class="ybd-m-label">Registered date</label>
+                <div id="m-date-added" class="ybd-m-val">-</div>
             </div>
             <div class="col-md-6" id="m-date-received-container">
-                <label class="text-muted small text-uppercase fw-bold d-block mb-1">Received Date</label>
-                <div id="m-date-received" class="fw-medium text-dark">-</div>
+                <label class="ybd-m-label">Received date</label>
+                <div id="m-date-received" class="ybd-m-val">-</div>
             </div>
         </div>
 
-        <div id="m-images-container" class="mt-4 pt-3 border-top">
-            <label class="text-muted small text-uppercase fw-bold d-block mb-2">Parcel Images</label>
+        <div id="m-images-container" class="mt-4 pt-3" style="border-top:2px dashed #d9ccb0;">
+            <label class="ybd-m-label" style="margin-bottom:.5rem;">Parcel images</label>
             <div id="m-images" class="d-flex flex-wrap gap-2"></div>
         </div>
 
+        <!-- Parcel timeline: populated by assets/js/ybt-timeline.js via the
+             ybt_get_parcel_timeline AJAX action (includes/notifications-web.php). -->
+        <div id="m-timeline" class="mt-4 pt-3" style="border-top:2px dashed #d9ccb0;">
+            <label class="ybd-m-label" style="margin-bottom:.5rem;">Parcel timeline</label>
+            <ul class="ybt-timeline-list"></ul>
+        </div>
+
         <div class="d-grid mt-4 pt-2">
-            <button type="button" class="btn btn-light" onclick="jQuery('#parcelDetailsModal').fadeOut(200)">Close</button>
+            <button type="button" onclick="jQuery('#parcelDetailsModal').fadeOut(200)" style="background:#0f1f17; color:#fff; border:1.5px solid #0f1f17; border-radius:8px; padding:11px 20px; font-weight:700; cursor:pointer;">Close</button>
         </div>
     </div>
 </div>
+<style>
+.ybd-m-label{
+	display:block;
+	font-family:'IBM Plex Mono',monospace;
+	font-size:10px; font-weight:600;
+	letter-spacing:.14em; text-transform:uppercase;
+	color:#5c5543;
+	margin-bottom:2px;
+}
+.ybd-m-val{
+	font-family:'IBM Plex Sans',sans-serif;
+	font-weight:600;
+	color:#0f1f17;
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

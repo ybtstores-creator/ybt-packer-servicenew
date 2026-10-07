@@ -218,25 +218,12 @@ class YBT_Logger {
      * Get client IP address
      */
     private function get_client_ip() {
-        $ip_keys = array(
-            'HTTP_CF_CONNECTING_IP', // Cloudflare
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_REAL_IP',
-            'REMOTE_ADDR'
-        );
-
-        foreach ($ip_keys as $key) {
-            if (!empty($_SERVER[$key])) {
-                $ip = sanitize_text_field($_SERVER[$key]);
-                if (strpos($ip, ',') !== false) {
-                    $ips = explode(',', $ip);
-                    $ip = trim($ips[0]);
-                }
-                return $ip;
-            }
+        if (function_exists('ybt_get_client_ip')) {
+            return ybt_get_client_ip();
         }
 
-        return '0.0.0.0';
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '0.0.0.0';
     }
 
     /**
@@ -257,7 +244,7 @@ class YBT_Logger {
         $site_name = get_bloginfo('name');
         $subject = sprintf("[%s] CRITICAL ERROR ALERT", $site_name);
 
-        $body = "A critical error has occurred on your YBT Packer Service:\n\n";
+        $body = "A critical error has occurred on your YBT Packing Service:\n\n";
         $body .= "Message: {$message}\n";
         $body .= "Time: " . current_time('Y-m-d H:i:s') . "\n";
         $body .= "IP Address: " . $this->get_client_ip() . "\n";
@@ -268,7 +255,7 @@ class YBT_Logger {
         }
 
         $body .= "\n---\n";
-        $body .= "This is an automated alert from YBT Packer Service.\n";
+        $body .= "This is an automated alert from YBT Packing Service.\n";
         $body .= "Please check your logs immediately at: " . $this->log_dir;
 
         // Send email with error suppression (don't break on mail failure)
@@ -397,33 +384,7 @@ if (!function_exists('ybt_log_security_event')) {
         if (function_exists('ybt_logger')) {
             ybt_logger()->warning('SECURITY EVENT: ' . $event, $details);
         }
-
-        // Persist to the DB security log so the admin dashboard can query it
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ybt_security_log';
-        if (function_exists('ybt_table_exists') && ybt_table_exists($table_name)) {
-            $detail_text = is_string($details) ? $details : wp_json_encode($details);
-            $user_id = 0;
-            if (is_array($details) && isset($details['user_id'])) {
-                $user_id = (int) $details['user_id'];
-            }
-            if (!$user_id) {
-                $user_id = get_current_user_id();
-            }
-            $wpdb->insert(
-                $table_name,
-                array(
-                    'event_type'  => sanitize_text_field(substr((string) $event, 0, 100)),
-                    'description' => sanitize_textarea_field(substr((string) $detail_text, 0, 1000)),
-                    'severity'    => ybt_security_event_severity($event),
-                    'user_id'     => $user_id ?: null,
-                    'ip_address'  => function_exists('ybt_get_client_ip') ? ybt_get_client_ip() : 'unknown',
-                    'date_created' => current_time('mysql')
-                ),
-                array('%s', '%s', '%s', '%d', '%s', '%s')
-            );
-        }
-
+        
         // Also log to dedicated security log file if in debug mode
         if (defined('WP_DEBUG') && WP_DEBUG) {
             $log_entry = array(
@@ -438,19 +399,6 @@ if (!function_exists('ybt_log_security_event')) {
                 @file_put_contents($log_file, $log_line, FILE_APPEND | LOCK_EX);
             }
         }
-    }
-}
-
-if (!function_exists('ybt_security_event_severity')) {
-    function ybt_security_event_severity($event) {
-        $event = strtoupper((string) $event);
-        if (preg_match('/UNAUTHORIZED|BLOCKED|LOCKOUT|LOCKED|ATTACK|FORGED|REJECTED|ABUSE|TRAVERSAL|INJECTION/', $event)) {
-            return 'critical';
-        }
-        if (preg_match('/FAILED|INVALID|EXCEEDED|ROTATED|DELETED|DISABLED|SUSPICIOUS/', $event)) {
-            return 'warning';
-        }
-        return 'info';
     }
 }
 

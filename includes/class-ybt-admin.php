@@ -3,6 +3,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Advanced-search AJAX endpoint (page templates render too late to register it)
+require_once YBT_PLUGIN_PATH . 'includes/ajax-advanced-search-legacy.php';
+
 class YBT_Admin {
     public function __construct() {
         add_action('admin_menu', array($this, 'register_menus'));
@@ -14,7 +17,7 @@ class YBT_Admin {
      *
      * Previously all 25+ items were flat under one menu.
      * Now grouped into separate top-level menus by function:
-     *   YBT Packer (Dashboard)
+     *   YBT Packing Service (Dashboard)
      *   📦 Parcels  (tracking + packing operations)
      *   📊 Reports  (analytics & insights)
      *   ⚙️ Settings (configuration & maintenance)
@@ -26,8 +29,8 @@ class YBT_Admin {
         // 1. MAIN MENU — DASHBOARD
         // =====================================================================
         add_menu_page(
-            'YBT Packer — Dashboard',
-            'YBT Packer',
+            'YBT Packing Service — Dashboard',
+            'YBT Packing Service',
             'manage_options',
             'ybt-packer',
             array($this, 'render_dashboard'),
@@ -39,7 +42,7 @@ class YBT_Admin {
         // 2. 📦 PARCELS — Tracking & Packing Operations
         // =====================================================================
         add_menu_page(
-            'Parcels — YBT Packer',
+            'Parcels — YBT Packing Service',
             '📦 Parcels',
             'manage_options',
             'ybt-parcels',
@@ -115,7 +118,7 @@ class YBT_Admin {
         // 3. 📊 REPORTS — Analytics & Insights
         // =====================================================================
         add_menu_page(
-            'Reports — YBT Packer',
+            'Reports — YBT Packing Service',
             '📊 Reports',
             'manage_options',
             'ybt-reports',
@@ -164,7 +167,7 @@ class YBT_Admin {
         // 4. ⚙️ SETTINGS — Configuration & Maintenance
         // =====================================================================
         add_menu_page(
-            'Settings — YBT Packer',
+            'Settings — YBT Packing Service',
             '⚙️ Settings',
             'manage_options',
             'ybt-settings-group',
@@ -265,6 +268,15 @@ class YBT_Admin {
 
         add_submenu_page(
             'ybt-settings-group',
+            'Reset Data',
+            '⚠️ Reset',
+            'manage_options',
+            'ybt-reset-data',
+            array($this, 'render_reset_data')
+        );
+
+        add_submenu_page(
+            'ybt-settings-group',
             'Data Management',
             '🗑️ Data Cleanup',
             'manage_options',
@@ -285,7 +297,7 @@ class YBT_Admin {
         // 5. 💬 SUPPORT — Chat & Messages
         // =====================================================================
         add_menu_page(
-            'Support — YBT Packer',
+            'Support — YBT Packing Service',
             '💬 Support',
             'manage_options',
             'ybt-support',
@@ -305,6 +317,15 @@ class YBT_Admin {
 
         add_submenu_page(
             'ybt-support',
+            'Send Notification',
+            '📣 Send Notification',
+            'manage_options',
+            'ybt-send-notification',
+            array($this, 'render_send_notification')
+        );
+
+        add_submenu_page(
+            'ybt-support',
             'Messages',
             '📧 Messages',
             'manage_options',
@@ -316,7 +337,7 @@ class YBT_Admin {
         // 6. 🧾 INVOICES
         // =====================================================================
         add_menu_page(
-            'Invoices — YBT Packer',
+            'Invoices — YBT Packing Service',
             '🧾 Invoices',
             'manage_options',
             'ybt-invoices',
@@ -370,6 +391,9 @@ class YBT_Admin {
         // Modern Admin UI (new v2.0)
         wp_enqueue_style('ybt-admin-modern', YBT_PLUGIN_URL . 'assets/css/admin-modern.css', array('ybt-bootstrap'), YBT_VERSION);
         wp_enqueue_script('ybt-admin-modern', YBT_PLUGIN_URL . 'assets/js/admin-modern.js', array('jquery'), YBT_VERSION, true);
+
+        // Consignment-note design system (shared tokens & atoms for the redesigned admin pages)
+        wp_enqueue_style('ybt-consignment', YBT_PLUGIN_URL . 'assets/css/ybt-consignment.css', array('ybt-admin-modern'), YBT_VERSION . '-flat-v1');
 
         // Page-specific assets for Process Packing
         if (strpos($hook, 'ybt-process-packing') !== false) {
@@ -597,6 +621,13 @@ class YBT_Admin {
         $this->load_template('admin-messages.php');
     }
 
+    public function render_send_notification() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'ybt-packer'));
+        }
+        $this->load_template('admin-send-notification.php');
+    }
+
     public function render_warehouse_settings() {
         if (!current_user_can('manage_options')) {
             wp_die(__('Insufficient permissions', 'ybt-packer'));
@@ -695,6 +726,13 @@ class YBT_Admin {
             wp_die(__('Insufficient permissions', 'ybt-packer'));
         }
         $this->load_template('admin-email-settings.php');
+    }
+
+    public function render_reset_data() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'ybt-packer'));
+        }
+        $this->load_template('admin-reset-data.php');
     }
 
     public function render_data_cleanup() {

@@ -8,17 +8,22 @@ if (!current_user_can('manage_options')) {
 global $wpdb;
 
 // Enqueue Enhanced CSS
-wp_enqueue_style('ybt-admin-dashboard-enhanced', YBT_PLUGIN_URL . 'assets/css/admin-dashboard-enhanced.css', array(), YBT_VERSION);
 
-// Get users with payment evidence (evidence lives on ybt_tracking rows, grouped per batch)
-$users_with_payments = $wpdb->get_results("
-    SELECT t.user_id, u.display_name, u.user_login, u.user_email
+/* Bounded: newest payment-evidence users only. The proof table grows forever,
+ * so this page needs hard ceilings to stay fast. */
+$max_users = 50;
+$max_proofs_per_user = 20;
+
+// Get users with payment evidence (proofs live on ybt_tracking rows)
+$users_with_payments = $wpdb->get_results($wpdb->prepare("
+    SELECT t.user_id, u.display_name, u.user_login, u.user_email, MAX(t.date_added) AS last_upload
     FROM {$wpdb->prefix}ybt_tracking t
     INNER JOIN {$wpdb->users} u ON t.user_id = u.ID
     WHERE t.payment_evidence IS NOT NULL AND t.payment_evidence != ''
     GROUP BY t.user_id, u.display_name, u.user_login, u.user_email
-    ORDER BY MAX(t.date_added) DESC
-");
+    ORDER BY last_upload DESC
+    LIMIT %d
+", $max_users));
 ?>
 
 <div class="wrap ybt-admin-wrapper">
@@ -38,14 +43,32 @@ $users_with_payments = $wpdb->get_results("
                             SELECT MIN(t.id) AS id,
                                    t.batch_id,
                                    COUNT(t.id) AS item_count,
-                                   GROUP_CONCAT(DISTINCT t.tracking_number SEPARATOR ', ') AS tracking_numbers,
+                                   GROUP_CONCAT(DISTINCT t.tracking_number ORDER BY t.tracking_number SEPARATOR ', ') AS tracking_numbers,
                                    MAX(t.payment_evidence) AS payment_evidence,
                                    MAX(t.date_added) AS date_uploaded
                             FROM {$wpdb->prefix}ybt_tracking t
                             WHERE t.user_id = %d AND t.payment_evidence IS NOT NULL AND t.payment_evidence != ''
                             GROUP BY t.batch_id
                             ORDER BY date_uploaded DESC
-                        ", $user->user_id));
+                            LIMIT %d
+                        ", $user->user_id, $max_proofs_per_user));
+
+                        // Cartons for every evidence row in ONE query (was: one query per proof).
+                        $batch_ids = array_unique(wp_list_pluck($user_payments, 'batch_id'));
+                        $all_cartons = array();
+                        if ($batch_ids) {
+                            $id_placeholders = implode(',', array_fill(0, count($batch_ids), '%s'));
+                            $carton_rows = $wpdb->get_results($wpdb->prepare(
+                                "SELECT batch_id, id, carton_image, carton_number, weight_kg
+                                 FROM {$wpdb->prefix}ybt_cartons
+                                 WHERE batch_id IN ($id_placeholders)
+                                 ORDER BY carton_number ASC",
+                                $batch_ids
+                            ));
+                            foreach ($carton_rows as $crow) {
+                                $all_cartons[$crow->batch_id][] = $crow;
+                            }
+                        }
                     ?>
 
                     <div class="p-3 border-bottom">
@@ -69,10 +92,7 @@ $users_with_payments = $wpdb->get_results("
                             </thead>
                             <tbody>
                                 <?php foreach ($user_payments as $evidence):
-                                    $cartons = $wpdb->get_results($wpdb->prepare(
-                                        "SELECT * FROM {$wpdb->prefix}ybt_cartons WHERE batch_id = %s ORDER BY carton_number",
-                                        $evidence->batch_id
-                                    ));
+                                    $cartons = isset($all_cartons[$evidence->batch_id]) ? $all_cartons[$evidence->batch_id] : array();
                                 ?>
                                     <tr>
                                         <td><strong><?php echo esc_html($evidence->batch_id); ?></strong></td>
@@ -84,17 +104,23 @@ $users_with_payments = $wpdb->get_results("
                                         </td>
                                         <td>
                                             <?php if ($cartons): ?>
-                                                <button class="button button-small button-secondary mb-1" onclick="toggleCartons('<?php echo $evidence->id; ?>')">
+                                                <?php $evidence_key = esc_attr($user->user_id . '-' . $evidence->batch_id); ?>
+                                                <button class="button button-small button-secondary mb-1" onclick="toggleCartons('<?php echo $evidence_key; ?>')">
                                                     📦 <?php echo count($cartons); ?> Cartons
                                                 </button>
-                                                <div id="cartons-<?php echo $evidence->id; ?>" style="display:none; padding: 10px; background: #f8fafc; border-radius: 6px; margin-top: 5px;">
+                                                <div id="cartons-<?php echo $evidence_key; ?>" style="display:none; padding: 10px; background: #f8fafc; border-radius: 6px; margin-top: 5px;">
                                                     <div style="display:flex; flex-wrap:wrap; gap:10px;">
                                                     <?php foreach ($cartons as $carton): ?>
+                                                        <?php
+                                                        $carton_photos = array_values(array_filter(array_map('trim', explode(',', (string) $carton->carton_image))));
+                                                        $carton_photo = $carton_photos ? $carton_photos[0] : '';
+                                                        ?>
                                                         <div class="text-center p-2 border rounded bg-white">
-                                                            <?php if ($carton->images): ?>
-                                                                <img src="<?php echo esc_url($carton->images); ?>"
+                                                            <?php if ($carton_photo): ?>
+                                                                <img src="<?php echo esc_url($carton_photo); ?>"
+                                                                     loading="lazy" decoding="async"
                                                                      style="width:50px; height:50px; object-fit:cover; border-radius:4px; cursor:pointer; border: 1px solid #ddd; display:block; margin:0 auto 5px;"
-                                                                     onclick="openFullscreen('<?php echo esc_js($carton->images); ?>')">
+                                                                     onclick="openFullscreen('<?php echo esc_js($carton_photo); ?>')">
                                                             <?php endif; ?>
                                                             <small class="d-block w-100 fw-bold">#<?php echo $carton->carton_number; ?></small>
                                                             <small class="text-muted"><?php echo $carton->weight_kg; ?>kg</small>

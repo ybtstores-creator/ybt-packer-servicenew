@@ -460,8 +460,5 @@ jQuery(document).ready(function($) {
             }
         });
     }
-
-    loadSecurityData();
-    setInterval(loadSecurityData, 60000);
 });
 </script>

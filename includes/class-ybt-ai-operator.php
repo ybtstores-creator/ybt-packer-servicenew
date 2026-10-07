@@ -1,6 +1,6 @@
 <?php
 /**
- * YBT Packer Service — AI System Operator Assistant
+ * YBT Packing Service — AI System Operator Assistant
  * Automated Operations, System Health Diagnostics, and AI Automation Suite
  *
  * @package YBT_Packer
@@ -84,8 +84,8 @@ class YBT_AI_Operator {
         );
 
         // 7. Security & HTTPS Status
-        $is_ssl = is_ssl();
-        $jwt_secret_configured = !empty(get_option('ybt_jwt_secret_key'));
+        $is_ssl = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+        $jwt_secret_configured = !empty(get_option('ybt_jwt_secret'));
 
         return array(
             'timestamp'             => current_time('mysql'),
@@ -117,64 +117,33 @@ class YBT_AI_Operator {
      * Delete physical image files and clear image database fields for tracking numbers older than X months
      */
     public function prune_images_older_than_months($months = 5, $dry_run = false) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ybt_tracking';
         $months = max(1, intval($months));
 
-        // Get records with images older than $months (based on date_completed, date_received, or date_added)
-        $records = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, tracking_number, images, date_added, date_received, date_completed
-             FROM {$table_name}
-             WHERE images IS NOT NULL AND images != ''
-             AND COALESCE(date_completed, date_received, date_added) < DATE_SUB(NOW(), INTERVAL %d MONTH)",
-            $months
-        ));
+        // Build the deletion plan through the shared cleanup engine — the same
+        // planner /data/preview and /data/delete use — then optionally execute.
+        $plan = array(
+            'files'        => array(),
+            'rows'         => array(),
+            'count'        => 0,
+            'size_bytes'   => 0,
+            'rows_matched' => 0,
+            'refs_found'   => 0,
+        );
+        if (class_exists('YBT_File_Handler')) {
+            $plan = YBT_File_Handler::plan_tracking_images(array('months' => $months));
+        }
 
-        $total_records = count($records);
-        $total_images = 0;
+        $total_records = (int) $plan['rows_matched'];
+        $total_images  = (int) $plan['refs_found'];
         $deleted_files_count = 0;
         $freed_bytes = 0;
-        $upload_dir = wp_upload_dir();
-        $base_url = $upload_dir['baseurl'];
-        $base_dir = $upload_dir['basedir'];
 
-        foreach ($records as $row) {
-            $raw_images = explode(',', $row->images);
-            $raw_images = array_filter(array_map('trim', $raw_images));
-
-            foreach ($raw_images as $img_url) {
-                $total_images++;
-
-                // Convert URL to local path safely
-                $file_path = false;
-                if (strpos($img_url, $base_url) !== false) {
-                    $file_path = str_replace($base_url, $base_dir, $img_url);
-                } elseif (strpos($img_url, 'wp-content/uploads') !== false) {
-                    $rel_path = strstr($img_url, 'wp-content/uploads');
-                    $file_path = ABSPATH . $rel_path;
-                }
-
-                if (!$dry_run && $file_path && file_exists($file_path)) {
-                    $real_file = realpath($file_path);
-                    $real_basedir = realpath($base_dir);
-                    if ($real_file && $real_basedir && strpos($real_file, $real_basedir) === 0) {
-                        $file_size = filesize($real_file);
-                        if (@unlink($real_file)) {
-                            $deleted_files_count++;
-                            $freed_bytes += $file_size;
-                        }
-                    }
-                }
-            }
-
-            if (!$dry_run) {
-                // Clear images field in DB
-                $wpdb->update(
-                    $table_name,
-                    array('images' => ''),
-                    array('id' => $row->id)
-                );
-            }
+        if (!$dry_run && class_exists('YBT_File_Handler')) {
+            // Deletes files and clears the images columns through the unified
+            // executor (containment-checked, owner-scoped field clearing).
+            $res = YBT_File_Handler::execute_data_cleanup($plan, true);
+            $deleted_files_count = (int) $res['deleted_files'];
+            $freed_bytes         = (int) $res['freed_bytes'];
         }
 
         if (!$dry_run && function_exists('ybt_log_error')) {
@@ -289,7 +258,7 @@ class YBT_AI_Operator {
         }
 
         $diag = $this->run_full_diagnostics();
-        $report = "=== YBT PACKER OPERATIONAL REPORT (" . date('Y-m-d H:i') . ") ===\n";
+        $report = "=== YBT PACKING SERVICE OPERATIONAL REPORT (" . date('Y-m-d H:i') . ") ===\n";
         $report .= "System Health Score: " . $diag['health_score'] . "%\n";
         $report .= "Database Storage: " . $diag['db_size_mb'] . " MB\n";
         $report .= "Unclaimed Parcels: " . $diag['unclaimed_parcels'] . "\n";

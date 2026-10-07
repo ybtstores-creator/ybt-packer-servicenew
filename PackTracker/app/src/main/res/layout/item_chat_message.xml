@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:text="Sender"
         android:textColor="@color/green_primary"
-        android:textSize="12sp"
+        android:textSize="@dimen/text_caption"
         android:textStyle="bold" />
 
     <TextView
@@ -24,7 +24,7 @@
         android:padding="10dp"
         android:text="Message"
         android:textColor="@color/on_surface"
-        android:textSize="14sp" />
+        android:textSize="@dimen/text_body" />
 
     <TextView
         android:id="@+id/tvTime"
@@ -33,5 +33,5 @@
         android:layout_marginTop="2dp"
         android:text="12:00"
         android:textColor="@color/on_surface_variant"
-        android:textSize="10sp" />
+        android:textSize="@dimen/text_micro" />
 </LinearLayout>

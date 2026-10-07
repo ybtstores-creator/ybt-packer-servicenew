@@ -30,14 +30,22 @@ interface ApiService {
         @Field("email") email: String,
         @Field("password") password: String,
         @Field("mobile_number") mobile: String? = null
-    ): Call<ApiResponse<String>>
+    ): Call<ApiResponse<User>>
 
     @FormUrlEncoded
     @POST("wp-admin/admin-ajax.php")
     fun updateFcmToken(
         @Field("action") action: String = "ybt_mobile_update_fcm",
         @Field("fcm_token") fcmToken: String,
-        @Field("user_id") userId: Int
+        @Field("user_id") userId: Int = 0
+    ): Call<ApiResponse<String>>
+
+    /** Server-side token removal on logout (`unregister_fcm` handler). */
+    @FormUrlEncoded
+    @POST("wp-admin/admin-ajax.php")
+    fun unregisterFcmToken(
+        @Field("action") action: String = "ybt_mobile_unregister_token",
+        @Field("fcm_token") fcmToken: String
     ): Call<ApiResponse<String>>
 
     // ═══════════════════════════════════════════════
@@ -147,8 +155,38 @@ interface ApiService {
 
     @GET("wp-admin/admin-ajax.php")
     fun getNotifications(
-        @Query("action") action: String = "ybt_mobile_notifications_v2"
+        @Query("action") action: String = "ybt_mobile_notifications_v2",
+        @Query("limit") limit: Int = 25
     ): Call<ApiResponse<List<NotificationItem>>>
+
+    /** Cheap badge poll: { last_id, unread }. */
+    @GET("wp-admin/admin-ajax.php")
+    fun getUnreadNotificationCount(
+        @Query("action") action: String = "ybt_mobile_notifications_unread"
+    ): Call<ApiResponse<UnreadData>>
+
+    /** Customer-facing event timeline for one parcel, newest-first. */
+    @GET("wp-admin/admin-ajax.php")
+    fun getParcelTimeline(
+        @Query("action") action: String = "ybt_mobile_parcel_timeline",
+        @Query("tracking_id") trackingId: Int,
+        @Query("limit") limit: Int = 25,
+        @Query("offset") offset: Int = 0
+    ): Call<ApiResponse<TimelineData>>
+
+    /** Unread admin announcements — popped as a dialog at login until dismissed. */
+    @GET("wp-admin/admin-ajax.php")
+    fun getAnnouncements(
+        @Query("action") action: String = "ybt_mobile_announcements_unread"
+    ): Call<ApiResponse<List<NotificationItem>>>
+
+    /** Acknowledge one announcement ("Got it" on the login popup). */
+    @FormUrlEncoded
+    @POST("wp-admin/admin-ajax.php")
+    fun dismissAnnouncement(
+        @Field("action") action: String = "ybt_mobile_announcements_dismiss",
+        @Field("id") id: Int
+    ): Call<ApiResponse<String>>
 
     // ═══════════════════════════════════════════════
     // ORDERS — Payment

@@ -54,9 +54,17 @@ function ybt_get_user_chat_handler() {
         $wpdb->update($wpdb->prefix . 'ybt_chat', array('is_read' => 1), array('user_id' => $target_user_id, 'is_admin' => 1, 'is_read' => 0));
     }
 
+    // Bound history: latest 500 messages. Conversations grow forever and this
+    // endpoint is re-fetched on every send/poll, so it must never return the
+    // whole table for a user.
+    $chat_history_limit = (int) apply_filters('ybt_chat_history_limit', 500);
     $messages = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$wpdb->prefix}ybt_chat WHERE user_id = %d ORDER BY date_created ASC",
-        $target_user_id
+        "SELECT * FROM (
+            SELECT * FROM {$wpdb->prefix}ybt_chat WHERE user_id = %d ORDER BY date_created DESC LIMIT %d
+         ) AS recent
+         ORDER BY date_created ASC",
+        $target_user_id,
+        $chat_history_limit
     ));
 
     wp_send_json_success($messages);
@@ -112,9 +120,15 @@ function ybt_get_chat_messages_handler() {
         wp_send_json_error('Not logged in');
     }
 
+    // Bound history: latest 500 messages (customer support chat path).
+    $chat_history_limit = (int) apply_filters('ybt_chat_history_limit', 500);
     $messages = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$wpdb->prefix}ybt_chat WHERE user_id = %d ORDER BY date_created ASC",
-        $current_user_id
+        "SELECT * FROM (
+            SELECT * FROM {$wpdb->prefix}ybt_chat WHERE user_id = %d ORDER BY date_created DESC LIMIT %d
+         ) AS recent
+         ORDER BY date_created ASC",
+        $current_user_id,
+        $chat_history_limit
     ));
 
     // Map to template-expected format

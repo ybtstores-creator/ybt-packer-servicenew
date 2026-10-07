@@ -1,32 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Material 3 theme for PackTracker.
+  Colours resolve through values/colors.xml, which values-night/ recolours, so a
+  single theme definition serves both modes; only @bool/light_status_bar flips.
+-->
 <resources>
-
-    <style name="Theme.PackTracker" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.PackTracker" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Brand roles -->
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/primary_light</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/on_primary_container</item>
         <item name="colorSecondary">@color/secondary</item>
-        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorOnSecondary">@color/on_secondary</item>
+        <item name="colorSecondaryContainer">@color/secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/on_secondary_container</item>
+        <item name="colorTertiary">@color/tertiary</item>
+        <item name="colorOnTertiary">@color/on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/on_tertiary_container</item>
+
+        <!-- Surfaces -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/on_background</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>
-        <item name="android:colorBackground">@color/background</item>
-        <item name="colorSurfaceVariant">@color/grey_light</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
-        <item name="android:statusBarColor">@color/green_primary</item>
+        <item name="colorSurfaceContainerLowest">@color/surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_container_highest</item>
+        <item name="colorSurfaceBright">@color/surface_bright</item>
+        <item name="colorSurfaceDim">@color/surface_dim</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
+        <item name="android:colorControlHighlight">@color/outline_variant</item>
+
+        <!-- Feedback -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/on_error</item>
+        <item name="colorErrorContainer">@color/error_container</item>
+        <item name="colorOnErrorContainer">@color/on_error_container</item>
+        <item name="colorControlNormal">@color/on_surface_variant</item>
+        <item name="android:windowLightStatusBar">@bool/light_status_bar</item>
+        <item name="android:statusBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowBackground">@drawable/bg_kraft_canvas</item>
+
+        <!-- Component defaults -->
+        <item name="materialCardViewStyle">@style/Widget.PackTracker.Card</item>
+        <item name="bottomSheetStyle">@style/Widget.PackTracker.BottomSheet</item>
+        <item name="toolbarStyle">@style/Widget.PackTracker.Toolbar</item>
+        <item name="bottomNavigationStyle">@style/Widget.PackTracker.BottomNavigation</item>
     </style>
 
-    <!-- Shared widget styles used across layouts -->
-    <style name="Widget.PackTracker.Button" parent="Widget.Material3.Button">
-        <item name="android:textColor">@color/white</item>
-        <item name="backgroundTint">@color/green_primary</item>
-        <item name="cornerRadius">12dp</item>
+    <style name="Theme.PackTracker.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
     </style>
+
+    <style name="Theme.PackTracker.AppBarOverlay" parent="ThemeOverlay.Material3.Dark" />
+
+    <style name="Theme.PackTracker.PopupOverlay" parent="ThemeOverlay.Material3.Light" />
+
+    <style name="Theme.PackTracker.Login" parent="Theme.PackTracker">
+        <item name="android:windowBackground">@color/surface</item>
+        <item name="android:statusBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowLightStatusBar">@bool/light_status_bar</item>
+    </style>
+
+    <style name="Theme.PackTracker.Register" parent="Theme.PackTracker">
+        <item name="android:windowBackground">@drawable/bg_kraft_canvas</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">@bool/light_status_bar</item>
+    </style>
+
+    <!-- ==================== Component styles ==================== -->
 
     <style name="Widget.PackTracker.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/green_primary</item>
-        <item name="boxCornerRadiusTopStart">12dp</item>
-        <item name="boxCornerRadiusTopEnd">12dp</item>
-        <item name="boxCornerRadiusBottomStart">12dp</item>
-        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/radius_md</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/radius_md</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/radius_md</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/radius_md</item>
+        <item name="hintTextColor">@color/primary</item>
+    </style>
+
+    <style name="Widget.PackTracker.Button" parent="Widget.Material3.Button">
+        <item name="android:textColor">@color/on_primary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="backgroundTint">@color/primary</item>
+    </style>
+
+    <style name="Widget.PackTracker.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/surface</item>
+        <item name="strokeColor">@color/card_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cardCornerRadius">@dimen/radius_card</item>
+        <item name="cardElevation">@dimen/elevation_card</item>
+    </style>
+
+    <style name="Widget.PackTracker.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/surface</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.PackTracker.BottomSheet</item>
+    </style>
+
+    <style name="ShapeAppearance.PackTracker.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="Widget.PackTracker.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:background">@color/surface</item>
+        <item name="itemIconTint">@color/bottom_nav_color</item>
+        <item name="itemTextColor">@color/bottom_nav_color</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
+    <style name="Widget.PackTracker.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/surface</item>
+        <item name="titleTextAppearance">@style/TextAppearance.PackTracker.ToolbarTitle</item>
+        <item name="titleTextColor">@color/on_surface</item>
+        <item name="subtitleTextColor">@color/on_surface_variant</item>
+        <item name="navigationIconTint">@color/on_surface</item>
+    </style>
+
+    <style name="TextAppearance.PackTracker.Badge" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_micro</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="Widget.PackTracker.Badge" parent="">
+        <item name="android:textAppearance">@style/TextAppearance.PackTracker.Badge</item>
+        <item name="android:paddingLeft">@dimen/space_8</item>
+        <item name="android:paddingRight">@dimen/space_8</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
     </style>
 </resources>

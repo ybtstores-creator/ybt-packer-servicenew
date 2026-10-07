@@ -31,6 +31,7 @@ import com.packtracker.api.ApiClient
 import com.packtracker.models.ApiResponse
 import com.packtracker.models.ChatData
 import com.packtracker.models.ChatMessage
+import com.packtracker.utils.Session
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -78,6 +79,7 @@ class AdminChatConversationFragment : Fragment() {
     private var cameraImageFile: File? = null
     private val handler = Handler(Looper.getMainLooper())
     private var autoRefreshRunnable: Runnable? = null
+    private var currentSheet: com.google.android.material.bottomsheet.BottomSheetDialog? = null
 
     private val galleryLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -118,6 +120,14 @@ class AdminChatConversationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Role guard: non-admins must never access the admin conversation screen
+        if (!Session.isAdmin(requireContext())) {
+            try {
+                findNavController().popBackStack(R.id.dashboardFragment, false)
+            } catch (_: Exception) {}
+            return
+        }
+
         rvMessages = view.findViewById(R.id.rvMessages)
         tvEmpty = view.findViewById(R.id.tvEmpty)
         tvToolbarTitle = view.findViewById(R.id.tvToolbarTitle)
@@ -136,7 +146,7 @@ class AdminChatConversationFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.btnBack).setOnClickListener {
-            findNavController().popBackStack()
+            try { findNavController().popBackStack() } catch (_: Exception) {}
         }
 
         btnSend.setOnClickListener {
@@ -172,6 +182,8 @@ class AdminChatConversationFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        currentSheet?.dismiss()
+        currentSheet = null
         super.onDestroyView()
         stopAutoRefresh()
     }
@@ -307,6 +319,7 @@ class AdminChatConversationFragment : Fragment() {
             val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", file)
             val intent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).apply {
                 putExtra(android.provider.MediaStore.EXTRA_OUTPUT, uri)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             cameraLauncher.launch(intent)
         } catch (e: Exception) {
@@ -392,6 +405,7 @@ class AdminChatConversationFragment : Fragment() {
                 .replace("https://localhost/", "https://10.0.2.2/")
                 .replace("http://127.0.0.1/", "http://10.0.2.2/")
             val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
+            currentSheet = dialog
             val iv = ImageView(requireContext())
             iv.adjustViewBounds = true
             Glide.with(this).load(url).into(iv)

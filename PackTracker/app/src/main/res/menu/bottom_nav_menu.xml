@@ -13,11 +13,11 @@
         android:icon="@drawable/ic_add"
         android:title="Add" />
     <item
-        android:id="@+id/packingFragment"
-        android:icon="@drawable/ic_folder"
-        android:title="Packing" />
-    <item
         android:id="@+id/chatFragment"
         android:icon="@drawable/ic_send"
         android:title="Chat" />
+    <item
+        android:id="@+id/notificationsFragment"
+        android:icon="@drawable/ic_notifications"
+        android:title="Alerts" />
 </menu>

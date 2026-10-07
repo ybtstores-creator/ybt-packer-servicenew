@@ -12,6 +12,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.packtracker.R
 import com.packtracker.api.ApiClient
 import com.packtracker.models.ApiResponse
+import com.packtracker.models.User
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -62,8 +63,8 @@ class RegisterActivity : AppCompatActivity() {
         showLoading(true)
 
         ApiClient.getService(this).register(username = username, email = email, password = password)
-            .enqueue(object : Callback<ApiResponse<String>> {
-                override fun onResponse(call: Call<ApiResponse<String>>, response: Response<ApiResponse<String>>) {
+            .enqueue(object : Callback<ApiResponse<User>> {
+                override fun onResponse(call: Call<ApiResponse<User>>, response: Response<ApiResponse<User>>) {
                     showLoading(false)
                     val body = response.body()
                     if (response.isSuccessful && body?.success == true) {
@@ -75,7 +76,7 @@ class RegisterActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<ApiResponse<String>>, t: Throwable) {
+                override fun onFailure(call: Call<ApiResponse<User>>, t: Throwable) {
                     showLoading(false)
                     Toast.makeText(this@RegisterActivity, "Network error: ${t.message}", Toast.LENGTH_LONG).show()
                 }

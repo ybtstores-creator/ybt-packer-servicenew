@@ -106,8 +106,8 @@ function ybt_mobile_tracking_handler() {
 
     wp_send_json(['success' => true, 'data' => ['items' => $items]]);
 }
-add_action('wp_ajax_ybt_mobile_tracking', 'ybt_mobile_tracking_handler');
-add_action('wp_ajax_nopriv_ybt_mobile_tracking', 'ybt_mobile_tracking_handler');
+// Note: ybt_mobile_tracking is registered by YBT_API_Router (YBT_API_Tracking_Handler).
+// Handlers here are preserved for direct procedural references.
 
 /**
  * Add tracking number
@@ -209,114 +209,9 @@ function ybt_mobile_add_tracking_handler() {
 
     wp_send_json(['success' => true, 'message' => 'Added successfully as not_received']);
 }
-add_action('wp_ajax_ybt_mobile_add_tracking', 'ybt_mobile_add_tracking_handler');
-// FIXED: Android app authenticates via JWT Bearer token, not WordPress session cookies.
-// WordPress sees token-only requests as unauthenticated (nopriv), so we must register both.
-// The handler itself validates the JWT token, so this is safe — unauthenticated requests
-// (no token or invalid token) are rejected inside the handler with a 401.
-add_action('wp_ajax_nopriv_ybt_mobile_add_tracking', 'ybt_mobile_add_tracking_handler');
-/**
- * Handle mobile status update via scan
- * FIXED: Support token from Authorization header and GET/POST parameters
- */
-function ybt_mobile_scan_handler() {
-    ybt_clear_output_buffers();
-    
-    // FIXED: Check Authorization header first, then fallback to POST
-    $token = '';
-    if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-        $auth_header = sanitize_text_field(wp_unslash($_SERVER['HTTP_AUTHORIZATION']));
-        if (preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
-            $token = trim($matches[1]);
-        }
-    } elseif (!empty($_POST['token'])) {
-        $token = sanitize_text_field(wp_unslash($_POST['token']));
-    }
-    
-    $token_data = ybt_validate_mobile_token($token);
-    if (!$token_data) {
-        wp_send_json_error('Unauthorized');
-        return;
-    }
-
-    // FIXED: Support both POST and GET for barcode parameter
-    $barcode = isset($_POST['barcode']) ? sanitize_text_field(wp_unslash($_POST['barcode'])) : (isset($_GET['barcode']) ? sanitize_text_field(wp_unslash($_GET['barcode'])) : '');
-    $barcode = strtoupper(trim($barcode));
-    
-    if (empty($barcode)) {
-        wp_send_json_error('No barcode');
-        return;
-    }
-
-    global $wpdb;
-
-    if (function_exists('ybt_table_exists') && !ybt_table_exists($wpdb->prefix . 'ybt_tracking')) {
-        wp_send_json_error('Tracking table does not exist');
-        return;
-    }
-
-    $item = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM {$wpdb->prefix}ybt_tracking WHERE UPPER(tracking_number) = %s",
-        $barcode
-    ));
-
-    $user = get_userdata($token_data['user_id']);
-    $is_admin = ($user && user_can($user->ID, 'manage_options'));
-
-    if (!$item) {
-        // Auto-add if admin is scanning
-        if ($is_admin) {
-            $wpdb->insert($wpdb->prefix . 'ybt_tracking', [
-                'tracking_number' => $barcode,
-                'status' => 'received',
-                'date_added' => current_time('mysql'),
-                'date_received' => current_time('mysql'),
-                'user_id' => 0, // Anonymous
-                'username' => 'Anonymous'
-            ]);
-            // Audit: attribute the auto-add to the admin who scanned it
-            if ($wpdb->insert_id && class_exists('YBT_Tracking_Audit')) {
-                YBT_Tracking_Audit::log_edit((int) $wpdb->insert_id, 'create', array(), array(
-                    'summary'         => 'Created via barcode scan (auto-add)',
-                    'tracking_number' => $barcode,
-                    'admin_id'        => (int) $token_data['user_id'],
-                    'source'          => 'mobile',
-                    'log_activity'    => false,
-                ));
-            }
-            wp_send_json_success(['message' => 'New item added and marked received', 'id' => $wpdb->insert_id]);
-            return;
-        }
-        wp_send_json_error('Item not found');
-        return;
-    }
-
-    // If item exists and scanned by admin, mark as received
-    if ($is_admin && $item->status === 'not_received') {
-        // Audit: attribute the scan action to the admin who scanned it
-        if (class_exists('YBT_Tracking_Audit')) {
-            YBT_Tracking_Audit::apply_update($item->id, [
-                'status' => 'received',
-                'date_received' => current_time('mysql')
-            ], 'status_change', [
-                'before'   => $item,
-                'summary'  => 'Marked received via barcode scan',
-                'admin_id' => (int) $token_data['user_id'],
-                'source'   => 'mobile',
-            ]);
-        } else {
-            $wpdb->update($wpdb->prefix . 'ybt_tracking', [
-                'status' => 'received',
-                'date_received' => current_time('mysql')
-            ], ['id' => $item->id]);
-        }
-        
-        // Refresh item data
-        $item->status = 'received';
-        $item->date_received = current_time('mysql');
-    }
-
-    wp_send_json_success(['tracking' => $item]);
-}
-add_action('wp_ajax_ybt_mobile_scan', 'ybt_mobile_scan_handler');
-add_action('wp_ajax_nopriv_ybt_mobile_scan', 'ybt_mobile_scan_handler');
+// Note: ybt_mobile_add_tracking is registered by YBT_API_Router (YBT_API_Tracking_Handler).
+// Barcode scanning is registered centrally as `ybt_mobile_scan_barcode` (YBT_API_Router →
+// YBT_API_Admin_Handler::scan_barcode, admin-only). The legacy `ybt_mobile_scan` action and its
+// handler were removed: no callers existed anywhere in the codebase, and it duplicated the
+// canonical endpoint with weaker auth (any valid mobile token vs. require_admin). Use
+// `ybt_mobile_scan_barcode` for scan-based status updates.

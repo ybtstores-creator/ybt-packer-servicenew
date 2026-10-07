@@ -2,7 +2,7 @@
 /**
  * YBT Packing Request Assets
  * Handles enqueuing packing request functionality assets.
- * Loaded as part of the YBT Packer Service plugin.
+ * Loaded as part of the YBT Packing Service plugin.
  */
 
 // Exit if accessed directly

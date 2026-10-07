@@ -15,6 +15,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.packtracker.R
 import com.packtracker.api.ApiClient
 import com.packtracker.models.ApiResponse
 import com.packtracker.models.TrackingEditEntry
@@ -59,16 +60,16 @@ class EditHistoryDialogFragment : BottomSheetDialogFragment() {
     private var listContainer: LinearLayout? = null
     private var loadingView: View? = null
 
-    // Palette
-    private val colorPrimary = 0xFF2563EB.toInt()
-    private val colorTextDark = 0xFF1E293B.toInt()
-    private val colorTextMuted = 0xFF64748B.toInt()
-    private val colorTextFaint = 0xFF94A3B8.toInt()
-    private val colorBgCard = 0xFFF8FAFC.toInt()
-    private val colorBgBadge = 0xFFEFF6FF.toInt()
-    private val colorRed = 0xFFB91C1C.toInt()
-    private val colorGreen = 0xFF15803D.toInt()
-    private val colorBorder = 0xFFE2E8F0.toInt()
+    // Palette resolved from the brand colour resources, so the dialog follows night mode.
+    private val colorPrimary get() = requireContext().getColor(R.color.primary)
+    private val colorTextDark get() = requireContext().getColor(R.color.on_surface)
+    private val colorTextMuted get() = requireContext().getColor(R.color.on_surface_variant)
+    private val colorTextFaint get() = requireContext().getColor(R.color.outline)
+    private val colorBgCard get() = requireContext().getColor(R.color.surface_container_low)
+    private val colorBgBadge get() = requireContext().getColor(R.color.primary_light)
+    private val colorRed get() = requireContext().getColor(R.color.error)
+    private val colorGreen get() = requireContext().getColor(R.color.status_completed)
+    private val colorBorder get() = requireContext().getColor(R.color.card_stroke)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -13,9 +13,11 @@ if (!defined('ABSPATH')) {
 function ybt_ajax_login_handler() {
     // Security: Enforce HTTPS for authentication (optionally bypassed for localhost/development)
     $enforce_https = get_option('ybt_enforce_https', '1') === '1';
-    $is_local = in_array($_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+    $remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $is_local = in_array($remote_ip, array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+    $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
     
-    if ($enforce_https && !is_ssl() && !$is_local) {
+    if ($enforce_https && !$is_https && !$is_local) {
         wp_send_json_error('Security error: Please use HTTPS to log in.');
         return;
     }
@@ -41,7 +43,7 @@ function ybt_ajax_login_handler() {
         'user_login'    => $username,
         'user_password' => $password,
         'remember'      => $remember
-    ), is_ssl());
+    ), $is_https);
 
     if (is_wp_error($user)) {
         if (function_exists('ybt_log_activity')) {
@@ -52,7 +54,7 @@ function ybt_ajax_login_handler() {
     }
 
     wp_set_current_user($user->ID);
-    wp_set_auth_cookie($user->ID, $remember, is_ssl());
+    wp_set_auth_cookie($user->ID, $remember, $is_https);
 
     if (function_exists('ybt_log_activity')) {
         ybt_log_activity($user->ID, 'login', 'User logged in successfully.');
@@ -80,8 +82,10 @@ function ybt_register_user_handler() {
     // Security: Enforce HTTPS for registration (bypass for localhost/dev, matching
     // the ybt_ajax_login_handler policy so HTTP sites can still register).
     $enforce_https = get_option('ybt_enforce_https', '1') === '1';
-    $is_local = in_array($_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
-    if ($enforce_https && !is_ssl() && !$is_local) {
+    $remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $is_local = in_array($remote_ip, array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+    $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+    if ($enforce_https && !$is_https && !$is_local) {
         wp_send_json_error('Security error: Please use HTTPS to register.');
         return;
     }
@@ -136,11 +140,14 @@ function ybt_register_user_handler() {
     // Save Mobile Number
     update_user_meta($user_id, 'ybt_mobile_number', $mobile_number);
 
-    // Assign Custom YBT ID
-    global $wpdb;
-    $max_id = $wpdb->get_var("SELECT MAX(CAST(SUBSTRING(meta_value, 4) AS UNSIGNED)) FROM {$wpdb->usermeta} WHERE meta_key = 'ybt_custom_user_id'");
-    $next_id = 'YBT' . str_pad(($max_id ? intval($max_id) + 1 : 1), 4, '0', STR_PAD_LEFT);
-    update_user_meta($user_id, 'ybt_custom_user_id', $next_id);
+    // Assign Custom YBT ID (the user_register hook usually already did this)
+    $custom_user_id = get_user_meta($user_id, 'ybt_custom_user_id', true);
+    if (empty($custom_user_id) || 'Pending' === $custom_user_id) {
+        global $wpdb;
+        $max_id = $wpdb->get_var("SELECT MAX(CAST(SUBSTRING(meta_value, 4) AS UNSIGNED)) FROM {$wpdb->usermeta} WHERE meta_key = 'ybt_custom_user_id'");
+        $custom_user_id = 'YBT' . str_pad(($max_id ? intval($max_id) + 1 : 1), 4, '0', STR_PAD_LEFT);
+        update_user_meta($user_id, 'ybt_custom_user_id', $custom_user_id);
+    }
 
     wp_set_current_user($user_id);
     wp_set_auth_cookie($user_id);
@@ -185,8 +192,12 @@ add_action('wp_ajax_ybt_update_profile', 'ybt_update_profile_handler');
  * Handle password reset request
  */
 function ybt_reset_password_request_handler() {
-    // Security: Enforce HTTPS for password reset
-    if (!is_ssl()) {
+    // Security: Enforce HTTPS for password reset (respect enforce_https setting and localhost/proxy)
+    $enforce_https = get_option('ybt_enforce_https', '1') === '1';
+    $remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $is_local = in_array($remote_ip, array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+    $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+    if ($enforce_https && !$is_https && !$is_local) {
         wp_send_json_error('Security error: Please use HTTPS.');
         return;
     }
@@ -265,8 +276,12 @@ add_action('wp_ajax_nopriv_ybt_reset_password_request', 'ybt_reset_password_requ
  * Uses the WP core reset key (get_password_reset_key) issued in step 1.
  */
 function ybt_reset_password_process_handler() {
-    // Security: Enforce HTTPS for password reset
-    if (!is_ssl()) {
+    // Security: Enforce HTTPS for password reset (respect enforce_https setting and localhost/proxy)
+    $enforce_https = get_option('ybt_enforce_https', '1') === '1';
+    $remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $is_local = in_array($remote_ip, array('127.0.0.1', '::1')) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+    $is_https = function_exists('ybt_is_https') ? ybt_is_https() : is_ssl();
+    if ($enforce_https && !$is_https && !$is_local) {
         wp_send_json_error('Security error: Please use HTTPS.');
         return;
     }

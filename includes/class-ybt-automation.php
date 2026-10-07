@@ -200,8 +200,8 @@ class YBT_Automation {
         $today = date('Y-m-d');
         
         // Stats
-        $received_today = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE DATE(date_created) = %s", $today));
-        $packed_today = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE status = 'packed' AND DATE(updated_at) = %s", $today));
+        $received_today = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE DATE(date_received) = %s", $today));
+        $packed_today = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}ybt_tracking WHERE status = 'packed' AND DATE(date_packed) = %s", $today));
         
         // Pipeline summary
         $summary = $wpdb->get_results("SELECT status, COUNT(*) as count FROM {$wpdb->prefix}ybt_tracking GROUP BY status");
@@ -233,7 +233,7 @@ class YBT_Automation {
                 <?php endforeach; ?>
             </table>
             
-            <p style="margin-top:30px;font-size:12px;color:#999;">This is an automated report from your YBT Packer Service.</p>
+            <p style="margin-top:30px;font-size:12px;color:#999;">This is an automated report from your YBT Packing Service.</p>
         </div>
         <?php
         $msg = ob_get_clean();
@@ -252,7 +252,7 @@ class YBT_Automation {
 
         $stale_items = $wpdb->get_results($wpdb->prepare(
             "SELECT id, tracking_number, username FROM {$wpdb->prefix}ybt_tracking 
-             WHERE status = 'received' AND updated_at < %s",
+             WHERE status = 'received' AND date_received IS NOT NULL AND date_received < %s",
             $cutoff_date
         ));
 

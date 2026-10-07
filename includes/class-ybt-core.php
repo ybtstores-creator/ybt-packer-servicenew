@@ -1,6 +1,6 @@
 <?php
 /**
- * YBT Packer Service Core Class - FIXED VERSION
+ * YBT Packing Service Core Class
  * Handles plugin initialization with proper architecture
  */
 if (!defined('ABSPATH')) {
@@ -124,18 +124,18 @@ class YBT_Core {
         $page_slug = $queried_object->post_name ?? '';
 
         $descriptions = array(
-            'home'                => 'YBT Packer Service - Fast, secure package receiving, consolidation, and international freight forwarding service.',
-            'login'               => 'Login to your YBT Packer Service account to manage your received parcels, tracking, and packing requests.',
-            'register'            => 'Create your free YBT Packer Service account to start consolidating and shipping parcels worldwide.',
+            'home'                => 'YBT Packing Service - Fast, secure package receiving, consolidation, and international freight forwarding service.',
+            'login'               => 'Login to your YBT Packing Service account to manage your received parcels, tracking, and packing requests.',
+            'register'            => 'Create your free YBT Packing Service account to start consolidating and shipping parcels worldwide.',
             'dashboard'           => 'YBT Customer Dashboard - Track received parcels, view status updates, and manage forwarding requests.',
-            'add-tracking'        => 'Add tracking numbers to notify YBT Packer warehouse of incoming parcels.',
+            'add-tracking'        => 'Add tracking numbers to notify YBT Packing Service warehouse of incoming parcels.',
             'received'            => 'View parcels received at the YBT warehouse and submit packing requests.',
-            'not-received'        => 'View incoming parcels awaiting arrival at YBT Packer warehouse.',
+            'not-received'        => 'View incoming parcels awaiting arrival at YBT Packing Service warehouse.',
             'packing-in-progress' => 'Track parcel consolidation and packing progress in real time.',
             'packed'              => 'View packed carton details, photos, weights, and payment instructions.',
             'completed'           => 'View completed and dispatched parcel shipments.',
-            'profile'             => 'Manage your YBT Packer account profile and personal settings.',
-            'support'             => 'Contact YBT Packer customer support team.',
+            'profile'             => 'Manage your YBT Packing Service account profile and personal settings.',
+            'support'             => 'Contact YBT Packing Service customer support team.',
             'anonymous'           => 'Claim unclaimed parcels received at the YBT warehouse.',
         );
 
